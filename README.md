@@ -82,3 +82,29 @@ Ist unter „KI für Texte“ Claude oder Ollama gewählt, macht der Bot pro Vid
 3. In den ersten Sekunden steht oben eine Hook-Zeile im Bild (abschaltbar unter „Untertitel“).
 
 Änderst du Titel oder Beschreibung eines Clips im Dashboard, gilt deine Fassung für alle Plattformen.
+
+## Freigabe vor dem Hochladen
+
+Neue Clips landen unter **Freigabe** im Dashboard. Dort siehst du Video, Hook-Zeile, die Begründung der KI und die Texte je Plattform (umschalten über YouTube / TikTok / Instagram) und kannst sie ändern.
+
+- **Freigeben:** Der Clip wird beim nächsten Upload-Lauf hochgeladen (Knopf „Offene Clips hochladen“ oder `auto.bat`).
+- **Freigeben und hochladen:** sofort hochladen.
+- **Neu texten (KI):** Titel, Captions und Hashtags neu schreiben lassen.
+- **Verwerfen:** Der Clip bleibt unter „Clips“, wird aber nie hochgeladen.
+
+Willst du ohne Prüfung posten, setze `require_approval: false` in der `config.yaml`.
+
+## Erklärvideos (KI, animiert)
+
+ClipBot kann eigene deutsche Erklärvideos bauen, z. B. „Was passiert, wenn du Plastik verschluckst?“.
+
+1. Unter **Kanäle** einen Kanal mit der Art **„Eigene Erklärvideos“** anlegen (keine Quelladresse nötig) und die Konten verbinden.
+2. Unter **Einstellungen** eine KI wählen (Claude oder Ollama) und bei „Erklärvideos“ die Stimme einstellen.
+   - **ElevenLabs:** `ELEVENLABS_API_KEY` in `.env` eintragen (elevenlabs.io → Profil → API Keys). Die Voice-ID findest du in deiner Stimmen-Bibliothek.
+   - **Stumm:** kostenlose Vorschau ohne Sprecher, um Aussehen und Ablauf zu prüfen.
+3. **Node.js 22 oder neuer** installieren (nodejs.org). hyperframes wird beim ersten Video automatisch über `npx` geladen.
+4. Im Bereich **Erklärvideos** auf „Trends suchen“ klicken: ClipBot zeigt die meistgesehenen kurzen Erklärvideos dieses Monats auf YouTube und lässt die KI daraus eigene Themen ableiten. Eine Idee übernehmen oder ein eigenes Thema eintippen und „Video erstellen“ klicken.
+
+Länge: Die Videos sind standardmäßig 65 bis 90 Sekunden lang (Einstellungen → Erklärvideos), weil z. B. TikTok nur Videos über einer Minute vergütet. Ist ein Skript zu kurz, lässt der Bot es einmal ausbauen. Bleibt das fertige Video trotzdem unter einer Minute, steht eine Warnung in der Freigabe.
+
+Ablauf: Skript (KI) → Faktencheck (zweiter KI-Durchgang; bei Fehlern wird das Skript korrigiert) → Stimme mit Wortzeiten → Animation mit hyperframes (1080x1920) → das Video wartet unter **Freigabe**. Dort steht das Ergebnis des Faktenchecks. Lies es, bevor du freigibst, besonders bei Gesundheit und Politik.

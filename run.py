@@ -84,7 +84,9 @@ def process_video(channel: dict, s: dict, state: State, video: dict) -> int:
         out = render.render_clip(source, start, end, clip_dir / f"{clip_id}.mp4", ass,
                                  s["layout"], s["zoom"])
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
-                       texts["platforms"], hook, pick.get("reason", ""))
+                       texts["platforms"], hook, pick.get("reason", ""),
+                       "wartet" if s["require_approval"] else "freigegeben",
+                       viral.spoken_text(words, start, end))
         log.info("[%s] Clip %d fertig (%.0fs): %s", name, n, end - start, texts["title"])
 
     state.mark_video(info["id"], name, info["title"], "done")
@@ -96,6 +98,9 @@ def process_video(channel: dict, s: dict, state: State, video: dict) -> int:
 def make_clips(channel: dict, s: dict, state: State) -> int:
     """Die neuesten Videos des Kanals verarbeiten. Gibt die Zahl der neuen Clips zurueck."""
     name = channel["name"]
+    if channel.get("kind") == "explainer":
+        log.info("[%s] Erklaervideo-Kanal: Videos entstehen im Bereich 'Erklaervideos'.", name)
+        return 0
     videos = download.list_latest(channel["source_url"], s["videos_per_run"])
     todo = [v for v in videos if not state.video_done(v["id"])]
     made = sum(process_video(channel, s, state, video) for video in todo)
@@ -132,7 +137,10 @@ def upload_clips(channel: dict, s: dict, state: State) -> None:
     for platform in PLATFORMS:
         if platform not in channel["upload"]:
             continue
-        for clip in state.pending_clips(name, platform)[: s["max_uploads_per_run"]]:
+        pending = state.pending_clips(name, platform)
+        if not pending:
+            log.info("[%s] %s: kein freigegebener Clip offen.", name, platform)
+        for clip in pending[: s["max_uploads_per_run"]]:
             if not Path(clip["path"]).exists():
                 state.mark_upload(clip["clip_id"], platform, "ok", error="Datei fehlt, uebersprungen")
                 continue
