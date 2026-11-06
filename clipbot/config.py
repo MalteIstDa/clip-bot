@@ -39,6 +39,7 @@ DEFAULTS = {
     "youtube_category_id": "24",
     "privacy": "public",
     "instagram_api_version": "v26.0",
+    "require_approval": True,          # neue Clips erst nach Freigabe im Dashboard hochladen
     "ai_candidates": 6,                # so viele Stellen bewertet die KI je Video
     "hook_overlay": True,              # Hook-Zeile in den ersten Sekunden einblenden
     "ai_backend": "off",               # off | claude | ollama

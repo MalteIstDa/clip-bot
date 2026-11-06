@@ -143,8 +143,60 @@ def test_process_video_end_to_end(tmp_path, monkeypatch, fake_ai):
     made = run.process_video(CHANNEL, settings, st, {"id": "vid1", "title": "Test Stream", "url": "x"})
     assert made == 1
     clip = st.clips()[0]
-    assert clip["hook"] == "He did not expect this" and clip["reason"] == "stark"
+    assert clip["hook"] == "He did not expect this" and clip["reason"] == "stark" and clip["review"] == "wartet"
     probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                             "stream=width,height", "-of", "csv=p=0", clip["path"]], capture_output=True, text=True)
     assert probe.stdout.strip() == "1080,1920"
     assert "Hook" in (tmp_path / "n3on" / "clips" / "vid1_1" / "subs.ass").read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------- Freigabe (Phase 3)
+def test_only_approved_clips_are_pending(tmp_path):
+    st = State(tmp_path / "db.sqlite")
+    st.add_clip("a", "v", "n3on", "a.mp4", "A", "C", 0, 60)                       # wartet
+    st.add_clip("b", "v", "n3on", "b.mp4", "B", "C", 0, 60, review="freigegeben")
+    st.add_clip("c", "v", "n3on", "c.mp4", "C", "C", 0, 60, review="verworfen")
+    assert [r["clip_id"] for r in st.pending_clips("n3on", "youtube")] == ["b"]
+    st.set_review("a", "freigegeben")
+    assert {r["clip_id"] for r in st.pending_clips("n3on", "youtube")} == {"a", "b"}
+    with pytest.raises(ValueError):
+        st.set_review("a", "quatsch")
+
+
+def test_clips_payload_parses_texts_and_hides_transcript(tmp_path):
+    st = State(tmp_path / "db.sqlite")
+    st.add_clip("a", "v", "n3on", "a.mp4", "A", "C", 0, 60, {"tiktok": {"title": "A", "caption": "X"}},
+                transcript="geheim lang")
+    clip = st.clips()[0]
+    assert clip["texts"]["tiktok"]["caption"] == "X" and "transcript" not in clip and clip["review"] == "wartet"
+
+
+@pytest.fixture
+def dashboard(tmp_path, monkeypatch):
+    import app
+    settings = {**config.DEFAULTS, "work_dir": tmp_path, "ai_backend": "fake"}
+    cfg = {"settings": settings, "channels": [CHANNEL]}
+    monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
+    st = State(tmp_path / "state.sqlite")
+    st.mark_video("v", "n3on", "Stream 12", "done")
+    st.add_clip("a", "v", "n3on", str(tmp_path / "a.mp4"), "A", "C", 0, 60, transcript="Hello there")
+    st.close()
+    client = app.app.test_client()
+    post = lambda url, payload: client.post(url, json=payload, headers={"X-ClipBot": "1", "Host": "127.0.0.1:8765"})
+    return post, tmp_path
+
+
+def test_review_endpoints(dashboard, fake_ai):
+    post, tmp = dashboard
+    assert post("/api/clips/a/review", {"action": "approve"}).status_code == 200
+    assert State(tmp / "state.sqlite").get_clip("a")["review"] == "freigegeben"
+    assert post("/api/clips/a/review", {"action": "nix"}).status_code == 400
+    r = post("/api/clips/a/texts", {"platforms": {"youtube": {"title": "YT", "caption": "yt"},
+                                                  "tiktok": {"title": "YT", "caption": "tt #fyp"}}})
+    assert r.status_code == 200
+    row = State(tmp / "state.sqlite").get_clip("a")
+    assert State.texts_for(row, "tiktok") == ("YT", "tt #fyp") and row["title"] == "YT"
+    fake_ai.append(json.dumps(AI_TEXTS))
+    assert post("/api/clips/a/retext", {}).status_code == 200
+    row = State(tmp / "state.sqlite").get_clip("a")
+    assert State.texts_for(row, "youtube")[0].startswith("N3on gets the shock")

@@ -11,6 +11,7 @@ settings:
   clip_max_seconds: 120
   skip_start_seconds: 60     # Intro ignorieren
   skip_end_seconds: 30
+  require_approval: true     # neue Clips warten auf deine Freigabe im Dashboard, bevor sie hochgeladen werden
   max_uploads_per_run: 6     # je Plattform und Kanal
   keep_source_videos: false  # Quellvideo nach dem Schneiden loeschen
 

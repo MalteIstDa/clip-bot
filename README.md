@@ -82,3 +82,14 @@ Ist unter „KI für Texte“ Claude oder Ollama gewählt, macht der Bot pro Vid
 3. In den ersten Sekunden steht oben eine Hook-Zeile im Bild (abschaltbar unter „Untertitel“).
 
 Änderst du Titel oder Beschreibung eines Clips im Dashboard, gilt deine Fassung für alle Plattformen.
+
+## Freigabe vor dem Hochladen
+
+Neue Clips landen unter **Freigabe** im Dashboard. Dort siehst du Video, Hook-Zeile, die Begründung der KI und die Texte je Plattform (umschalten über YouTube / TikTok / Instagram) und kannst sie ändern.
+
+- **Freigeben:** Der Clip wird beim nächsten Upload-Lauf hochgeladen (Knopf „Offene Clips hochladen“ oder `auto.bat`).
+- **Freigeben und hochladen:** sofort hochladen.
+- **Neu texten (KI):** Titel, Captions und Hashtags neu schreiben lassen.
+- **Verwerfen:** Der Clip bleibt unter „Clips“, wird aber nie hochgeladen.
+
+Willst du ohne Prüfung posten, setze `require_approval: false` in der `config.yaml`.

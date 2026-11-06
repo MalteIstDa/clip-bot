@@ -132,6 +132,24 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .empty { padding: 44px 0; max-width: 48ch; }
 .empty h3 { margin-bottom: 8px; }
 
+/* Freigabe */
+.side nav .badge { margin-left: auto; min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--green);
+  color: var(--on-color); font-size: 0.75rem; font-weight: 700; text-align: center; }
+.review-card { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 22px; margin-bottom: 20px; }
+.review-card video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; display: block; }
+.review-card .hook { display: inline-block; padding: 4px 10px; border-radius: 8px; background: var(--ink); color: var(--bg);
+  font-weight: 700; font-size: 0.875rem; }
+.review-card .why { color: var(--muted); font-size: 0.9375rem; }
+.ptabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ptabs button { --c: var(--muted); border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); background: none;
+  border-radius: 999px; padding: 5px 12px; font-weight: 650; cursor: pointer; color: var(--c); }
+.ptabs button[aria-pressed="true"] { background: var(--c); color: var(--on-color); border-color: var(--c); }
+.ptabs button.yt { --c: var(--yt); } .ptabs button.tt { --c: var(--tt); } .ptabs button.ig { --c: var(--ig); }
+.review-state { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
+.review-state.wartet { background: color-mix(in srgb, var(--amber) 22%, transparent); color: var(--amber); }
+.review-state.verworfen { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+@media (max-width: 760px) { .review-card { grid-template-columns: 1fr; } .review-card video { max-width: 260px; } }
+
 /* Kanaele und Suche */
 .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .result { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px;
@@ -176,7 +194,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
 .platforms td:last-child { text-align: right; width: 1%; white-space: nowrap; }
 .platforms small { display: block; color: var(--muted); overflow-wrap: anywhere; font-weight: 400; }
 .dlg footer { display: flex; gap: 10px; margin-top: 22px; }
-.dlg footer .push { margin-left: auto; }
+.dlg footer .push, .row .push { margin-left: auto; }
 
 #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
   padding: 12px 18px; border-radius: 14px; max-width: min(560px, 90vw); display: none; z-index: 20; box-shadow: var(--shadow); }
@@ -209,6 +227,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   </div>
   <nav aria-label="Bereiche">
     <button data-view="overview" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>Übersicht</button>
+    <button data-view="review" style="--c:var(--green)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Freigabe<span class="badge" id="reviewBadge" hidden></span></button>
     <button data-view="clips" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor"/></svg></span>Clips</button>
     <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.2-5.5 6.5-5.5s5.9 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></span>Kanäle</button>
     <button data-view="settings" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
@@ -250,6 +269,15 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
         <div class="log" id="log" tabindex="0" aria-label="Protokoll"></div>
       </div>
     </div>
+  </section>
+
+  <section id="view-review" hidden>
+    <div class="pagehead">
+      <h2>Freigabe</h2>
+      <select id="reviewChannel" style="width:auto" aria-label="Kanal"></select>
+    </div>
+    <p class="muted" style="margin:-10px 0 18px">Neue Clips warten hier, bis du sie freigibst. Erst freigegebene Clips werden hochgeladen.</p>
+    <div id="reviewList"></div>
   </section>
 
   <section id="view-clips" hidden>
@@ -448,6 +476,8 @@ function renderOverview() {
 
   const todo = [];
   if (!data.setup.ffmpeg) todo.push("ffmpeg ist nicht installiert. Installiere es und starte ClipBot neu.");
+  const waiting = data.clips.filter(c => c.review === "wartet").length;
+  if (waiting) todo.push(`${waiting} ${waiting === 1 ? "Clip wartet" : "Clips warten"} unter „Freigabe“ auf dich.`);
   if (!data.channels.length) todo.push("Unter „Kanäle“ ist noch kein Quellkanal angelegt. Dort kannst du ihn auf YouTube suchen.");
   for (const ch of data.channels) for (const [p, [label]] of Object.entries(PLATFORMS)) {
     const a = ch.accounts[p];
@@ -503,7 +533,7 @@ function renderClips() {
       <div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
         <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}</span>
         <span class="title">${esc(c.title)}</span>
-        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span>
+        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
         <span class="lamps">${lamps(c)}</span></button>`).join("")}</div></div>`;
   }).join("");
 }
@@ -769,6 +799,89 @@ $("#settingsForm").addEventListener("submit", e => {
   act(() => api("/api/settings", payload), "Einstellungen gespeichert");
 });
 
+/* ---------- Freigabe ---------- */
+const reviewTab = {};      // clip_id -> gewaehlte Plattform
+const reviewDraft = {};    // clip_id -> {plattform: {title, caption}} (ungespeicherte Aenderungen)
+function clipTexts(clip) {
+  const base = {};
+  for (const p of Object.keys(PLATFORMS)) base[p] = { title: clip.texts?.[p]?.title || clip.title, caption: clip.texts?.[p]?.caption || clip.caption };
+  return { ...base, ...(reviewDraft[clip.clip_id] || {}) };
+}
+function reviewEditor(clip) {
+  const p = reviewTab[clip.clip_id] || "tiktok", t = clipTexts(clip)[p];
+  const tabs = Object.entries(PLATFORMS).map(([key, [label, , cls]]) =>
+    `<button type="button" class="${cls}" data-ptab="${key}" aria-pressed="${key === p}">${label}</button>`).join("");
+  return `<div class="ptabs">${tabs}</div>
+    <label class="field"><span>Titel (<span class="num">${t.title.length}</span> von 100 Zeichen${p === "youtube" ? "" : ", nur YouTube zeigt ihn"})</span>
+      <input type="text" maxlength="100" data-field="title" value="${esc(t.title)}"></label>
+    <label class="field"><span>Caption mit Hashtags (<span class="num">${t.caption.length}</span> Zeichen)</span>
+      <textarea maxlength="2200" data-field="caption">${esc(t.caption)}</textarea></label>`;
+}
+function renderReview() {
+  fillChannelSelect($("#reviewChannel"), "Alle Kanäle");
+  const channel = $("#reviewChannel").value;
+  const list = data.clips.filter(c => c.review === "wartet" && (!channel || c.channel === channel));
+  // Nicht neu zeichnen, solange jemand tippt oder ein Video läuft.
+  if (document.activeElement?.closest?.("#reviewList") || [...$$("#reviewList video")].some(v => !v.paused)) return;
+  if (!changed("review", [list.map(c => [c.clip_id, c.title, c.caption, c.texts, c.exists]), channel, data.job.running, reviewTab])) return;
+  if (!list.length) {
+    $("#reviewList").innerHTML = `<div class="empty"><h3>Nichts zu prüfen</h3><p class="muted">Neue Clips erscheinen hier, sobald ein Lauf sie erzeugt hat.</p></div>`;
+    return;
+  }
+  $("#reviewList").innerHTML = list.map(c => `<article class="panel review-card" data-review="${esc(c.clip_id)}">
+    <video controls playsinline preload="none" ${c.exists ? `src="/media/${encodeURIComponent(c.clip_id)}" poster="/thumb/${encodeURIComponent(c.clip_id)}"` : ""}></video>
+    <div class="stack">
+      <div class="row"><span class="tag" style="--c:${colorOf(c.channel)}">${esc(c.channel)}</span>
+        <span class="muted num">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span></div>
+      ${c.hook ? `<div><span class="muted">Hook im Video:</span> <span class="hook">${esc(c.hook)}</span></div>` : ""}
+      ${c.reason ? `<p class="why">KI: ${esc(c.reason)}</p>` : ""}
+      <div class="stack editor-box">${reviewEditor(c)}</div>
+      <div class="row">
+        <button class="btn fill" style="--c:var(--green)" data-act="approve">Freigeben</button>
+        <button class="btn fill teal" data-act="approve-upload" ${data.job.running ? "disabled" : ""}>Freigeben und hochladen</button>
+        ${data.settings.ai_backend !== "off" ? `<button class="btn" data-act="retext">Neu texten (KI)</button>` : ""}
+        <button class="btn danger push" data-act="reject">Verwerfen</button>
+      </div>
+    </div></article>`).join("");
+}
+$("#reviewChannel").addEventListener("change", () => { lastSig.review = null; renderReview(); });
+$("#reviewList").addEventListener("input", e => {
+  const card = e.target.closest("[data-review]"), field = e.target.dataset.field;
+  if (!card || !field) return;
+  const id = card.dataset.review, p = reviewTab[id] || "tiktok";
+  const clip = data.clips.find(c => c.clip_id === id);
+  reviewDraft[id] = reviewDraft[id] || {};
+  reviewDraft[id][p] = { ...clipTexts(clip)[p], [field]: e.target.value };
+  e.target.closest("label").querySelector(".num").textContent = e.target.value.length;
+});
+$("#reviewList").addEventListener("click", e => {
+  const card = e.target.closest("[data-review]"); if (!card) return;
+  const id = card.dataset.review, clip = data.clips.find(c => c.clip_id === id);
+  const tab = e.target.closest("[data-ptab]");
+  if (tab) {
+    reviewTab[id] = tab.dataset.ptab;
+    card.querySelector(".editor-box").innerHTML = reviewEditor(clip);
+    return;
+  }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const url = `/api/clips/${encodeURIComponent(id)}`;
+  const saveDraft = async () => {
+    if (reviewDraft[id]) { await api(url + "/texts", { platforms: clipTexts(clip) }); delete reviewDraft[id]; }
+  };
+  const done = () => { lastSig.review = null; document.activeElement?.blur?.(); };
+  if (b.dataset.act === "approve") act(async () => { await saveDraft(); await api(url + "/review", { action: "approve" }); done(); }, "Freigegeben");
+  if (b.dataset.act === "approve-upload") act(async () => {
+    await saveDraft(); await api(url + "/review", { action: "approve" });
+    await api("/api/run", { mode: "upload", channel: clip.channel }); done();
+  }, "Freigegeben, Upload läuft. Den Fortschritt siehst du im Protokoll.");
+  if (b.dataset.act === "retext") {
+    b.disabled = true; b.textContent = "KI schreibt …";
+    act(async () => { delete reviewDraft[id]; await api(url + "/retext", {}); done(); }, "Neue Texte da");
+  }
+  if (b.dataset.act === "reject") act(async () => { delete reviewDraft[id]; await api(url + "/review", { action: "reject" }); done(); },
+    "Verworfen. Der Clip bleibt unter „Clips“ und wird nicht hochgeladen.");
+});
+
 /* ---------- Aktualisieren ---------- */
 function render() {
   if (!data) return;
@@ -776,6 +889,9 @@ function render() {
   $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
   if (view === "overview") renderOverview();
   if (view === "clips") renderClips();
+  if (view === "review") renderReview();
+  const waitingCount = data.clips.filter(c => c.review === "wartet").length;
+  $("#reviewBadge").hidden = !waitingCount; $("#reviewBadge").textContent = waitingCount;
   if (view === "channels") renderChannels();
   if (openClipId) renderClipPlatforms();
 }
@@ -784,7 +900,7 @@ async function refresh() {
   catch (err) { $("#tallyText").textContent = "Keine Verbindung zu ClipBot. Läuft das Programmfenster noch?"; }
 }
 const start = (location.hash || "#overview").slice(1);
-refresh().then(() => show(["overview", "clips", "channels", "settings"].includes(start) ? start : "overview"));
+refresh().then(() => show(["overview", "review", "clips", "channels", "settings"].includes(start) ? start : "overview"));
 setInterval(refresh, 2500);
 </script>
 </body>

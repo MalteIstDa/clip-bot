@@ -84,7 +84,9 @@ def process_video(channel: dict, s: dict, state: State, video: dict) -> int:
         out = render.render_clip(source, start, end, clip_dir / f"{clip_id}.mp4", ass,
                                  s["layout"], s["zoom"])
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
-                       texts["platforms"], hook, pick.get("reason", ""))
+                       texts["platforms"], hook, pick.get("reason", ""),
+                       "wartet" if s["require_approval"] else "freigegeben",
+                       viral.spoken_text(words, start, end))
         log.info("[%s] Clip %d fertig (%.0fs): %s", name, n, end - start, texts["title"])
 
     state.mark_video(info["id"], name, info["title"], "done")
@@ -132,7 +134,10 @@ def upload_clips(channel: dict, s: dict, state: State) -> None:
     for platform in PLATFORMS:
         if platform not in channel["upload"]:
             continue
-        for clip in state.pending_clips(name, platform)[: s["max_uploads_per_run"]]:
+        pending = state.pending_clips(name, platform)
+        if not pending:
+            log.info("[%s] %s: kein freigegebener Clip offen.", name, platform)
+        for clip in pending[: s["max_uploads_per_run"]]:
             if not Path(clip["path"]).exists():
                 state.mark_upload(clip["clip_id"], platform, "ok", error="Datei fehlt, uebersprungen")
                 continue

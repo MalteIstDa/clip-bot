@@ -277,6 +277,7 @@ def clip_upload(clip_id: str):
 
     def work():
         st = open_state(s)
+        st.set_review(clip_id, "freigegeben")  # Wer selbst auf Hochladen klickt, gibt den Clip frei.
         try:
             remote_id = pipeline.upload_one(platform, clip, channel, s)
             st.mark_upload(clip_id, platform, "ok", remote_id)
@@ -287,6 +288,81 @@ def clip_upload(clip_id: str):
 
     if not start_job(f"{platform}: {clip['title']}", work):
         raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
+    return jsonify(ok=True)
+
+
+@app.post("/api/clips/<clip_id>/review")
+def clip_review(clip_id: str):
+    """Freigeben, verwerfen oder wieder in die Warteschlange stellen."""
+    action = body().get("action")
+    review = {"approve": "freigegeben", "reject": "verworfen", "reopen": "wartet"}.get(action)
+    if not review:
+        raise ApiError("Unbekannte Aktion.")
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        clip_or_404(state, clip_id)
+        state.set_review(clip_id, review)
+    finally:
+        state.close()
+    return jsonify(ok=True, review=review)
+
+
+def _clean_platform_texts(raw) -> dict:
+    out = {}
+    for platform in PLATFORMS:
+        entry = (raw or {}).get(platform) or {}
+        title = str(entry.get("title") or "").strip()[:100]
+        caption = str(entry.get("caption") or "").strip()[:2200]
+        if title or caption:
+            out[platform] = {"title": title, "caption": caption}
+    return out
+
+
+@app.post("/api/clips/<clip_id>/texts")
+def clip_texts(clip_id: str):
+    """Texte je Plattform aus der Freigabe-Ansicht speichern."""
+    platforms = _clean_platform_texts(body().get("platforms"))
+    if not platforms:
+        raise ApiError("Keine Texte uebermittelt.")
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        clip = clip_or_404(state, clip_id)
+        first = platforms.get("youtube") or next(iter(platforms.values()))
+        title = first["title"] or clip["title"]
+        caption = (platforms.get("tiktok") or first)["caption"] or clip["caption"]
+        state.set_texts(clip_id, title, caption, platforms)
+    finally:
+        state.close()
+    return jsonify(ok=True)
+
+
+@app.post("/api/clips/<clip_id>/retext")
+def clip_retext(clip_id: str):
+    """Die KI schreibt Titel, Captions, Hashtags und Hook neu (das Video bleibt, wie es ist)."""
+    from clipbot import ai, viral
+    cfg = config.load(allow_empty=True)
+    s = cfg["settings"]
+    if not ai.enabled(s):
+        raise ApiError("Die KI ist ausgeschaltet (Einstellungen, KI fuer Texte).")
+    state = open_state(s)
+    try:
+        clip = dict(clip_or_404(state, clip_id))
+        video = state.db.execute("SELECT title FROM videos WHERE video_id=?", (clip["video_id"],)).fetchone()
+    finally:
+        state.close()
+    channel = find_channel(cfg, clip["channel"])
+    transcript = clip.get("transcript") or clip["title"]
+    texts = viral.write_texts(s, channel, video["title"] if video else clip["title"], transcript, 1,
+                              clip.get("reason") or "")
+    if not texts["platforms"]:
+        raise ApiError("Die KI hat keine brauchbaren Texte geliefert. Details im Protokoll.", 502)
+    state = open_state(s)
+    try:
+        state.set_texts(clip_id, texts["title"], texts["caption"], texts["platforms"])
+    finally:
+        state.close()
+    log.info("[%s] Neue KI-Texte fuer %s. Die Hook-Zeile im Video bleibt (dafuer muesste neu gerendert werden).",
+             channel["name"], clip_id)
     return jsonify(ok=True)
 
 
