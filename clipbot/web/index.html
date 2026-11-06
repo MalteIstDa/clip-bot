@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipBot</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<style>
+:root {
+  --bg: #F5F4FB; --surface: #FFFFFF; --ink: #17132B; --muted: #6B6785; --line: #E4E1F2;
+  --violet: #6C4DF6; --pink: #EC3F8C; --teal: #0CA79A; --amber: #E8930C; --blue: #2F7FF2;
+  --green: #15A765; --red: #E5394A;
+  --yt: #E5362D; --tt: #0FB3C4; --ig: #C4279B;
+  --frame: #0D0B18; --on-color: #FFFFFF;
+  --shadow: 0 1px 2px rgba(23, 19, 43, 0.05), 0 10px 28px -14px rgba(23, 19, 43, 0.22);
+  --font: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
+}
+:root[data-theme="dark"] {
+  --bg: #0F0D1A; --surface: #1A1730; --ink: #F1EFFB; --muted: #A49FC2; --line: #2D2950;
+  --violet: #8E76FF; --pink: #FF6BAA; --teal: #2DD4C4; --amber: #FFB84A; --blue: #6AA8FF;
+  --green: #3DD68C; --red: #FF6B78;
+  --yt: #FF5A52; --tt: #35D6E6; --ig: #F062C8;
+  --frame: #050409; --on-color: #100D20;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -16px rgba(0, 0, 0, 0.7);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.45; font-size: 16px; }
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.625rem; }
+h3 { font-size: 1.125rem; }
+p { margin: 0; }
+a { color: var(--violet); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Aufbau: Seitenleiste + Inhalt */
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 6px;
+  padding: 22px 14px 16px; background: var(--surface); border-right: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 20px; }
+.brand .logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--violet), var(--pink)); color: #fff; }
+.brand h1 { font-size: 1.375rem; }
+.side nav { display: flex; flex-direction: column; gap: 4px; }
+.side nav button { --c: var(--violet); display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0;
+  border-radius: 12px; background: none; cursor: pointer; font-weight: 600; color: var(--muted); text-align: left; }
+.side nav button .ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); flex: none; }
+.side nav button:hover { color: var(--ink); }
+.side nav button[aria-current="page"] { background: color-mix(in srgb, var(--c) 11%, transparent); color: var(--ink); }
+.side nav button[aria-current="page"] .ico { background: var(--c); color: var(--on-color); }
+.side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.tally { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; font-size: 0.875rem;
+  background: color-mix(in srgb, var(--green) 12%, transparent); overflow-wrap: anywhere; }
+.tally .lamp { flex: none; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--green); }
+.tally.running { background: color-mix(in srgb, var(--pink) 14%, transparent); }
+.tally.running .lamp { background: var(--pink); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .tally.running .lamp { animation: none; } }
+main { padding: 30px 34px 60px; max-width: 1320px; width: 100%; }
+main > section[hidden] { display: none; }
+.pagehead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 22px; }
+.pagehead h2 { margin-right: auto; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: var(--shadow); }
+.stack > * + * { margin-top: 16px; }
+
+/* Bedienelemente */
+.btn { --c: var(--ink); border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 16px;
+  cursor: pointer; font-weight: 650; }
+.btn:hover:not(:disabled) { border-color: var(--c); }
+.btn.fill { background: var(--c); border-color: var(--c); color: var(--on-color); }
+.btn.fill:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.violet { --c: var(--violet); } .btn.teal { --c: var(--teal); } .btn.pink { --c: var(--pink); }
+.btn.danger { --c: var(--red); color: var(--red); }
+.btn.small { padding: 6px 12px; font-size: 0.875rem; border-radius: 10px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+label.field { display: block; }
+label.field > span { display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 5px; }
+input[type=text], input[type=url], input[type=search], input[type=number], select, textarea {
+  width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+textarea { resize: vertical; min-height: 110px; }
+label.check { display: flex; gap: 9px; align-items: flex-start; cursor: pointer; }
+label.check input { margin-top: 4px; accent-color: var(--violet); }
+.seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+.seg button { border: 0; background: none; padding: 7px 13px; border-radius: 9px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--teal); color: var(--on-color); }
+
+/* Uebersicht */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.stat { --c: var(--violet); border-radius: 18px; padding: 16px 18px; background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); }
+.stat b { display: block; font-size: 2rem; line-height: 1.1; letter-spacing: -0.03em; color: var(--c); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.9375rem; }
+.overview { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
+.todo { list-style: none; margin: 0; padding: 0; }
+.todo li { padding: 9px 0 9px 22px; border-top: 1px solid var(--line); position: relative; }
+.todo li::before { content: ""; position: absolute; left: 2px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
+.log { height: 520px; overflow-y: auto; font-size: 0.875rem; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 12px; }
+.log div { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 3px 0; overflow-wrap: anywhere; }
+.log time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .ERROR span { color: var(--red); font-weight: 600; }
+.log .is-start span { color: var(--violet); font-weight: 600; }
+.log .is-done span { color: var(--green); font-weight: 600; }
+
+/* Clips nach Quellvideo */
+.source { margin-top: 24px; }
+.source header { display: flex; align-items: center; gap: 12px; }
+.source header h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.source header span.count { flex: none; color: var(--muted); font-size: 0.875rem; }
+.tag { --c: var(--violet); flex: none; padding: 3px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 650;
+  background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+.strip { display: flex; gap: 18px; overflow-x: auto; padding: 14px 3px 12px; }
+.clip { flex: none; width: 176px; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.clip .frame { display: block; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.clip .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.clip:hover .frame { outline: 3px solid var(--pink); outline-offset: 2px; }
+.clip .title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-top: 10px; font-weight: 650; font-size: 0.9375rem; line-height: 1.3; min-height: 2.6em; }
+.clip .tc { display: block; margin-top: 3px; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lamps { display: flex; gap: 5px; margin-top: 8px; }
+.lamps i { --c: var(--muted); font-style: normal; font-weight: 700; font-size: 0.6875rem; line-height: 1; padding: 5px 7px;
+  border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); color: var(--c); }
+.lamps i.yt { --c: var(--yt); } .lamps i.tt { --c: var(--tt); } .lamps i.ig { --c: var(--ig); }
+.lamps i.ok { background: var(--c); border-color: var(--c); color: var(--on-color); }
+.lamps i.bad { background: var(--red); border-color: var(--red); color: var(--on-color); }
+.lamps i.off { border-style: dashed; opacity: 0.4; }
+.empty { padding: 44px 0; max-width: 48ch; }
+.empty h3 { margin-bottom: 8px; }
+
+/* Kanaele und Suche */
+.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.result { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.result .btn { grid-column: 2; justify-self: start; margin-top: 6px; }
+.result strong, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result small { color: var(--muted); }
+.avatar { --c: var(--violet); width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
+  background: var(--c); color: var(--on-color); font-weight: 700; font-size: 1.25rem; grid-row: span 3; }
+.avatar.small { width: 40px; height: 40px; font-size: 1.0625rem; grid-row: auto; }
+.channel { margin-top: 16px; }
+.channel .head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.channel .head a { color: var(--muted); overflow-wrap: anywhere; }
+.channel .head .row { margin-left: auto; }
+.accounts { width: 100%; border-collapse: collapse; margin-top: 14px; }
+.accounts td { padding: 10px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.accounts td:first-child { width: 132px; font-weight: 650; }
+.accounts td:last-child { text-align: right; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: var(--c); }
+.state-ok { color: var(--green); font-weight: 650; }
+.state-bad { color: var(--red); font-weight: 650; }
+
+/* Einstellungen */
+.settings fieldset { --c: var(--violet); border: 1px solid var(--line); border-radius: 18px; background: var(--surface);
+  margin: 0 0 16px; padding: 18px 22px 22px; box-shadow: var(--shadow); }
+.settings legend { float: left; width: 100%; padding: 0; margin-bottom: 14px; font-weight: 700; font-size: 1.1875rem; letter-spacing: -0.02em; }
+.settings legend::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 4px; background: var(--c); margin-right: 10px; }
+.settings .grid { clear: both; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px 18px; align-items: end; }
+.settings .grid .check { padding-bottom: 10px; }
+
+/* Dialoge */
+dialog { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: var(--ink);
+  padding: 0; width: min(940px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.5); }
+dialog::backdrop { background: rgba(15, 13, 26, 0.62); }
+dialog.narrow { width: min(580px, calc(100vw - 32px)); }
+.dlg { padding: 26px; }
+.editor { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; }
+.editor video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; }
+.platforms { width: 100%; border-collapse: collapse; }
+.platforms td { padding: 10px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.platforms td:first-child { width: 124px; font-weight: 650; }
+.platforms td:last-child { text-align: right; width: 1%; white-space: nowrap; }
+.platforms small { display: block; color: var(--muted); overflow-wrap: anywhere; font-weight: 400; }
+.dlg footer { display: flex; gap: 10px; margin-top: 22px; }
+.dlg footer .push { margin-left: auto; }
+
+#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+  padding: 12px 18px; border-radius: 14px; max-width: min(560px, 90vw); display: none; z-index: 20; box-shadow: var(--shadow); }
+#toast.show { display: block; }
+#toast.error { background: var(--red); color: #fff; }
+
+@media (max-width: 920px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 14px;
+    border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand { padding: 0 8px 0 4px; }
+  .side nav { flex-direction: row; overflow-x: auto; order: 3; width: 100%; }
+  .side nav button { white-space: nowrap; }
+  .side .foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; }
+  .tally { padding: 8px 10px; max-width: 46vw; }
+  main { padding: 18px 16px 50px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview, .editor { grid-template-columns: 1fr; }
+  .editor video { max-width: 240px; }
+  .log { height: 300px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg></span>
+    <h1>ClipBot</h1>
+  </div>
+  <nav aria-label="Bereiche">
+    <button data-view="overview" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>Übersicht</button>
+    <button data-view="clips" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor"/></svg></span>Clips</button>
+    <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.2-5.5 6.5-5.5s5.9 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></span>Kanäle</button>
+    <button data-view="settings" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
+  </nav>
+  <div class="foot">
+    <div class="tally" id="tally"><span class="lamp"></span><span id="tallyText">Bereit</span></div>
+    <button class="btn small" id="themeToggle">Dunkles Design</button>
+  </div>
+</aside>
+
+<main>
+  <section id="view-overview">
+    <div class="stats" id="stats"></div>
+    <div class="overview">
+      <div class="stack">
+        <div class="panel stack">
+          <h3>Lauf starten</h3>
+          <label class="field"><span>Kanal</span><select id="runChannel"></select></label>
+          <div class="row">
+            <button class="btn fill violet" data-run="make">Clips erzeugen</button>
+            <button class="btn fill teal" data-run="upload">Offene Clips hochladen</button>
+            <button class="btn fill pink" data-run="both">Erzeugen und hochladen</button>
+          </div>
+          <p class="muted">„Clips erzeugen“ lädt nichts hoch. Du kannst jeden Clip erst ansehen, den Text ändern und dann einzeln hochladen.</p>
+        </div>
+        <div class="panel stack">
+          <h3>Einzelnes Video clippen</h3>
+          <label class="field"><span>Adresse des Videos</span><input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=…"></label>
+          <div class="row"><button class="btn" id="runVideo">Dieses Video clippen</button>
+            <span class="muted">Wähle oben den Kanal, zu dem das Video gehört.</span></div>
+        </div>
+        <div class="panel stack" id="todoPanel" hidden>
+          <h3>Noch einzurichten</h3>
+          <ul class="todo" id="todo"></ul>
+        </div>
+      </div>
+      <div class="panel stack">
+        <h3>Protokoll</h3>
+        <div class="log" id="log" tabindex="0" aria-label="Protokoll"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-clips" hidden>
+    <div class="pagehead">
+      <h2>Clips</h2>
+      <label class="check"><input type="checkbox" id="onlyOpen"> Nur Clips, die noch nicht überall hochgeladen sind</label>
+      <select id="clipChannel" style="width:auto" aria-label="Kanal"></select>
+    </div>
+    <div id="sheet"></div>
+  </section>
+
+  <section id="view-channels" hidden>
+    <div class="pagehead">
+      <h2>Kanäle</h2>
+      <button class="btn fill teal" id="addChannel">Kanal von Hand anlegen</button>
+    </div>
+    <form class="panel stack" id="searchForm">
+      <div class="row">
+        <h3 style="margin-right:auto">Kanal auf YouTube suchen</h3>
+        <div class="seg" role="group" aria-label="Art der Suche">
+          <button type="button" data-mode="channels" aria-pressed="true">Nach Name</button>
+          <button type="button" data-mode="trending" aria-pressed="false">Diese Woche meistgesehen</button>
+        </div>
+      </div>
+      <div class="row">
+        <input type="search" id="searchQuery" style="flex:1; min-width:200px" placeholder="Name eines Kanals, z. B. N3on" aria-label="Suchbegriff">
+        <button class="btn fill teal" id="searchBtn">Suchen</button>
+      </div>
+      <p class="muted" id="searchHint">Sucht Kanäle, deren Name zum Begriff passt.</p>
+      <div class="results" id="searchResults"></div>
+    </form>
+    <div class="panel stack" id="appNote" style="margin-top:16px" hidden>
+      <h3>Vor dem Verbinden</h3>
+      <p class="muted">Jede Plattform verlangt eine eigene, kostenlose Entwickler-App, über die ClipBot hochladen darf. Die genauen Schritte stehen in der README.</p>
+      <ul class="todo" id="appNoteList"></ul>
+    </div>
+    <div id="channelList"></div>
+  </section>
+
+  <section id="view-settings" hidden>
+    <form class="settings" id="settingsForm">
+      <div class="pagehead">
+        <h2>Einstellungen</h2>
+        <button class="btn fill violet" type="submit">Einstellungen speichern</button>
+      </div>
+      <div id="settingsFields"></div>
+    </form>
+  </section>
+</main>
+</div>
+
+<dialog id="clipDialog"><div class="dlg">
+  <div class="editor">
+    <video id="clipVideo" controls playsinline preload="metadata"></video>
+    <div class="stack">
+      <label class="field"><span>Titel (<span id="titleCount" class="num">0</span> von 100 Zeichen)</span>
+        <input type="text" id="clipTitle" maxlength="100"></label>
+      <label class="field"><span>Beschreibung für TikTok, Instagram und YouTube</span>
+        <textarea id="clipCaption" maxlength="2200"></textarea></label>
+      <div class="row"><button class="btn" id="clipSave">Texte speichern</button>
+        <span class="muted num" id="clipMeta"></span></div>
+      <table class="platforms" id="clipPlatforms"></table>
+    </div>
+  </div>
+  <footer>
+    <button class="btn danger" id="clipDelete">Clip löschen</button>
+    <button class="btn push" id="clipClose">Schließen</button>
+  </footer>
+</div></dialog>
+
+<dialog id="channelDialog" class="narrow"><form class="dlg stack" id="channelForm">
+  <h2 id="channelDialogTitle">Kanal anlegen</h2>
+  <label class="field"><span>Kurzname (nur Buchstaben, Ziffern, - und _)</span><input type="text" name="name" required pattern="[A-Za-z0-9_\-]{1,40}"></label>
+  <label class="field"><span>Adresse des Quellkanals auf YouTube</span><input type="url" name="source_url" required placeholder="https://www.youtube.com/@…"></label>
+  <label class="field"><span>Titel-Vorlage</span><input type="text" name="title_template"></label>
+  <label class="field"><span>Beschreibungs-Vorlage</span><textarea name="caption_template"></textarea></label>
+  <p class="muted">Platzhalter: {hook} sind die ersten gesprochenen Worte des Clips, {video_title} der Titel des Quellvideos, {channel} der Kurzname.</p>
+  <label class="field"><span>Tags für YouTube, durch Komma getrennt</span><input type="text" name="tags"></label>
+  <div class="stack">
+    <label class="check"><input type="checkbox" name="youtube"> Auf YouTube hochladen</label>
+    <label class="check"><input type="checkbox" name="tiktok"> Auf TikTok hochladen</label>
+    <label class="check"><input type="checkbox" name="instagram"> Auf Instagram hochladen</label>
+    <label class="field"><span>Instagram-User-ID</span><input type="text" name="ig_user_id" inputmode="numeric"></label>
+    <label class="field"><span>Name der Token-Variable in der Datei .env</span><input type="text" name="ig_token_env" placeholder="IG_TOKEN_N3ON"></label>
+  </div>
+  <footer>
+    <button class="btn" type="button" id="channelCancel">Abbrechen</button>
+    <button class="btn fill teal push" type="submit">Kanal speichern</button>
+  </footer>
+</form></dialog>
+
+<dialog id="tiktokDialog" class="narrow"><form class="dlg stack" id="tiktokForm">
+  <h2>TikTok verbinden</h2>
+  <p>Im neuen Tab hat sich TikTok geöffnet. Melde dich dort mit dem passenden Konto an und stimme zu. Kopiere danach die komplette Adresse der Seite, auf der du landest, und füge sie hier ein.</p>
+  <p><a id="tiktokLink" target="_blank" rel="noopener">TikTok-Anmeldung erneut öffnen</a></p>
+  <label class="field"><span>Adresse der Zielseite</span><input type="url" name="redirected" required></label>
+  <footer>
+    <button class="btn" type="button" id="tiktokCancel">Abbrechen</button>
+    <button class="btn fill violet push" type="submit">TikTok verbinden</button>
+  </footer>
+</form></dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const PLATFORMS = { youtube: ["YouTube", "YT", "yt"], tiktok: ["TikTok", "TT", "tt"], instagram: ["Instagram", "IG", "ig"] };
+const COLORS = ["violet", "pink", "teal", "amber", "blue", "green"];
+const colorOf = name => `var(--${COLORS[[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]})`;
+const compact = n => new Intl.NumberFormat("de-DE", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
+let data = null, view = "overview", openClipId = null, tiktokChannel = null, searchMode = "channels", searchResults = null;
+const lastSig = {};
+
+/* ---------- Design: hell oder dunkel ---------- */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  $("#themeToggle").textContent = theme === "dark" ? "Helles Design" : "Dunkles Design";
+}
+let theme = null;
+try { theme = localStorage.getItem("clipbot-theme"); } catch (e) {}
+applyTheme(theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+$("#themeToggle").addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem("clipbot-theme", next); } catch (e) {}
+});
+
+async function api(path, payload) {
+  const res = await fetch(path, payload === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json", "X-ClipBot": "1" }, body: JSON.stringify(payload) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `Fehler ${res.status}`);
+  return json;
+}
+let toastTimer;
+function toast(message, isError = false) {
+  const el = $("#toast");
+  el.textContent = message; el.className = "show" + (isError ? " error" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (el.className = ""), isError ? 7000 : 3200);
+}
+async function act(fn, done) {
+  try { await fn(); if (done) toast(done); await refresh(); } catch (err) { toast(err.message, true); }
+}
+function changed(key, value) {
+  const sig = JSON.stringify(value);
+  if (lastSig[key] === sig) return false;
+  lastSig[key] = sig; return true;
+}
+const timecode = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
+const when = ts => new Date(ts * 1000).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+const channelOf = name => data.channels.find(c => c.name === name);
+
+function platformState(clip, platform) {
+  const account = channelOf(clip.channel)?.accounts?.[platform];
+  if (!account || !account.enabled) return "off";
+  const up = clip.uploads[platform];
+  return up?.status === "ok" ? "ok" : up?.status === "failed" ? "bad" : "open";
+}
+const isOpen = clip => Object.keys(PLATFORMS).some(p => ["open", "bad"].includes(platformState(clip, p)));
+
+/* ---------- Navigation ---------- */
+function show(name) {
+  view = name;
+  $$("main > section").forEach(s => (s.hidden = s.id !== "view-" + name));
+  $$(".side nav button").forEach(b => b.dataset.view === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  if (name === "settings" && data) renderSettings();
+  render();
+}
+$$(".side nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+
+/* ---------- Uebersicht ---------- */
+function fillChannelSelect(el, allLabel) {
+  const names = data.channels.map(c => c.name);
+  if (!changed(el.id, names)) return;
+  const keep = el.value;
+  el.innerHTML = `<option value="">${allLabel}</option>` + names.map(n => `<option>${esc(n)}</option>`).join("");
+  if (names.includes(keep)) el.value = keep;
+}
+function renderOverview() {
+  fillChannelSelect($("#runChannel"), "Alle Kanäle");
+  const open = data.clips.filter(isOpen).length, total = data.clips.length;
+  const uploads = data.clips.reduce((n, c) => n + Object.values(c.uploads).filter(u => u.status === "ok").length, 0);
+  const done = data.videos.filter(v => v.status === "done").length;
+  const stats = [["violet", total, total === 1 ? "Clip erzeugt" : "Clips erzeugt"], ["amber", open, "noch nicht überall hochgeladen"],
+    ["green", uploads, uploads === 1 ? "Upload erledigt" : "Uploads erledigt"], ["blue", done, done === 1 ? "Video verarbeitet" : "Videos verarbeitet"]];
+  if (changed("stats", stats)) $("#stats").innerHTML = stats.map(([c, n, label]) =>
+    `<div class="stat" style="--c:var(--${c})"><b>${n}</b><span>${label}</span></div>`).join("");
+
+  const todo = [];
+  if (!data.setup.ffmpeg) todo.push("ffmpeg ist nicht installiert. Installiere es und starte ClipBot neu.");
+  if (!data.channels.length) todo.push("Unter „Kanäle“ ist noch kein Quellkanal angelegt. Dort kannst du ihn auf YouTube suchen.");
+  for (const ch of data.channels) for (const [p, [label]] of Object.entries(PLATFORMS)) {
+    const a = ch.accounts[p];
+    if (a.enabled && !a.connected) todo.push(`${ch.name}: ${label} ist noch nicht verbunden. Das geht unter „Kanäle“.`);
+  }
+  if (changed("todo", todo)) {
+    $("#todoPanel").hidden = !todo.length;
+    $("#todo").innerHTML = todo.map(t => `<li>${esc(t)}</li>`).join("");
+  }
+  if (changed("log", data.log.length + (data.log.at(-1)?.t || "") + (data.log.at(-1)?.msg || ""))) {
+    const el = $("#log"), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    el.innerHTML = data.log.length
+      ? data.log.map(l => `<div class="${esc(l.level)} ${l.msg.startsWith("Start:") ? "is-start" : l.msg.startsWith("Fertig:") ? "is-done" : ""}"><time>${esc(l.t)}</time><span>${esc(l.msg)}</span></div>`).join("")
+      : `<p class="muted">Hier erscheint, was ClipBot gerade tut.</p>`;
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  }
+  $$("[data-run], #runVideo").forEach(b => (b.disabled = data.job.running || !data.channels.length));
+}
+$$("[data-run]").forEach(b => b.addEventListener("click", () =>
+  act(() => api("/api/run", { mode: b.dataset.run, channel: $("#runChannel").value || null }), "Gestartet: " + b.textContent)));
+$("#runVideo").addEventListener("click", () => {
+  const channel = $("#runChannel").value || (data.channels.length === 1 ? data.channels[0].name : "");
+  if (!channel) return toast("Wähle oben den Kanal, zu dem das Video gehört.", true);
+  act(() => api("/api/run", { mode: "video", channel, url: $("#videoUrl").value }), "Gestartet: Dieses Video clippen");
+});
+
+/* ---------- Clips ---------- */
+function lamps(clip) {
+  return Object.entries(PLATFORMS).map(([p, [label, short, cls]]) => {
+    const st = platformState(clip, p);
+    const text = { ok: "hochgeladen", bad: "fehlgeschlagen", open: "noch nicht hochgeladen", off: "nicht eingerichtet" }[st];
+    return `<i class="${cls} ${st}" title="${label}: ${text}">${short}${st === "ok" ? " ✓" : st === "bad" ? " !" : ""}</i>`;
+  }).join("");
+}
+function renderClips() {
+  fillChannelSelect($("#clipChannel"), "Alle Kanäle");
+  const channel = $("#clipChannel").value, onlyOpen = $("#onlyOpen").checked;
+  const clips = data.clips.filter(c => (!channel || c.channel === channel) && (!onlyOpen || isOpen(c)));
+  if (!changed("sheet", [clips, data.channels.map(c => c.accounts), channel, onlyOpen])) return;
+  if (!clips.length) {
+    $("#sheet").innerHTML = data.clips.length
+      ? `<div class="empty"><h3>Kein Clip passt zum Filter</h3><p class="muted">Ändere die Auswahl oben rechts.</p></div>`
+      : `<div class="empty"><h3>Noch keine Clips</h3><p class="muted">Starte unter „Übersicht“ einen Lauf mit „Clips erzeugen“. Die fertigen Clips erscheinen hier, sortiert nach Quellvideo.</p></div>`;
+    return;
+  }
+  const groups = new Map();
+  for (const c of clips) (groups.get(c.video_id) || groups.set(c.video_id, []).get(c.video_id)).push(c);
+  $("#sheet").innerHTML = [...groups].map(([videoId, list]) => {
+    const video = data.videos.find(v => v.video_id === videoId);
+    list.sort((a, b) => a.start - b.start);
+    return `<div class="source"><header><span class="tag" style="--c:${colorOf(list[0].channel)}">${esc(list[0].channel)}</span>
+      <h3>${esc(video?.title || videoId)}</h3><span class="count">${list.length} ${list.length === 1 ? "Clip" : "Clips"}</span></header>
+      <div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
+        <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}</span>
+        <span class="title">${esc(c.title)}</span>
+        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span>
+        <span class="lamps">${lamps(c)}</span></button>`).join("")}</div></div>`;
+  }).join("");
+}
+$("#sheet").addEventListener("click", e => { const b = e.target.closest("[data-clip]"); if (b) openClip(b.dataset.clip); });
+$("#clipChannel").addEventListener("change", renderClips);
+$("#onlyOpen").addEventListener("change", renderClips);
+
+function openClip(id) {
+  const clip = data.clips.find(c => c.clip_id === id);
+  if (!clip) return;
+  openClipId = id; lastSig.clipPlatforms = null;
+  $("#clipVideo").src = clip.exists ? "/media/" + encodeURIComponent(id) : "";
+  $("#clipVideo").poster = clip.exists ? "/thumb/" + encodeURIComponent(id) : "";
+  $("#clipTitle").value = clip.title; $("#clipCaption").value = clip.caption;
+  $("#titleCount").textContent = clip.title.length;
+  $("#clipMeta").textContent = `${timecode(clip.start)} bis ${timecode(clip.end)}, erzeugt am ${when(clip.ts)}`;
+  renderClipPlatforms();
+  $("#clipDialog").showModal();
+}
+function renderClipPlatforms() {
+  const clip = data.clips.find(c => c.clip_id === openClipId);
+  if (!clip) return;
+  const accounts = channelOf(clip.channel)?.accounts || {};
+  if (!changed("clipPlatforms", [clip.uploads, accounts, data.job.running, clip.exists])) return;
+  $("#clipPlatforms").innerHTML = Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
+    const account = accounts[p] || {}, up = clip.uploads[p];
+    let text, state = "muted", button = "";
+    if (!account.enabled) text = "Für diesen Kanal nicht eingerichtet";
+    else if (up?.status === "ok") {
+      state = "state-ok"; text = "Hochgeladen am " + when(up.ts);
+      if (p === "youtube" && up.remote_id) text += ` <small><a href="https://youtu.be/${esc(up.remote_id)}" target="_blank" rel="noopener">Auf YouTube ansehen</a></small>`;
+    } else {
+      text = !account.connected ? "Konto nicht verbunden"
+        : up?.status === "failed" ? `<span class="state-bad">Fehlgeschlagen</span><small>${esc(up.error)}</small>` : "Noch nicht hochgeladen";
+      button = `<button class="btn small fill" style="--c:var(--${cls})" data-upload="${p}" ${!account.connected || data.job.running || !clip.exists ? "disabled" : ""}>Auf ${label} hochladen</button>`;
+    }
+    return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${label}</td><td class="${state}">${text}</td><td>${button}</td></tr>`;
+  }).join("");
+}
+const saveClipTexts = () => api("/api/clips/" + encodeURIComponent(openClipId), { title: $("#clipTitle").value, caption: $("#clipCaption").value });
+$("#clipTitle").addEventListener("input", e => ($("#titleCount").textContent = e.target.value.length));
+$("#clipSave").addEventListener("click", () => act(saveClipTexts, "Texte gespeichert"));
+$("#clipPlatforms").addEventListener("click", e => {
+  const b = e.target.closest("[data-upload]"); if (!b) return;
+  act(async () => { await saveClipTexts(); await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { platform: b.dataset.upload }); },
+    "Upload gestartet. Den Fortschritt siehst du im Protokoll.");
+});
+$("#clipDelete").addEventListener("click", () => {
+  if (!confirm("Diesen Clip samt Videodatei löschen? Bereits hochgeladene Beiträge bleiben auf den Plattformen.")) return;
+  act(async () => { await api(`/api/clips/${encodeURIComponent(openClipId)}/delete`, {}); $("#clipDialog").close(); }, "Clip gelöscht");
+});
+$("#clipClose").addEventListener("click", () => $("#clipDialog").close());
+$("#clipDialog").addEventListener("close", () => { const v = $("#clipVideo"); v.pause(); v.removeAttribute("src"); v.removeAttribute("poster"); openClipId = null; });
+
+/* ---------- Kanalsuche ---------- */
+const HINTS = {
+  channels: ["Name eines Kanals, z. B. N3on", "Sucht Kanäle, deren Name zum Begriff passt."],
+  trending: ["Thema, z. B. irl stream oder gaming highlights", "Zeigt die Kanäle, deren Videos zu diesem Thema in den letzten 7 Tagen die meisten Aufrufe hatten."],
+};
+$$(".seg button").forEach(b => b.addEventListener("click", () => {
+  searchMode = b.dataset.mode;
+  $$(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#searchQuery").placeholder = HINTS[searchMode][0]; $("#searchHint").textContent = HINTS[searchMode][1];
+}));
+function renderSearch() {
+  const box = $("#searchResults");
+  if (searchResults === null) return (box.innerHTML = "");
+  if (!searchResults.length) return (box.innerHTML = `<p class="muted">Nichts gefunden. Versuche einen anderen Begriff.</p>`);
+  const known = new Set(data.channels.map(c => c.source_url.replace(/\/+$/, "").toLowerCase()));
+  box.innerHTML = searchResults.map((r, i) => {
+    const meta = [r.handle, r.subscribers ? compact(r.subscribers) + " Abonnenten" : ""].filter(Boolean).join(", ");
+    const week = r.views ? `${compact(r.views)} Aufrufe mit ${r.videos} ${r.videos === 1 ? "Video" : "Videos"} diese Woche` : "";
+    const exists = known.has(r.url.replace(/\/+$/, "").toLowerCase());
+    return `<div class="result">
+      ${r.thumbnail ? `<img class="avatar" alt="" referrerpolicy="no-referrer" data-name="${esc(r.name)}" src="${esc(r.thumbnail)}">` : `<span class="avatar" style="--c:${colorOf(r.name)}">${esc(r.name[0] || "?")}</span>`}
+      <strong title="${esc(r.name)}">${esc(r.name)}</strong>
+      <small>${esc(week || meta || r.url)}</small>
+      ${r.top_video ? `<small title="${esc(r.top_video.title)}">Meistgesehen: ${esc(r.top_video.title)}</small>` : week && meta ? `<small>${esc(meta)}</small>` : ""}
+      ${exists ? `<span class="state-ok" style="grid-column:2">Bereits angelegt</span>`
+        : `<button type="button" class="btn small fill teal" data-add="${i}">Als Kanal anlegen</button>`}
+    </div>`;
+  }).join("");
+}
+$("#searchForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const query = $("#searchQuery").value.trim();
+  if (!query) return;
+  $("#searchBtn").disabled = true;
+  $("#searchResults").innerHTML = `<p class="muted">Suche auf YouTube läuft, das dauert einige Sekunden.</p>`;
+  try { searchResults = (await api("/api/search", { query, mode: searchMode })).results; renderSearch(); }
+  catch (err) { searchResults = null; $("#searchResults").innerHTML = `<p class="state-bad">${esc(err.message)}</p>`; }
+  finally { $("#searchBtn").disabled = false; }
+});
+$("#searchResults").addEventListener("click", e => {
+  const b = e.target.closest("[data-add]"); if (!b) return;
+  const r = searchResults[Number(b.dataset.add)];
+  const slug = (r.handle || r.name).replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+  openChannelForm(null, { name: slug, source_url: r.url, display: r.name });
+});
+
+// Laedt ein Kanalbild nicht, erscheint stattdessen der Anfangsbuchstabe.
+document.addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains("avatar")) return;
+  const span = document.createElement("span");
+  span.className = "avatar"; span.style.setProperty("--c", colorOf(img.dataset.name)); span.textContent = (img.dataset.name || "?")[0];
+  img.replaceWith(span);
+}, true);
+
+/* ---------- Kanaele ---------- */
+function renderChannels() {
+  if (changed("searchKnown", data.channels.map(c => c.source_url))) renderSearch();
+  const waiting = p => data.channels.some(c => c.accounts[p].enabled && !c.accounts[p].connected);
+  const notes = [];
+  if (waiting("youtube") && !data.setup.youtube_app) notes.push("YouTube: Im ClipBot-Ordner fehlt die Datei client_secret.json. Du bekommst sie in der Google Cloud Console: Projekt anlegen, „YouTube Data API v3“ aktivieren, OAuth-Client vom Typ „Desktop-App“ erstellen, JSON herunterladen und so benennen.");
+  if (waiting("tiktok") && !data.setup.tiktok_app) notes.push("TikTok: Es fehlen die Zugangsdaten deiner App von developers.tiktok.com. Kopiere .env.example nach .env und trage TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET und TIKTOK_REDIRECT_URI ein.");
+  if (waiting("instagram")) notes.push("Instagram: Trage beim Kanal die Instagram-User-ID und den Namen der Token-Variable ein und hinterlege den Token in der Datei .env.");
+  if (changed("appNote", notes)) {
+    $("#appNote").hidden = !notes.length;
+    $("#appNoteList").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
+  }
+  if (!changed("channels", [data.channels, data.setup])) return;
+  $("#channelList").innerHTML = data.channels.length ? data.channels.map(ch => `
+    <div class="panel channel">
+      <div class="head"><span class="avatar small" style="--c:${colorOf(ch.name)}">${esc(ch.name[0].toUpperCase())}</span>
+        <h3>${esc(ch.name)}</h3>
+        <a href="${esc(ch.source_url)}" target="_blank" rel="noopener">${esc(ch.source_url)}</a>
+        <div class="row"><button class="btn small" data-edit="${esc(ch.name)}">Bearbeiten</button>
+          <button class="btn small danger" data-remove="${esc(ch.name)}">Kanal entfernen</button></div></div>
+      <table class="accounts">${Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
+        const a = ch.accounts[p];
+        const status = !a.enabled ? `<span class="muted">Nicht eingerichtet</span>`
+          : a.connected ? `<span class="state-ok">Verbunden</span>`
+          : `<span class="state-bad">${p === "instagram" ? "User-ID oder Token fehlt" : data.setup[p + "_app"] ? "Nicht verbunden" : "Eigene App fehlt noch (siehe oben)"}</span>`;
+        const action = !a.enabled ? "" : p === "instagram"
+          ? `<button class="btn small" data-connect="instagram" data-channel="${esc(ch.name)}">Token prüfen</button>`
+          : `<button class="btn small" data-connect="${p}" data-channel="${esc(ch.name)}">${a.connected ? "Neu verbinden" : "Verbinden"}</button>`;
+        return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${label}</td><td>${status}</td><td>${action}</td></tr>`;
+      }).join("")}</table>
+    </div>`).join("")
+    : `<div class="empty"><h3>Noch kein Kanal</h3><p class="muted">Suche oben den YouTube-Kanal, dessen Videos geclippt werden sollen, und lege ihn mit einem Klick an.</p></div>`;
+}
+function openChannelForm(ch, prefill) {
+  const f = $("#channelForm");
+  $("#channelDialogTitle").textContent = ch ? `Kanal ${ch.name} bearbeiten` : prefill ? `${prefill.display} anlegen` : "Kanal anlegen";
+  f.dataset.isNew = ch ? "" : "1";
+  f.name.value = ch?.name || prefill?.name || ""; f.name.readOnly = !!ch;
+  f.source_url.value = ch?.source_url || prefill?.source_url || "";
+  f.title_template.value = ch?.title_template ?? "{hook} #shorts";
+  f.caption_template.value = ch?.caption_template ?? "{hook}\n\nClip aus: {video_title}";
+  f.tags.value = (ch?.tags || []).join(", ");
+  for (const p of Object.keys(PLATFORMS)) f[p].checked = ch ? !!ch.upload[p] : true;
+  f.ig_user_id.value = ch?.upload?.instagram?.ig_user_id || "";
+  f.ig_token_env.value = ch?.upload?.instagram?.token_env || "";
+  $("#channelDialog").showModal();
+}
+$("#addChannel").addEventListener("click", () => openChannelForm(null));
+$("#channelCancel").addEventListener("click", () => $("#channelDialog").close());
+$("#channelForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  act(async () => {
+    await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, source_url: f.source_url.value,
+      title_template: f.title_template.value, caption_template: f.caption_template.value, tags: f.tags.value,
+      platforms: { youtube: f.youtube.checked, tiktok: f.tiktok.checked, instagram: f.instagram.checked },
+      ig_user_id: f.ig_user_id.value, ig_token_env: f.ig_token_env.value });
+    $("#channelDialog").close();
+  }, "Kanal gespeichert");
+});
+$("#channelList").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const name = t.dataset.edit || t.dataset.remove || t.dataset.channel;
+  if (t.dataset.edit) openChannelForm(channelOf(name));
+  else if (t.dataset.remove) {
+    if (confirm(`Kanal ${name} entfernen? Fertige Clips und verbundene Konten bleiben auf der Festplatte erhalten.`))
+      act(() => api(`/api/channels/${encodeURIComponent(name)}/delete`, {}), "Kanal entfernt");
+  } else if (t.dataset.connect === "youtube")
+    act(() => api("/api/connect/youtube", { channel: name }), "Die Google-Anmeldung öffnet sich im Browser. Wähle dort den passenden Kanal.");
+  else if (t.dataset.connect === "instagram")
+    act(async () => { const r = await api("/api/connect/instagram", { channel: name }); toast(`Token gültig für @${r.username}`); });
+  else if (t.dataset.connect === "tiktok")
+    act(async () => {
+      const r = await api("/api/connect/tiktok/start", { channel: name });
+      tiktokChannel = name; $("#tiktokLink").href = r.url; $("#tiktokForm").redirected.value = "";
+      window.open(r.url, "_blank", "noopener"); $("#tiktokDialog").showModal();
+    });
+});
+$("#tiktokCancel").addEventListener("click", () => $("#tiktokDialog").close());
+$("#tiktokForm").addEventListener("submit", e => {
+  e.preventDefault();
+  act(async () => {
+    await api("/api/connect/tiktok/finish", { channel: tiktokChannel, redirected: e.target.redirected.value });
+    $("#tiktokDialog").close();
+  }, "TikTok verbunden");
+});
+
+/* ---------- Einstellungen ---------- */
+const SETTINGS = [
+  ["Clips", "violet", [
+    ["videos_per_run", "Neueste Videos je Lauf prüfen", "number"],
+    ["clips_per_video", "Clips je Video", "number"],
+    ["clip_min_seconds", "Mindestlänge in Sekunden", "number"],
+    ["clip_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["skip_start_seconds", "Sekunden am Anfang überspringen", "number"],
+    ["skip_end_seconds", "Sekunden am Ende überspringen", "number"],
+    ["max_video_minutes", "Videos überspringen ab (Minuten)", "number"],
+    ["max_height", "Höchste Auflösung beim Download", "select", { 720: "720p", 1080: "1080p", 1440: "1440p", 2160: "2160p" }],
+    ["keep_source_videos", "Quellvideos nach dem Schneiden behalten", "check"]]],
+  ["Bild", "pink", [
+    ["layout", "Bildaufbau", "select", { blur: "Video mittig, Hintergrund unscharf", crop: "Bildfüllender Ausschnitt" }],
+    ["zoom", "Vergrößerung des Videos (1 = ganzes Bild)", "number", 0.05]]],
+  ["Untertitel", "amber", [
+    ["subtitle_font", "Schriftart", "text"],
+    ["subtitle_size", "Schriftgröße", "number"],
+    ["subtitle_margin_bottom", "Abstand vom unteren Rand", "number"],
+    ["subtitle_words_per_line", "Wörter pro Einblendung", "number"],
+    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"]]],
+  ["Spracherkennung", "blue", [
+    ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
+    ["language", "Sprache (leer = automatisch, sonst z. B. en)", "text"]]],
+  ["Hochladen", "teal", [
+    ["privacy", "Sichtbarkeit", "select", { public: "Öffentlich", unlisted: "Nicht gelistet (nur YouTube)", private: "Privat" }],
+    ["max_uploads_per_run", "Höchstens Uploads je Lauf und Plattform", "number"],
+    ["youtube_category_id", "YouTube-Kategorie (24 Unterhaltung, 20 Gaming)", "text"],
+    ["instagram_api_version", "Version der Instagram-Schnittstelle", "text"],
+    ["dry_run", "Zeitgesteuerte Läufe über auto.bat laden nichts hoch", "check"]]],
+];
+function renderSettings() {
+  const s = data.settings;
+  $("#settingsFields").innerHTML = SETTINGS.map(([legend, color, fields]) => `<fieldset style="--c:var(--${color})"><legend>${legend}</legend><div class="grid">${
+    fields.map(([key, label, type, extra]) => type === "check"
+      ? `<label class="check"><input type="checkbox" name="${key}" ${s[key] ? "checked" : ""}> ${label}</label>`
+      : type === "select"
+      ? `<label class="field"><span>${label}</span><select name="${key}">${Object.entries(extra).map(([v, l]) =>
+          `<option value="${esc(v)}" ${String(s[key]) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`
+      : `<label class="field"><span>${label}</span><input type="${type}" name="${key}" value="${esc(s[key] ?? "")}" ${type === "number" ? `min="0" step="${extra || 1}"` : ""}></label>`
+    ).join("")}</div></fieldset>`).join("");
+}
+$("#settingsForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const payload = {};
+  for (const [, , fields] of SETTINGS) for (const [key, , type] of fields) {
+    const el = e.target.elements[key];
+    payload[key] = type === "check" ? el.checked : type === "number" ? Number(el.value) : el.value;
+  }
+  payload.max_height = Number(payload.max_height);
+  act(() => api("/api/settings", payload), "Einstellungen gespeichert");
+});
+
+/* ---------- Aktualisieren ---------- */
+function render() {
+  if (!data) return;
+  $("#tally").classList.toggle("running", data.job.running);
+  $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
+  if (view === "overview") renderOverview();
+  if (view === "clips") renderClips();
+  if (view === "channels") renderChannels();
+  if (openClipId) renderClipPlatforms();
+}
+async function refresh() {
+  try { data = await api("/api/state"); render(); }
+  catch (err) { $("#tallyText").textContent = "Keine Verbindung zu ClipBot. Läuft das Programmfenster noch?"; }
+}
+const start = (location.hash || "#overview").slice(1);
+refresh().then(() => show(["overview", "clips", "channels", "settings"].includes(start) ? start : "overview"));
+setInterval(refresh, 2500);
+</script>
+</body>
+</html>

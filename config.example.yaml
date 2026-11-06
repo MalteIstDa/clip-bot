@@ -1,0 +1,50 @@
+# Nach "config.yaml" kopieren und anpassen.
+
+settings:
+  dry_run: true              # true = Clips nur erzeugen, NICHT hochladen. Erst pruefen, dann auf false.
+  work_dir: data
+  videos_per_run: 2          # die neuesten N Videos je Kanal pruefen
+  max_video_minutes: 300     # laengere Videos/VODs ueberspringen
+  max_height: 1080
+  clips_per_video: 3
+  clip_min_seconds: 60
+  clip_max_seconds: 120
+  skip_start_seconds: 60     # Intro ignorieren
+  skip_end_seconds: 30
+  max_uploads_per_run: 6     # je Plattform und Kanal
+  keep_source_videos: false  # Quellvideo nach dem Schneiden loeschen
+
+  whisper_model: small       # tiny | base | small | medium | large-v3
+  language: null             # null = automatisch, sonst z.B. "en" oder "de"
+
+  layout: blur               # blur = Video mittig + unscharfer Hintergrund | crop = Vollbild-Ausschnitt
+  zoom: 1.4                  # nur bei blur: 1.0 = ganzes Bild sichtbar, groesser = naeher dran
+  subtitle_font: Arial
+  subtitle_size: 86
+  subtitle_margin_bottom: 430
+  subtitle_uppercase: true
+  subtitle_words_per_line: 3
+
+  youtube_category_id: "24"  # 24 = Entertainment, 20 = Gaming
+  privacy: public            # public | unlisted | private
+  instagram_api_version: v26.0
+
+channels:
+  - name: n3on
+    source_url: https://www.youtube.com/@N3on
+    title_template: "{hook} #n3on #shorts"
+    caption_template: "{hook}\n\nClip aus: {video_title}\nCredit: N3on\n#n3on #clips #fyp"
+    tags: [n3on, clips, stream]
+    upload:
+      youtube:
+        token_file: tokens/n3on_youtube.json
+      tiktok:
+        token_file: tokens/n3on_tiktok.json
+      instagram:
+        ig_user_id: "1784xxxxxxxxxxxxx"
+        token_env: IG_TOKEN_N3ON
+
+  # Weiteren Kanal einfach als neuen Block anhaengen:
+  # - name: anderer_streamer
+  #   source_url: https://www.youtube.com/@...
+  #   ...

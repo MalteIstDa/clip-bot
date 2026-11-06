@@ -1,0 +1,11 @@
+yt-dlp
+faster-whisper
+av<19  # faster-whisper 1.2 stuerzt mit PyAV 19 ab
+numpy
+PyYAML
+python-dotenv
+requests
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+flask
