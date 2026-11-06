@@ -73,7 +73,7 @@ main > section[hidden] { display: none; }
 .btn:hover:not(:disabled) { border-color: var(--c); }
 .btn.fill { background: var(--c); border-color: var(--c); color: var(--on-color); }
 .btn.fill:hover:not(:disabled) { filter: brightness(1.08); }
-.btn.violet { --c: var(--violet); } .btn.teal { --c: var(--teal); } .btn.pink { --c: var(--pink); }
+.btn.violet { --c: var(--violet); } .btn.teal { --c: var(--teal); } .btn.pink { --c: var(--pink); } .btn.blue { --c: var(--blue); }
 .btn.danger { --c: var(--red); color: var(--red); }
 .btn.small { padding: 6px 12px; font-size: 0.875rem; border-radius: 10px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -132,6 +132,36 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .empty { padding: 44px 0; max-width: 48ch; }
 .empty h3 { margin-bottom: 8px; }
 
+/* Freigabe */
+.side nav .badge { margin-left: auto; min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--green);
+  color: var(--on-color); font-size: 0.75rem; font-weight: 700; text-align: center; }
+.review-card { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 22px; margin-bottom: 20px; }
+.review-card video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; display: block; }
+.review-card .hook { display: inline-block; padding: 4px 10px; border-radius: 8px; background: var(--ink); color: var(--bg);
+  font-weight: 700; font-size: 0.875rem; }
+.review-card .why { color: var(--muted); font-size: 0.9375rem; }
+.ptabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ptabs button { --c: var(--muted); border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); background: none;
+  border-radius: 999px; padding: 5px 12px; font-weight: 650; cursor: pointer; color: var(--c); }
+.ptabs button[aria-pressed="true"] { background: var(--c); color: var(--on-color); border-color: var(--c); }
+.ptabs button.yt { --c: var(--yt); } .ptabs button.tt { --c: var(--tt); } .ptabs button.ig { --c: var(--ig); }
+.review-state { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
+.review-state.wartet { background: color-mix(in srgb, var(--amber) 22%, transparent); color: var(--amber); }
+.review-state.verworfen { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+@media (max-width: 760px) { .review-card { grid-template-columns: 1fr; } .review-card video { max-width: 260px; } }
+
+/* Erklaervideos */
+.explain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; align-items: start; }
+.idea { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.idea strong { font-size: 1rem; line-height: 1.3; }
+.idea .hook { color: var(--ink); font-style: italic; }
+.idea .btn { justify-self: start; margin-top: 4px; }
+.trend { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.trend a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.trend small { color: var(--muted); grid-column: 1; }
+.trend .num { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; color: var(--muted); }
+@media (max-width: 960px) { .explain { grid-template-columns: 1fr; } }
+
 /* Kanaele und Suche */
 .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .result { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px;
@@ -176,7 +206,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
 .platforms td:last-child { text-align: right; width: 1%; white-space: nowrap; }
 .platforms small { display: block; color: var(--muted); overflow-wrap: anywhere; font-weight: 400; }
 .dlg footer { display: flex; gap: 10px; margin-top: 22px; }
-.dlg footer .push { margin-left: auto; }
+.dlg footer .push, .row .push { margin-left: auto; }
 
 #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
   padding: 12px 18px; border-radius: 14px; max-width: min(560px, 90vw); display: none; z-index: 20; box-shadow: var(--shadow); }
@@ -209,7 +239,9 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   </div>
   <nav aria-label="Bereiche">
     <button data-view="overview" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>Übersicht</button>
+    <button data-view="review" style="--c:var(--green)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Freigabe<span class="badge" id="reviewBadge" hidden></span></button>
     <button data-view="clips" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor"/></svg></span>Clips</button>
+    <button data-view="explainer" style="--c:var(--blue)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>Erklärvideos</button>
     <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.2-5.5 6.5-5.5s5.9 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></span>Kanäle</button>
     <button data-view="settings" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
   </nav>
@@ -252,6 +284,15 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     </div>
   </section>
 
+  <section id="view-review" hidden>
+    <div class="pagehead">
+      <h2>Freigabe</h2>
+      <select id="reviewChannel" style="width:auto" aria-label="Kanal"></select>
+    </div>
+    <p class="muted" style="margin:-10px 0 18px">Neue Clips warten hier, bis du sie freigibst. Erst freigegebene Clips werden hochgeladen.</p>
+    <div id="reviewList"></div>
+  </section>
+
   <section id="view-clips" hidden>
     <div class="pagehead">
       <h2>Clips</h2>
@@ -259,6 +300,37 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
       <select id="clipChannel" style="width:auto" aria-label="Kanal"></select>
     </div>
     <div id="sheet"></div>
+  </section>
+
+  <section id="view-explainer" hidden>
+    <div class="pagehead">
+      <h2>Erklärvideos</h2>
+      <select id="explainChannel" style="width:auto" aria-label="Kanal"></select>
+    </div>
+    <p class="muted" style="margin:-10px 0 18px">Die KI schreibt ein Skript, prüft es auf Fakten, ElevenLabs spricht es ein und hyperframes animiert es. Das fertige Video wartet danach unter „Freigabe“.</p>
+    <div class="panel stack" id="explainNoChannel" hidden style="margin-bottom:20px">
+      <h3>Zuerst einen Erklärvideo-Kanal anlegen</h3>
+      <p class="muted">Lege unter „Kanäle“ einen Kanal mit der Art „Eigene Erklärvideos“ an und verbinde dort deine Konten.</p>
+      <div class="row"><button class="btn fill teal" id="explainAddChannel">Erklärvideo-Kanal anlegen</button></div>
+    </div>
+    <div class="explain">
+      <form class="panel stack" id="explainForm">
+        <h3>Video erstellen</h3>
+        <label class="field"><span>Thema als Frage</span><input type="text" name="topic" required maxlength="200" placeholder="Was passiert, wenn du aus Versehen Plastik verschluckst?"></label>
+        <label class="field"><span>Erster Satz (frei lassen, dann schreibt ihn die KI)</span><input type="text" name="hook" maxlength="200"></label>
+        <div class="row"><button class="btn fill blue" type="submit">Video erstellen</button>
+          <span class="muted">Dauert etwa 10 bis 20 Minuten.</span></div>
+        <p class="muted" id="explainVoiceNote"></p>
+      </form>
+      <form class="panel stack" id="trendForm">
+        <div class="row"><h3 style="margin-right:auto">Was gerade gut läuft</h3></div>
+        <div class="row">
+          <input type="search" id="trendQuery" style="flex:1; min-width:180px" placeholder="Leer = deine Suchbegriffe aus den Einstellungen" aria-label="Suchbegriff">
+          <button class="btn fill blue" id="trendBtn">Trends suchen</button>
+        </div>
+        <div id="trendResults"><p class="muted">Sucht kurze Erklärvideos dieses Monats auf YouTube, sortiert nach Aufrufen, und lässt die KI daraus eigene Themen ableiten.</p></div>
+      </form>
+    </div>
   </section>
 
   <section id="view-channels" hidden>
@@ -324,11 +396,16 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
 <dialog id="channelDialog" class="narrow"><form class="dlg stack" id="channelForm">
   <h2 id="channelDialogTitle">Kanal anlegen</h2>
   <label class="field"><span>Kurzname (nur Buchstaben, Ziffern, - und _)</span><input type="text" name="name" required pattern="[A-Za-z0-9_\-]{1,40}"></label>
-  <label class="field"><span>Adresse des Quellkanals auf YouTube</span><input type="url" name="source_url" required placeholder="https://www.youtube.com/@…"></label>
+  <label class="field"><span>Art</span><select name="kind">
+    <option value="clips">Clips aus einem YouTube-Kanal</option>
+    <option value="explainer">Eigene Erklärvideos</option></select></label>
+  <label class="field" id="sourceField"><span>Adresse des Quellkanals auf YouTube</span><input type="url" name="source_url" required placeholder="https://www.youtube.com/@…"></label>
   <label class="field"><span>Titel-Vorlage</span><input type="text" name="title_template"></label>
   <label class="field"><span>Beschreibungs-Vorlage</span><textarea name="caption_template"></textarea></label>
   <p class="muted">Platzhalter: {hook} sind die ersten gesprochenen Worte des Clips, {video_title} der Titel des Quellvideos, {channel} der Kurzname.</p>
   <label class="field"><span>Tags für YouTube, durch Komma getrennt</span><input type="text" name="tags"></label>
+  <label class="field"><span>Credit (steht in jeder Caption, z. B. der Name des Streamers)</span><input type="text" name="credit"></label>
+  <label class="field"><span>Sprache der KI-Texte</span><input type="text" name="caption_language" placeholder="Englisch"></label>
   <div class="stack">
     <label class="check"><input type="checkbox" name="youtube"> Auf YouTube hochladen</label>
     <label class="check"><input type="checkbox" name="tiktok"> Auf TikTok hochladen</label>
@@ -446,6 +523,8 @@ function renderOverview() {
 
   const todo = [];
   if (!data.setup.ffmpeg) todo.push("ffmpeg ist nicht installiert. Installiere es und starte ClipBot neu.");
+  const waiting = data.clips.filter(c => c.review === "wartet").length;
+  if (waiting) todo.push(`${waiting} ${waiting === 1 ? "Clip wartet" : "Clips warten"} unter „Freigabe“ auf dich.`);
   if (!data.channels.length) todo.push("Unter „Kanäle“ ist noch kein Quellkanal angelegt. Dort kannst du ihn auf YouTube suchen.");
   for (const ch of data.channels) for (const [p, [label]] of Object.entries(PLATFORMS)) {
     const a = ch.accounts[p];
@@ -501,7 +580,7 @@ function renderClips() {
       <div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
         <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}</span>
         <span class="title">${esc(c.title)}</span>
-        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span>
+        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
         <span class="lamps">${lamps(c)}</span></button>`).join("")}</div></div>`;
   }).join("");
 }
@@ -570,7 +649,7 @@ function renderSearch() {
   const box = $("#searchResults");
   if (searchResults === null) return (box.innerHTML = "");
   if (!searchResults.length) return (box.innerHTML = `<p class="muted">Nichts gefunden. Versuche einen anderen Begriff.</p>`);
-  const known = new Set(data.channels.map(c => c.source_url.replace(/\/+$/, "").toLowerCase()));
+  const known = new Set(data.channels.map(c => (c.source_url || "").replace(/\/+$/, "").toLowerCase()));
   box.innerHTML = searchResults.map((r, i) => {
     const meta = [r.handle, r.subscribers ? compact(r.subscribers) + " Abonnenten" : ""].filter(Boolean).join(", ");
     const week = r.views ? `${compact(r.views)} Aufrufe mit ${r.videos} ${r.videos === 1 ? "Video" : "Videos"} diese Woche` : "";
@@ -628,7 +707,7 @@ function renderChannels() {
     <div class="panel channel">
       <div class="head"><span class="avatar small" style="--c:${colorOf(ch.name)}">${esc(ch.name[0].toUpperCase())}</span>
         <h3>${esc(ch.name)}</h3>
-        <a href="${esc(ch.source_url)}" target="_blank" rel="noopener">${esc(ch.source_url)}</a>
+        ${ch.kind === "explainer" ? `<span class="muted">Eigene Erklärvideos</span>` : `<a href="${esc(ch.source_url)}" target="_blank" rel="noopener">${esc(ch.source_url)}</a>`}
         <div class="row"><button class="btn small" data-edit="${esc(ch.name)}">Bearbeiten</button>
           <button class="btn small danger" data-remove="${esc(ch.name)}">Kanal entfernen</button></div></div>
       <table class="accounts">${Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
@@ -650,22 +729,31 @@ function openChannelForm(ch, prefill) {
   f.dataset.isNew = ch ? "" : "1";
   f.name.value = ch?.name || prefill?.name || ""; f.name.readOnly = !!ch;
   f.source_url.value = ch?.source_url || prefill?.source_url || "";
+  f.kind.value = ch?.kind || prefill?.kind || "clips"; syncKind();
   f.title_template.value = ch?.title_template ?? "{hook} #shorts";
   f.caption_template.value = ch?.caption_template ?? "{hook}\n\nClip aus: {video_title}";
   f.tags.value = (ch?.tags || []).join(", ");
+  f.credit.value = ch?.credit || "";
+  f.caption_language.value = ch?.caption_language || (f.kind.value === "explainer" ? "Deutsch" : "Englisch");
   for (const p of Object.keys(PLATFORMS)) f[p].checked = ch ? !!ch.upload[p] : true;
   f.ig_user_id.value = ch?.upload?.instagram?.ig_user_id || "";
   f.ig_token_env.value = ch?.upload?.instagram?.token_env || "";
   $("#channelDialog").showModal();
 }
+function syncKind() {
+  const f = $("#channelForm"), explainer = f.kind.value === "explainer";
+  $("#sourceField").hidden = explainer; f.source_url.required = !explainer;
+}
+$("#channelForm").kind.addEventListener("change", syncKind);
 $("#addChannel").addEventListener("click", () => openChannelForm(null));
 $("#channelCancel").addEventListener("click", () => $("#channelDialog").close());
 $("#channelForm").addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
   act(async () => {
-    await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, source_url: f.source_url.value,
+    await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, kind: f.kind.value, source_url: f.source_url.value,
       title_template: f.title_template.value, caption_template: f.caption_template.value, tags: f.tags.value,
+      credit: f.credit.value, caption_language: f.caption_language.value,
       platforms: { youtube: f.youtube.checked, tiktok: f.tiktok.checked, instagram: f.instagram.checked },
       ig_user_id: f.ig_user_id.value, ig_token_env: f.ig_token_env.value });
     $("#channelDialog").close();
@@ -705,6 +793,7 @@ const SETTINGS = [
     ["clips_per_video", "Clips je Video", "number"],
     ["clip_min_seconds", "Mindestlänge in Sekunden", "number"],
     ["clip_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["ai_candidates", "Mit KI: so viele Stellen je Video bewerten", "number"],
     ["skip_start_seconds", "Sekunden am Anfang überspringen", "number"],
     ["skip_end_seconds", "Sekunden am Ende überspringen", "number"],
     ["max_video_minutes", "Videos überspringen ab (Minuten)", "number"],
@@ -718,7 +807,8 @@ const SETTINGS = [
     ["subtitle_size", "Schriftgröße", "number"],
     ["subtitle_margin_bottom", "Abstand vom unteren Rand", "number"],
     ["subtitle_words_per_line", "Wörter pro Einblendung", "number"],
-    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"]]],
+    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"],
+    ["hook_overlay", "Hook-Zeile am Anfang einblenden (mit KI)", "check"]]],
   ["Spracherkennung", "blue", [
     ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
     ["language", "Sprache (leer = automatisch, sonst z. B. en)", "text"]]],
@@ -728,6 +818,15 @@ const SETTINGS = [
     ["ai_effort", "Claude-Aufwand", "select", { low: "Niedrig (günstig)", medium: "Mittel", high: "Hoch (gründlich)" }],
     ["ai_ollama_model", "Ollama-Modell", "text"],
     ["ai_ollama_url", "Ollama-Adresse", "text"]]],
+  ["Erklärvideos", "blue", [
+    ["voice_backend", "Stimme", "select", { elevenlabs: "ElevenLabs (API-Schlüssel in .env)", stumm: "Stumm (kostenlose Vorschau)" }],
+    ["elevenlabs_voice_id", "ElevenLabs-Stimme (Voice-ID)", "text"],
+    ["elevenlabs_model", "ElevenLabs-Modell", "text"],
+    ["explainer_min_seconds", "Mindestlänge in Sekunden (über 60 für Vergütung)", "number"],
+    ["explainer_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["explainer_queries", "Suchbegriffe für Trends, durch Komma getrennt", "text"],
+    ["explainer_themes", "Themenfelder deines Kanals", "text"],
+    ["hyperframes_cmd", "Befehl für hyperframes", "text"]]],
   ["Hochladen", "teal", [
     ["privacy", "Sichtbarkeit", "select", { public: "Öffentlich", unlisted: "Nicht gelistet (nur YouTube)", private: "Privat" }],
     ["max_uploads_per_run", "Höchstens Uploads je Lauf und Plattform", "number"],
@@ -762,6 +861,144 @@ $("#settingsForm").addEventListener("submit", e => {
   act(() => api("/api/settings", payload), "Einstellungen gespeichert");
 });
 
+/* ---------- Freigabe ---------- */
+const reviewTab = {};      // clip_id -> gewaehlte Plattform
+const reviewDraft = {};    // clip_id -> {plattform: {title, caption}} (ungespeicherte Aenderungen)
+function clipTexts(clip) {
+  const base = {};
+  for (const p of Object.keys(PLATFORMS)) base[p] = { title: clip.texts?.[p]?.title || clip.title, caption: clip.texts?.[p]?.caption || clip.caption };
+  return { ...base, ...(reviewDraft[clip.clip_id] || {}) };
+}
+function reviewEditor(clip) {
+  const p = reviewTab[clip.clip_id] || "tiktok", t = clipTexts(clip)[p];
+  const tabs = Object.entries(PLATFORMS).map(([key, [label, , cls]]) =>
+    `<button type="button" class="${cls}" data-ptab="${key}" aria-pressed="${key === p}">${label}</button>`).join("");
+  return `<div class="ptabs">${tabs}</div>
+    <label class="field"><span>Titel (<span class="num">${t.title.length}</span> von 100 Zeichen${p === "youtube" ? "" : ", nur YouTube zeigt ihn"})</span>
+      <input type="text" maxlength="100" data-field="title" value="${esc(t.title)}"></label>
+    <label class="field"><span>Caption mit Hashtags (<span class="num">${t.caption.length}</span> Zeichen)</span>
+      <textarea maxlength="2200" data-field="caption">${esc(t.caption)}</textarea></label>`;
+}
+function renderReview() {
+  fillChannelSelect($("#reviewChannel"), "Alle Kanäle");
+  const channel = $("#reviewChannel").value;
+  const list = data.clips.filter(c => c.review === "wartet" && (!channel || c.channel === channel));
+  // Nicht neu zeichnen, solange jemand tippt oder ein Video läuft.
+  if (document.activeElement?.closest?.("#reviewList") || [...$$("#reviewList video")].some(v => !v.paused)) return;
+  if (!changed("review", [list.map(c => [c.clip_id, c.title, c.caption, c.texts, c.exists]), channel, data.job.running, reviewTab])) return;
+  if (!list.length) {
+    $("#reviewList").innerHTML = `<div class="empty"><h3>Nichts zu prüfen</h3><p class="muted">Neue Clips erscheinen hier, sobald ein Lauf sie erzeugt hat.</p></div>`;
+    return;
+  }
+  $("#reviewList").innerHTML = list.map(c => `<article class="panel review-card" data-review="${esc(c.clip_id)}">
+    <video controls playsinline preload="none" ${c.exists ? `src="/media/${encodeURIComponent(c.clip_id)}" poster="/thumb/${encodeURIComponent(c.clip_id)}"` : ""}></video>
+    <div class="stack">
+      <div class="row"><span class="tag" style="--c:${colorOf(c.channel)}">${esc(c.channel)}</span>
+        <span class="muted num">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span></div>
+      ${c.hook ? `<div><span class="muted">Hook im Video:</span> <span class="hook">${esc(c.hook)}</span></div>` : ""}
+      ${c.reason ? `<p class="why">KI: ${esc(c.reason)}</p>` : ""}
+      <div class="stack editor-box">${reviewEditor(c)}</div>
+      <div class="row">
+        <button class="btn fill" style="--c:var(--green)" data-act="approve">Freigeben</button>
+        <button class="btn fill teal" data-act="approve-upload" ${data.job.running ? "disabled" : ""}>Freigeben und hochladen</button>
+        ${data.settings.ai_backend !== "off" ? `<button class="btn" data-act="retext">Neu texten (KI)</button>` : ""}
+        <button class="btn danger push" data-act="reject">Verwerfen</button>
+      </div>
+    </div></article>`).join("");
+}
+$("#reviewChannel").addEventListener("change", () => { lastSig.review = null; renderReview(); });
+$("#reviewList").addEventListener("input", e => {
+  const card = e.target.closest("[data-review]"), field = e.target.dataset.field;
+  if (!card || !field) return;
+  const id = card.dataset.review, p = reviewTab[id] || "tiktok";
+  const clip = data.clips.find(c => c.clip_id === id);
+  reviewDraft[id] = reviewDraft[id] || {};
+  reviewDraft[id][p] = { ...clipTexts(clip)[p], [field]: e.target.value };
+  e.target.closest("label").querySelector(".num").textContent = e.target.value.length;
+});
+$("#reviewList").addEventListener("click", e => {
+  const card = e.target.closest("[data-review]"); if (!card) return;
+  const id = card.dataset.review, clip = data.clips.find(c => c.clip_id === id);
+  const tab = e.target.closest("[data-ptab]");
+  if (tab) {
+    reviewTab[id] = tab.dataset.ptab;
+    card.querySelector(".editor-box").innerHTML = reviewEditor(clip);
+    return;
+  }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const url = `/api/clips/${encodeURIComponent(id)}`;
+  const saveDraft = async () => {
+    if (reviewDraft[id]) { await api(url + "/texts", { platforms: clipTexts(clip) }); delete reviewDraft[id]; }
+  };
+  const done = () => { lastSig.review = null; document.activeElement?.blur?.(); };
+  if (b.dataset.act === "approve") act(async () => { await saveDraft(); await api(url + "/review", { action: "approve" }); done(); }, "Freigegeben");
+  if (b.dataset.act === "approve-upload") act(async () => {
+    await saveDraft(); await api(url + "/review", { action: "approve" });
+    await api("/api/run", { mode: "upload", channel: clip.channel }); done();
+  }, "Freigegeben, Upload läuft. Den Fortschritt siehst du im Protokoll.");
+  if (b.dataset.act === "retext") {
+    b.disabled = true; b.textContent = "KI schreibt …";
+    act(async () => { delete reviewDraft[id]; await api(url + "/retext", {}); done(); }, "Neue Texte da");
+  }
+  if (b.dataset.act === "reject") act(async () => { delete reviewDraft[id]; await api(url + "/review", { action: "reject" }); done(); },
+    "Verworfen. Der Clip bleibt unter „Clips“ und wird nicht hochgeladen.");
+});
+
+/* ---------- Erklaervideos ---------- */
+let trendData = null;
+function renderExplainer() {
+  const own = data.channels.filter(c => c.kind === "explainer").map(c => c.name);
+  $("#explainNoChannel").hidden = own.length > 0;
+  const sel = $("#explainChannel");
+  if (changed("explainChannel", own)) {
+    const keep = sel.value;
+    sel.innerHTML = own.map(n => `<option>${esc(n)}</option>`).join("");
+    if (own.includes(keep)) sel.value = keep;
+  }
+  sel.hidden = !own.length;
+  const s = data.settings;
+  $("#explainVoiceNote").textContent = s.ai_backend === "off" ? "Wähle zuerst unter Einstellungen eine KI (Claude oder Ollama)."
+    : s.voice_backend === "stumm" ? "Stimme ist auf „stumm“ gestellt: Das Video wird ohne Sprecher gebaut (Vorschau)." : "";
+}
+function renderTrends() {
+  const box = $("#trendResults"), t = trendData;
+  const ideas = t.ideas.map((idea, i) => `<div class="idea">
+      <strong>${esc(idea.topic)}</strong><span class="hook">„${esc(idea.hook)}“</span>
+      <small class="muted">${esc(idea.why)}</small>
+      <button type="button" class="btn small fill blue" data-idea="${i}">Übernehmen</button></div>`).join("");
+  const trending = t.trending.map(v => `<div class="trend">
+      <a href="${esc(v.url)}" target="_blank" rel="noopener" title="${esc(v.title)}">${esc(v.title)}</a>
+      <span class="num">${compact(v.views)}</span><small>${esc(v.channel)} · ${esc(v.query)}</small></div>`).join("");
+  box.innerHTML = (t.note ? `<p class="muted">${esc(t.note)}</p>` : "")
+    + (ideas ? `<h3 style="margin:6px 0 10px">Ideen für dich</h3><div class="stack">${ideas}</div>` : "")
+    + `<h3 style="margin:18px 0 4px">Meistgesehen diesen Monat</h3>`
+    + (trending || `<p class="muted">Nichts gefunden. Versuche einen anderen Begriff.</p>`);
+}
+$("#trendForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("#trendBtn").disabled = true;
+  $("#trendResults").innerHTML = `<p class="muted">Suche auf YouTube läuft und die KI denkt sich Themen aus, das dauert bis zu einer Minute.</p>`;
+  try { trendData = await api("/api/explainer/trends", { query: $("#trendQuery").value.trim() }); renderTrends(); }
+  catch (err) { $("#trendResults").innerHTML = `<p class="state-bad">${esc(err.message)}</p>`; }
+  finally { $("#trendBtn").disabled = false; }
+});
+$("#trendResults").addEventListener("click", e => {
+  const b = e.target.closest("[data-idea]"); if (!b) return;
+  const idea = trendData.ideas[Number(b.dataset.idea)], f = $("#explainForm");
+  f.topic.value = idea.topic; f.hook.value = idea.hook; f.topic.focus();
+  toast("Thema übernommen. Prüfe es und klicke auf „Video erstellen“.");
+});
+$("#explainForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, channel = $("#explainChannel").value;
+  if (!channel) return toast("Lege zuerst einen Erklärvideo-Kanal an.", true);
+  act(async () => {
+    await api("/api/explainer/create", { channel, topic: f.topic.value, hook: f.hook.value });
+    f.reset();
+  }, "Erklärvideo wird erstellt. Den Fortschritt siehst du im Protokoll unter „Übersicht“.");
+});
+$("#explainAddChannel").addEventListener("click", () => openChannelForm(null, { name: "wissen", kind: "explainer", display: "Erklärvideo-Kanal" }));
+
 /* ---------- Aktualisieren ---------- */
 function render() {
   if (!data) return;
@@ -769,6 +1006,10 @@ function render() {
   $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
   if (view === "overview") renderOverview();
   if (view === "clips") renderClips();
+  if (view === "review") renderReview();
+  if (view === "explainer") renderExplainer();
+  const waitingCount = data.clips.filter(c => c.review === "wartet").length;
+  $("#reviewBadge").hidden = !waitingCount; $("#reviewBadge").textContent = waitingCount;
   if (view === "channels") renderChannels();
   if (openClipId) renderClipPlatforms();
 }
@@ -777,7 +1018,7 @@ async function refresh() {
   catch (err) { $("#tallyText").textContent = "Keine Verbindung zu ClipBot. Läuft das Programmfenster noch?"; }
 }
 const start = (location.hash || "#overview").slice(1);
-refresh().then(() => show(["overview", "clips", "channels", "settings"].includes(start) ? start : "overview"));
+refresh().then(() => show(["overview", "review", "clips", "explainer", "channels", "settings"].includes(start) ? start : "overview"));
 setInterval(refresh, 2500);
 </script>
 </body>

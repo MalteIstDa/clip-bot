@@ -30,7 +30,7 @@ DEFAULTS = {
     "whisper_model": "small",
     "language": None,
     "layout": "blur",
-    "zoom": 1.4,
+    "zoom": 1.15,
     "subtitle_font": "Arial",
     "subtitle_size": 86,
     "subtitle_margin_bottom": 430,
@@ -39,11 +39,23 @@ DEFAULTS = {
     "youtube_category_id": "24",
     "privacy": "public",
     "instagram_api_version": "v26.0",
+    "require_approval": True,          # neue Clips erst nach Freigabe im Dashboard hochladen
+    "ai_candidates": 6,                # so viele Stellen bewertet die KI je Video
+    "hook_overlay": True,              # Hook-Zeile in den ersten Sekunden einblenden
     "ai_backend": "off",               # off | claude | ollama
     "ai_claude_model": "claude-opus-5-5",
     "ai_effort": "low",                # low | medium | high (nur Claude)
     "ai_ollama_model": "qwen3:8b",
     "ai_ollama_url": "http://localhost:11434",
+    # Erklaervideos
+    "voice_backend": "elevenlabs",     # elevenlabs | stumm (Vorschau ohne Stimme, kostenlos)
+    "elevenlabs_voice_id": "JBFqnCBsd6RMkjVDRZzb",
+    "elevenlabs_model": "eleven_multilingual_v2",
+    "hyperframes_cmd": "npx --yes hyperframes@0.9.18",
+    "explainer_queries": "was passiert wenn, menschlicher körper fakten, geschichte erklärt, politik einfach erklärt, ki erklärt",
+    "explainer_min_seconds": 65,  # ueber 1 Minute: Voraussetzung fuer Verguetung (z. B. TikTok Creator Rewards)
+    "explainer_max_seconds": 90,
+    "explainer_themes": "menschlicher Körper, Was passiert wenn, Geschichte, Politik, Wissenschaft, KI und Technik",
 }
 
 
@@ -72,6 +84,9 @@ def load_raw(path: str | Path | None = None) -> dict:
         ch.setdefault("title_template", "{hook} #shorts")
         ch.setdefault("caption_template", "{hook}\n\nClip aus: {video_title}")
         ch.setdefault("tags", [])
+        ch.setdefault("credit", "")
+        ch.setdefault("caption_language", "Englisch")
+        ch.setdefault("kind", "clips")  # clips = Clips aus einem YouTube-Kanal | explainer = eigene Erklaervideos
         ch.setdefault("upload", {})
     return {"settings": settings, "channels": channels}
 
@@ -88,12 +103,18 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         if name in names:
             raise ConfigError(f"Kanalname '{name}' ist doppelt vergeben.")
         names.add(name)
-        if not str(ch.get("source_url") or "").startswith("https://"):
+        if ch.get("kind", "clips") not in ("clips", "explainer"):
+            raise ConfigError(f"Kanal '{name}': Art muss clips oder explainer sein.")
+        if ch.get("kind", "clips") == "clips" and not str(ch.get("source_url") or "").startswith("https://"):
             raise ConfigError(f"Kanal '{name}': Quell-Adresse muss mit https:// beginnen.")
     if settings["ai_backend"] not in ("off", "claude", "ollama"):
         raise ConfigError("KI: erlaubt sind off, claude oder ollama.")
     if settings["ai_effort"] not in ("low", "medium", "high"):
         raise ConfigError("KI-Aufwand: erlaubt sind low, medium oder high.")
+    if settings["voice_backend"] not in ("elevenlabs", "stumm"):
+        raise ConfigError("Stimme: erlaubt sind elevenlabs oder stumm.")
+    if not 15 <= settings["explainer_min_seconds"] < settings["explainer_max_seconds"] <= 180:
+        raise ConfigError("Erklaervideos: Mindestlaenge muss kleiner als die Hoechstlaenge sein (15 bis 180 Sekunden).")
     if settings["clip_min_seconds"] >= settings["clip_max_seconds"]:
         raise ConfigError("Die Mindestlaenge muss kleiner als die Hoechstlaenge sein.")
 

@@ -277,6 +277,7 @@ def clip_upload(clip_id: str):
 
     def work():
         st = open_state(s)
+        st.set_review(clip_id, "freigegeben")  # Wer selbst auf Hochladen klickt, gibt den Clip frei.
         try:
             remote_id = pipeline.upload_one(platform, clip, channel, s)
             st.mark_upload(clip_id, platform, "ok", remote_id)
@@ -287,6 +288,81 @@ def clip_upload(clip_id: str):
 
     if not start_job(f"{platform}: {clip['title']}", work):
         raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
+    return jsonify(ok=True)
+
+
+@app.post("/api/clips/<clip_id>/review")
+def clip_review(clip_id: str):
+    """Freigeben, verwerfen oder wieder in die Warteschlange stellen."""
+    action = body().get("action")
+    review = {"approve": "freigegeben", "reject": "verworfen", "reopen": "wartet"}.get(action)
+    if not review:
+        raise ApiError("Unbekannte Aktion.")
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        clip_or_404(state, clip_id)
+        state.set_review(clip_id, review)
+    finally:
+        state.close()
+    return jsonify(ok=True, review=review)
+
+
+def _clean_platform_texts(raw) -> dict:
+    out = {}
+    for platform in PLATFORMS:
+        entry = (raw or {}).get(platform) or {}
+        title = str(entry.get("title") or "").strip()[:100]
+        caption = str(entry.get("caption") or "").strip()[:2200]
+        if title or caption:
+            out[platform] = {"title": title, "caption": caption}
+    return out
+
+
+@app.post("/api/clips/<clip_id>/texts")
+def clip_texts(clip_id: str):
+    """Texte je Plattform aus der Freigabe-Ansicht speichern."""
+    platforms = _clean_platform_texts(body().get("platforms"))
+    if not platforms:
+        raise ApiError("Keine Texte uebermittelt.")
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        clip = clip_or_404(state, clip_id)
+        first = platforms.get("youtube") or next(iter(platforms.values()))
+        title = first["title"] or clip["title"]
+        caption = (platforms.get("tiktok") or first)["caption"] or clip["caption"]
+        state.set_texts(clip_id, title, caption, platforms)
+    finally:
+        state.close()
+    return jsonify(ok=True)
+
+
+@app.post("/api/clips/<clip_id>/retext")
+def clip_retext(clip_id: str):
+    """Die KI schreibt Titel, Captions, Hashtags und Hook neu (das Video bleibt, wie es ist)."""
+    from clipbot import ai, viral
+    cfg = config.load(allow_empty=True)
+    s = cfg["settings"]
+    if not ai.enabled(s):
+        raise ApiError("Die KI ist ausgeschaltet (Einstellungen, KI fuer Texte).")
+    state = open_state(s)
+    try:
+        clip = dict(clip_or_404(state, clip_id))
+        video = state.db.execute("SELECT title FROM videos WHERE video_id=?", (clip["video_id"],)).fetchone()
+    finally:
+        state.close()
+    channel = find_channel(cfg, clip["channel"])
+    transcript = clip.get("transcript") or clip["title"]
+    texts = viral.write_texts(s, channel, video["title"] if video else clip["title"], transcript, 1,
+                              clip.get("reason") or "")
+    if not texts["platforms"]:
+        raise ApiError("Die KI hat keine brauchbaren Texte geliefert. Details im Protokoll.", 502)
+    state = open_state(s)
+    try:
+        state.set_texts(clip_id, texts["title"], texts["caption"], texts["platforms"])
+    finally:
+        state.close()
+    log.info("[%s] Neue KI-Texte fuer %s. Die Hook-Zeile im Video bleibt (dafuer muesste neu gerendert werden).",
+             channel["name"], clip_id)
     return jsonify(ok=True)
 
 
@@ -348,12 +424,16 @@ def channel_save():
     if wanted.get("instagram"):
         upload["instagram"] = {"ig_user_id": str(data.get("ig_user_id") or "").strip(),
                                "token_env": str(data.get("ig_token_env") or "").strip()}
+    kind = "explainer" if data.get("kind") == "explainer" else "clips"
     channel = {
         "name": name,
-        "source_url": str(data.get("source_url") or "").strip(),
+        "kind": kind,
+        "source_url": "" if kind == "explainer" else str(data.get("source_url") or "").strip(),
         "title_template": str(data.get("title_template") or "{hook} #shorts"),
         "caption_template": str(data.get("caption_template") or "{hook}"),
         "tags": [t.strip() for t in str(data.get("tags") or "").split(",") if t.strip()],
+        "credit": str(data.get("credit") or "").strip(),
+        "caption_language": str(data.get("caption_language") or "Englisch").strip(),
         "upload": upload,
     }
     for template in (channel["title_template"], channel["caption_template"]):
@@ -410,6 +490,59 @@ def ai_test():
     except ai.AIError as exc:
         raise ApiError(str(exc), 502)
     return jsonify(ok=True, message=data["antwort"])
+
+
+# ---------------------------------------------------------------- Erklaervideos
+def _split(text: str) -> list[str]:
+    return [t.strip() for t in str(text or "").split(",") if t.strip()]
+
+
+@app.post("/api/explainer/trends")
+def explainer_trends():
+    """Gerade erfolgreiche kurze Erklaervideos auf YouTube plus eigene Themenideen der KI."""
+    from clipbot import ai
+    from clipbot.explainer import trends
+    s = config.load(allow_empty=True)["settings"]
+    query = str(body().get("query") or "").strip()
+    queries = [query] if query else _split(s["explainer_queries"])
+    found = trends.find_trending(queries, per_query=20 if query else 12)
+    ideas, note = [], ""
+    if not ai.enabled(s):
+        note = "Fuer eigene Themenideen waehle unter Einstellungen eine KI."
+    else:
+        try:
+            ideas = trends.ideas(s, found, _split(s["explainer_themes"]))
+        except ai.AIError as exc:
+            note = f"Keine Ideen von der KI: {exc}"
+    return jsonify(ok=True, trending=found, ideas=ideas, note=note)
+
+
+@app.post("/api/explainer/create")
+def explainer_create():
+    from clipbot import ai
+    from clipbot.explainer import pipeline as explainer
+    data = body()
+    cfg = config.load(allow_empty=True)
+    s = cfg["settings"]
+    channel = find_channel(cfg, str(data.get("channel") or ""))
+    topic = str(data.get("topic") or "").strip()[:200]
+    hook = str(data.get("hook") or "").strip()[:200]
+    if len(topic) < 4:
+        raise ApiError("Gib ein Thema an, z. B. „Was passiert, wenn du Plastik verschluckst?“")
+    if not ai.enabled(s):
+        raise ApiError("Fuer Erklaervideos muss unter Einstellungen eine KI (Claude oder Ollama) gewaehlt sein.")
+
+    def work():
+        state = open_state(s)
+        try:
+            explainer.create(s, channel, state, topic, hook)
+        finally:
+            state.close()
+
+    label = f"Erklaervideo: {topic}"
+    if not start_job(label, work):
+        raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
+    return jsonify(ok=True, label=label)
 
 
 # ---------------------------------------------------------------- Konten verbinden
