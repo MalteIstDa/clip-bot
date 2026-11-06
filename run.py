@@ -98,6 +98,9 @@ def process_video(channel: dict, s: dict, state: State, video: dict) -> int:
 def make_clips(channel: dict, s: dict, state: State) -> int:
     """Die neuesten Videos des Kanals verarbeiten. Gibt die Zahl der neuen Clips zurueck."""
     name = channel["name"]
+    if channel.get("kind") == "explainer":
+        log.info("[%s] Erklaervideo-Kanal: Videos entstehen im Bereich 'Erklaervideos'.", name)
+        return 0
     videos = download.list_latest(channel["source_url"], s["videos_per_run"])
     todo = [v for v in videos if not state.video_done(v["id"])]
     made = sum(process_video(channel, s, state, video) for video in todo)

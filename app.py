@@ -424,9 +424,11 @@ def channel_save():
     if wanted.get("instagram"):
         upload["instagram"] = {"ig_user_id": str(data.get("ig_user_id") or "").strip(),
                                "token_env": str(data.get("ig_token_env") or "").strip()}
+    kind = "explainer" if data.get("kind") == "explainer" else "clips"
     channel = {
         "name": name,
-        "source_url": str(data.get("source_url") or "").strip(),
+        "kind": kind,
+        "source_url": "" if kind == "explainer" else str(data.get("source_url") or "").strip(),
         "title_template": str(data.get("title_template") or "{hook} #shorts"),
         "caption_template": str(data.get("caption_template") or "{hook}"),
         "tags": [t.strip() for t in str(data.get("tags") or "").split(",") if t.strip()],
@@ -488,6 +490,59 @@ def ai_test():
     except ai.AIError as exc:
         raise ApiError(str(exc), 502)
     return jsonify(ok=True, message=data["antwort"])
+
+
+# ---------------------------------------------------------------- Erklaervideos
+def _split(text: str) -> list[str]:
+    return [t.strip() for t in str(text or "").split(",") if t.strip()]
+
+
+@app.post("/api/explainer/trends")
+def explainer_trends():
+    """Gerade erfolgreiche kurze Erklaervideos auf YouTube plus eigene Themenideen der KI."""
+    from clipbot import ai
+    from clipbot.explainer import trends
+    s = config.load(allow_empty=True)["settings"]
+    query = str(body().get("query") or "").strip()
+    queries = [query] if query else _split(s["explainer_queries"])
+    found = trends.find_trending(queries, per_query=20 if query else 12)
+    ideas, note = [], ""
+    if not ai.enabled(s):
+        note = "Fuer eigene Themenideen waehle unter Einstellungen eine KI."
+    else:
+        try:
+            ideas = trends.ideas(s, found, _split(s["explainer_themes"]))
+        except ai.AIError as exc:
+            note = f"Keine Ideen von der KI: {exc}"
+    return jsonify(ok=True, trending=found, ideas=ideas, note=note)
+
+
+@app.post("/api/explainer/create")
+def explainer_create():
+    from clipbot import ai
+    from clipbot.explainer import pipeline as explainer
+    data = body()
+    cfg = config.load(allow_empty=True)
+    s = cfg["settings"]
+    channel = find_channel(cfg, str(data.get("channel") or ""))
+    topic = str(data.get("topic") or "").strip()[:200]
+    hook = str(data.get("hook") or "").strip()[:200]
+    if len(topic) < 4:
+        raise ApiError("Gib ein Thema an, z. B. „Was passiert, wenn du Plastik verschluckst?“")
+    if not ai.enabled(s):
+        raise ApiError("Fuer Erklaervideos muss unter Einstellungen eine KI (Claude oder Ollama) gewaehlt sein.")
+
+    def work():
+        state = open_state(s)
+        try:
+            explainer.create(s, channel, state, topic, hook)
+        finally:
+            state.close()
+
+    label = f"Erklaervideo: {topic}"
+    if not start_job(label, work):
+        raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
+    return jsonify(ok=True, label=label)
 
 
 # ---------------------------------------------------------------- Konten verbinden
