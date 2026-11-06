@@ -36,7 +36,8 @@ def fake_ai(monkeypatch):
 
 
 def s(tmp_path, **kw):
-    return {**config.DEFAULTS, "ai_backend": "fake", "voice_backend": "stumm", "work_dir": tmp_path, **kw}
+    return {**config.DEFAULTS, "ai_backend": "fake", "voice_backend": "stumm", "work_dir": tmp_path,
+            "explainer_min_seconds": 5, **kw}
 
 
 # ---------------------------------------------------------------- Stimme und Zeiten
@@ -75,6 +76,14 @@ def test_write_normalizes_hashtags(fake_ai, tmp_path):
     fake_ai.append(json.dumps(SCRIPT))
     sc = scripting.write(s(tmp_path), "Plastik verschluckt")
     assert sc["hashtags"] == ["#wissen", "#körper", "#fakten"]
+
+
+def test_short_script_gets_lengthened(fake_ai, tmp_path):
+    longer = {**SCRIPT, "scenes": SCRIPT["scenes"] + [{**SCRIPT["scenes"][1], "voice": "eins zwei drei " * 60}]}
+    fake_ai += [json.dumps(SCRIPT), json.dumps(longer)]
+    sc = scripting.write(s(tmp_path, explainer_min_seconds=65), "Plastik verschluckt")
+    assert scripting.word_count(sc) >= scripting.word_range(s(tmp_path, explainer_min_seconds=65))[0]
+    assert not fake_ai
 
 
 def test_fact_check_revises_when_wrong(fake_ai, tmp_path, monkeypatch):
@@ -150,7 +159,8 @@ def test_create_puts_video_into_review(fake_ai, tmp_path, monkeypatch):
     st = State(tmp_path / "state.sqlite")
     clip_id = pipeline.create(s(tmp_path), CHANNEL, st, "Plastik verschluckt")
     clip = st.get_clip(clip_id)
-    assert clip["review"] == "wartet" and clip["reason"] == "Faktencheck: keine Beanstandung."
+    assert clip["review"] == "wartet" and clip["reason"].endswith("Faktencheck: keine Beanstandung.")
+    assert clip["reason"].startswith("Achtung: Das Video ist nur")  # Beispiel ist kuerzer als 1 Minute
     assert State.texts_for(clip, "youtube")[0].endswith("#shorts")
     assert "#körper" in State.texts_for(clip, "tiktok")[1]
     assert (rendered[0] / "index.html").exists()

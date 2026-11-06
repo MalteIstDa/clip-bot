@@ -319,7 +319,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
         <label class="field"><span>Thema als Frage</span><input type="text" name="topic" required maxlength="200" placeholder="Was passiert, wenn du aus Versehen Plastik verschluckst?"></label>
         <label class="field"><span>Erster Satz (frei lassen, dann schreibt ihn die KI)</span><input type="text" name="hook" maxlength="200"></label>
         <div class="row"><button class="btn fill blue" type="submit">Video erstellen</button>
-          <span class="muted">Dauert etwa 5 bis 15 Minuten.</span></div>
+          <span class="muted">Dauert etwa 10 bis 20 Minuten.</span></div>
         <p class="muted" id="explainVoiceNote"></p>
       </form>
       <form class="panel stack" id="trendForm">
@@ -822,6 +822,8 @@ const SETTINGS = [
     ["voice_backend", "Stimme", "select", { elevenlabs: "ElevenLabs (API-Schlüssel in .env)", stumm: "Stumm (kostenlose Vorschau)" }],
     ["elevenlabs_voice_id", "ElevenLabs-Stimme (Voice-ID)", "text"],
     ["elevenlabs_model", "ElevenLabs-Modell", "text"],
+    ["explainer_min_seconds", "Mindestlänge in Sekunden (über 60 für Vergütung)", "number"],
+    ["explainer_max_seconds", "Höchstlänge in Sekunden", "number"],
     ["explainer_queries", "Suchbegriffe für Trends, durch Komma getrennt", "text"],
     ["explainer_themes", "Themenfelder deines Kanals", "text"],
     ["hyperframes_cmd", "Befehl für hyperframes", "text"]]],

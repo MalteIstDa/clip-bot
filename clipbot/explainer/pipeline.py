@@ -50,7 +50,7 @@ def create(settings: dict, channel: dict, state: State, topic: str, hook: str = 
         log.info("[%s] Faktencheck fand Fehler, Skript wird korrigiert ...", name)
         sc = scripting.revise(settings, sc, check)
         check = scripting.fact_check(settings, sc)
-    log.info("[%s] %s", name, check["summary"])
+    log.info("[%s] %s (%d Woerter)", name, check["summary"], scripting.word_count(sc))
 
     log.info("[%s] Stimme (%s) ...", name, settings["voice_backend"])
     spoken = voice.speak(settings, sc["scenes"], project / "assets")
@@ -61,11 +61,16 @@ def create(settings: dict, channel: dict, state: State, topic: str, hook: str = 
     out.parent.mkdir(parents=True, exist_ok=True)
     compose.render(project, out, settings["hyperframes_cmd"])
 
+    reason = check["summary"]
+    if spoken["duration"] < 61:
+        warn = f"Achtung: Das Video ist nur {spoken['duration']:.0f} Sekunden lang (unter 1 Minute, keine Verguetung)."
+        log.warning("[%s] %s", name, warn)
+        reason = f"{warn} {reason}"
     texts = platform_texts(sc, channel)
     transcript = " ".join(s["voice"] for s in sc["scenes"])
     state.mark_video(video_id, name, sc["title"], "done")
     state.add_clip(video_id, video_id, name, out, texts["youtube"]["title"], texts["tiktok"]["caption"],
-                   0, spoken["duration"], texts, sc["scenes"][0]["headline"], check["summary"],
+                   0, spoken["duration"], texts, sc["scenes"][0]["headline"], reason,
                    "wartet" if settings["require_approval"] else "freigegeben", transcript)
     log.info("[%s] Erklaervideo fertig: %s (wartet unter 'Freigabe')", name, sc["title"])
     return video_id

@@ -17,7 +17,7 @@ SCRIPT_SCHEMA = {
         "scenes": {
             "type": "array",
             "minItems": 4,
-            "maxItems": 9,
+            "maxItems": 16,
             "items": {
                 "type": "object",
                 "properties": {
@@ -51,11 +51,27 @@ SYSTEM = (
 )
 
 
+WORDS_PER_SECOND = 2.4  # deutsches Sprechtempo von ElevenLabs, grob
+
+
+def word_range(settings: dict) -> tuple[int, int]:
+    lo, hi = settings["explainer_min_seconds"], settings["explainer_max_seconds"]
+    return round(lo * WORDS_PER_SECOND), round(hi * WORDS_PER_SECOND)
+
+
+def word_count(script: dict) -> int:
+    return sum(len(s["voice"].split()) for s in script["scenes"])
+
+
 def write(settings: dict, topic: str, hook: str = "") -> dict:
+    lo_s, hi_s = settings["explainer_min_seconds"], settings["explainer_max_seconds"]
+    lo_w, hi_w = word_range(settings)
     prompt = (
         f"Thema: {topic}\n" + (f"Vorgeschlagener erster Satz: {hook}\n" if hook else "") +
-        "\nSchreibe ein Skript fuer 45 bis 75 Sekunden (insgesamt etwa 120 bis 180 gesprochene Woerter), "
-        "5 bis 8 Szenen, eine Szene je Gedanke.\n"
+        f"\nSchreibe ein Skript fuer {lo_s} bis {hi_s} Sekunden, also insgesamt {lo_w} bis {hi_w} gesprochene "
+        "Woerter. Das ist wichtig: Videos unter einer Minute werden nicht verguetet. "
+        "8 bis 14 Szenen, eine Szene je Gedanke. Halte die Spannung bis zum Schluss: kuendige frueh an, dass "
+        "am Ende noch etwas Ueberraschendes kommt, und loese es erst in der vorletzten Szene auf.\n"
         "- Szene 1 hat kind 'hook': eine Frage oder ueberraschende Aussage, die sofort neugierig macht.\n"
         "- Danach erklaerst du an einem konkreten Beispiel Schritt fuer Schritt. Nutze kind 'number' fuer eine "
         "einpraegsame Zahl (number = die Zahl mit Einheit, z. B. '37 °C'), 'compare' fuer vorher/nachher oder "
@@ -78,7 +94,30 @@ def write(settings: dict, topic: str, hook: str = "") -> dict:
     )
     data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)
     data["hashtags"] = viral.normalize_hashtags(data["hashtags"], 8)
-    return data
+    return lengthen(settings, data)
+
+
+def lengthen(settings: dict, script: dict) -> dict:
+    """Ist das Skript zu kurz fuer die Mindestlaenge, laesst die KI es einmal ausbauen."""
+    import json
+    lo_w, hi_w = word_range(settings)
+    have = word_count(script)
+    if have >= lo_w:
+        return script
+    log.info("Skript hat nur %d Woerter (mindestens %d noetig), wird verlaengert ...", have, lo_w)
+    prompt = (
+        f"Dieses Skript hat nur {have} gesprochene Woerter, es braucht {lo_w} bis {hi_w}. "
+        "Baue es aus: mehr konkrete Details, ein zusaetzliches Beispiel oder eine ueberraschende Wendung, "
+        "neue Szenen dazwischen. Keine Wiederholungen, kein Fuelltext, alles muss sachlich stimmen. "
+        "Hook am Anfang und Frage am Ende bleiben.\n\nSkript:\n" + json.dumps(script, ensure_ascii=False)
+    )
+    try:
+        data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)
+    except ai.AIError as exc:
+        log.info("Verlaengern nicht moeglich (%s), nehme das kurze Skript.", exc)
+        return script
+    data["hashtags"] = viral.normalize_hashtags(data["hashtags"], 8)
+    return data if word_count(data) > have else script
 
 
 CHECK_SCHEMA = {
@@ -133,7 +172,7 @@ def revise(settings: dict, script: dict, check: dict) -> dict:
         return script
     prompt = (
         "Ueberarbeite dieses Skript. Behebe jede Beanstandung des Faktenchecks, lass alles andere so nah wie "
-        "moeglich am Original.\n\nSkript:\n" + json.dumps(script, ensure_ascii=False) +
+        "moeglich am Original, auch die Laenge.\n\nSkript:\n" + json.dumps(script, ensure_ascii=False) +
         "\n\nBeanstandungen:\n" + json.dumps(check["issues"], ensure_ascii=False)
     )
     data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)

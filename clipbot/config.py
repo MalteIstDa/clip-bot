@@ -53,6 +53,8 @@ DEFAULTS = {
     "elevenlabs_model": "eleven_multilingual_v2",
     "hyperframes_cmd": "npx --yes hyperframes@0.9.18",
     "explainer_queries": "was passiert wenn, menschlicher körper fakten, geschichte erklärt, politik einfach erklärt, ki erklärt",
+    "explainer_min_seconds": 65,  # ueber 1 Minute: Voraussetzung fuer Verguetung (z. B. TikTok Creator Rewards)
+    "explainer_max_seconds": 90,
     "explainer_themes": "menschlicher Körper, Was passiert wenn, Geschichte, Politik, Wissenschaft, KI und Technik",
 }
 
@@ -111,6 +113,8 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         raise ConfigError("KI-Aufwand: erlaubt sind low, medium oder high.")
     if settings["voice_backend"] not in ("elevenlabs", "stumm"):
         raise ConfigError("Stimme: erlaubt sind elevenlabs oder stumm.")
+    if not 15 <= settings["explainer_min_seconds"] < settings["explainer_max_seconds"] <= 180:
+        raise ConfigError("Erklaervideos: Mindestlaenge muss kleiner als die Hoechstlaenge sein (15 bis 180 Sekunden).")
     if settings["clip_min_seconds"] >= settings["clip_max_seconds"]:
         raise ConfigError("Die Mindestlaenge muss kleiner als die Hoechstlaenge sein.")
 
