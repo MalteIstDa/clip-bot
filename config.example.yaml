@@ -29,6 +29,12 @@ settings:
   privacy: public            # public | unlisted | private
   instagram_api_version: v26.0
 
+  ai_backend: "off"          # off | claude (ANTHROPIC_API_KEY in .env) | ollama (lokal, kostenlos)
+  ai_claude_model: claude-opus-5-5
+  ai_effort: low             # low | medium | high - hoeher = gruendlicher, teurer
+  ai_ollama_model: qwen3:8b  # vorher im Terminal: ollama pull qwen3:8b
+  ai_ollama_url: http://localhost:11434
+
 channels:
   - name: n3on
     source_url: https://www.youtube.com/@N3on

@@ -62,3 +62,13 @@ Passwörter gehören **nicht** in die Konfiguration. Du meldest dich einmal im B
 ## Rechte
 
 Lade nur Clips von Kanälen hoch, deren Inhaber das erlauben (z. B. über ein offizielles Clipper-Programm des Streamers). Ohne Erlaubnis drohen Urheberrechts-Strikes und Kontosperrungen; außerdem prüfen TikTok und YouTube beim Audit, was die App hochlädt.
+
+## KI für Titel, Captions und Hashtags
+
+Unter **Einstellungen → KI für Texte** wählst du, wer die Texte schreibt:
+
+- **Aus:** Titel und Captions kommen wie bisher aus den Vorlagen des Kanals.
+- **Claude:** Schlüssel auf console.anthropic.com anlegen und in `.env` als `ANTHROPIC_API_KEY=...` eintragen.
+- **Ollama (kostenlos, lokal):** Ollama von ollama.com installieren, im Terminal `ollama pull qwen3:8b` ausführen.
+
+Mit **KI testen** prüfst du nach dem Speichern, ob die Verbindung klappt.

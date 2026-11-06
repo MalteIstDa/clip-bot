@@ -293,6 +293,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     <form class="settings" id="settingsForm">
       <div class="pagehead">
         <h2>Einstellungen</h2>
+        <button class="btn" type="button" id="aiTest">KI testen</button>
         <button class="btn fill violet" type="submit">Einstellungen speichern</button>
       </div>
       <div id="settingsFields"></div>
@@ -721,6 +722,12 @@ const SETTINGS = [
   ["Spracherkennung", "blue", [
     ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
     ["language", "Sprache (leer = automatisch, sonst z. B. en)", "text"]]],
+  ["KI für Texte", "violet", [
+    ["ai_backend", "KI", "select", { off: "Aus (Vorlagen wie bisher)", claude: "Claude (API-Schlüssel in .env)", ollama: "Ollama (lokal, kostenlos)" }],
+    ["ai_claude_model", "Claude-Modell", "text"],
+    ["ai_effort", "Claude-Aufwand", "select", { low: "Niedrig (günstig)", medium: "Mittel", high: "Hoch (gründlich)" }],
+    ["ai_ollama_model", "Ollama-Modell", "text"],
+    ["ai_ollama_url", "Ollama-Adresse", "text"]]],
   ["Hochladen", "teal", [
     ["privacy", "Sichtbarkeit", "select", { public: "Öffentlich", unlisted: "Nicht gelistet (nur YouTube)", private: "Privat" }],
     ["max_uploads_per_run", "Höchstens Uploads je Lauf und Plattform", "number"],
@@ -739,6 +746,11 @@ function renderSettings() {
       : `<label class="field"><span>${label}</span><input type="${type}" name="${key}" value="${esc(s[key] ?? "")}" ${type === "number" ? `min="0" step="${extra || 1}"` : ""}></label>`
     ).join("")}</div></fieldset>`).join("");
 }
+$("#aiTest").addEventListener("click", async () => {
+  toast("KI wird gefragt …");
+  try { const r = await api("/api/ai/test", {}); toast("KI antwortet: " + r.message); }
+  catch (err) { toast(err.message, true); }
+});
 $("#settingsForm").addEventListener("submit", e => {
   e.preventDefault();
   const payload = {};

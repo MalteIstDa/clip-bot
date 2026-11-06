@@ -8,3 +8,5 @@ Pipeline: `clipbot/download.py` (yt-dlp) → `highlights.py` → `transcribe.py`
 - Plugins: superpowers (Ablauf: Brainstorming → Plan → TDD) und hyperframes (Videos aus HTML rendern),
   aktiviert über `.claude/settings.json`.
 - Niemals Zugangsdaten committen: `.env`, `client_secret.json`, `tokens/`, `data/` bleiben lokal.
+
+- Tests: `python -m pytest -q tests` (ohne Netz und ohne Schlüssel; die KI wird in Tests durch ein Fake-Backend ersetzt).

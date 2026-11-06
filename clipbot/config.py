@@ -39,6 +39,11 @@ DEFAULTS = {
     "youtube_category_id": "24",
     "privacy": "public",
     "instagram_api_version": "v26.0",
+    "ai_backend": "off",               # off | claude | ollama
+    "ai_claude_model": "claude-opus-5-5",
+    "ai_effort": "low",                # low | medium | high (nur Claude)
+    "ai_ollama_model": "qwen3:8b",
+    "ai_ollama_url": "http://localhost:11434",
 }
 
 
@@ -60,6 +65,8 @@ def load_raw(path: str | Path | None = None) -> dict:
     path = _config_path(path)
     raw = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.exists() else {}
     settings = {**DEFAULTS, **(raw.get("settings") or {})}
+    if settings["ai_backend"] is False:  # YAML liest ein ungequotetes off als false
+        settings["ai_backend"] = "off"
     channels = raw.get("channels") or []
     for ch in channels:
         ch.setdefault("title_template", "{hook} #shorts")
@@ -83,6 +90,10 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         names.add(name)
         if not str(ch.get("source_url") or "").startswith("https://"):
             raise ConfigError(f"Kanal '{name}': Quell-Adresse muss mit https:// beginnen.")
+    if settings["ai_backend"] not in ("off", "claude", "ollama"):
+        raise ConfigError("KI: erlaubt sind off, claude oder ollama.")
+    if settings["ai_effort"] not in ("low", "medium", "high"):
+        raise ConfigError("KI-Aufwand: erlaubt sind low, medium oder high.")
     if settings["clip_min_seconds"] >= settings["clip_max_seconds"]:
         raise ConfigError("Die Mindestlaenge muss kleiner als die Hoechstlaenge sein.")
 

@@ -397,6 +397,21 @@ def api_search():
     return jsonify(results=results)
 
 
+@app.post("/api/ai/test")
+def ai_test():
+    """Kurzer Probelauf der eingestellten KI (mit den gespeicherten Einstellungen)."""
+    from clipbot import ai
+    s = config.load(allow_empty=True)["settings"]
+    if not ai.enabled(s):
+        raise ApiError("Die KI ist ausgeschaltet. Waehle Claude oder Ollama und speichere zuerst.")
+    schema = {"type": "object", "properties": {"antwort": {"type": "string"}}, "required": ["antwort"]}
+    try:
+        data = ai.generate_json(s, "Antworte mit einem kurzen deutschen Satz, dass der Test geklappt hat.", schema)
+    except ai.AIError as exc:
+        raise ApiError(str(exc), 502)
+    return jsonify(ok=True, message=data["antwort"])
+
+
 # ---------------------------------------------------------------- Konten verbinden
 @app.post("/api/connect/youtube")
 def connect_youtube():
