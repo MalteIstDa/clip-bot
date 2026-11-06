@@ -30,7 +30,7 @@ DEFAULTS = {
     "whisper_model": "small",
     "language": None,
     "layout": "blur",
-    "zoom": 1.4,
+    "zoom": 1.15,
     "subtitle_font": "Arial",
     "subtitle_size": 86,
     "subtitle_margin_bottom": 430,
@@ -39,6 +39,8 @@ DEFAULTS = {
     "youtube_category_id": "24",
     "privacy": "public",
     "instagram_api_version": "v26.0",
+    "ai_candidates": 6,                # so viele Stellen bewertet die KI je Video
+    "hook_overlay": True,              # Hook-Zeile in den ersten Sekunden einblenden
     "ai_backend": "off",               # off | claude | ollama
     "ai_claude_model": "claude-opus-5-5",
     "ai_effort": "low",                # low | medium | high (nur Claude)
@@ -72,6 +74,8 @@ def load_raw(path: str | Path | None = None) -> dict:
         ch.setdefault("title_template", "{hook} #shorts")
         ch.setdefault("caption_template", "{hook}\n\nClip aus: {video_title}")
         ch.setdefault("tags", [])
+        ch.setdefault("credit", "")
+        ch.setdefault("caption_language", "Englisch")
         ch.setdefault("upload", {})
     return {"settings": settings, "channels": channels}
 

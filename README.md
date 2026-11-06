@@ -72,3 +72,13 @@ Unter **Einstellungen → KI für Texte** wählst du, wer die Texte schreibt:
 - **Ollama (kostenlos, lokal):** Ollama von ollama.com installieren, im Terminal `ollama pull qwen3:8b` ausführen.
 
 Mit **KI testen** prüfst du nach dem Speichern, ob die Verbindung klappt.
+
+## Viralere Clips (mit KI)
+
+Ist unter „KI für Texte“ Claude oder Ollama gewählt, macht der Bot pro Video Folgendes:
+
+1. Er sucht mehr mögliche Stellen (Einstellung „so viele Stellen je Video bewerten“, Standard 6) und lässt die KI sie nach Viral-Potenzial bewerten. Die besten werden geschnitten. Den Grund schreibt er ins Protokoll.
+2. Die KI schreibt Titel, Captions und Hashtags **je Plattform** (YouTube, TikTok, Instagram). Die Caption enthält immer den Credit aus den Kanal-Einstellungen.
+3. In den ersten Sekunden steht oben eine Hook-Zeile im Bild (abschaltbar unter „Untertitel“).
+
+Änderst du Titel oder Beschreibung eines Clips im Dashboard, gilt deine Fassung für alle Plattformen.

@@ -354,6 +354,8 @@ def channel_save():
         "title_template": str(data.get("title_template") or "{hook} #shorts"),
         "caption_template": str(data.get("caption_template") or "{hook}"),
         "tags": [t.strip() for t in str(data.get("tags") or "").split(",") if t.strip()],
+        "credit": str(data.get("credit") or "").strip(),
+        "caption_language": str(data.get("caption_language") or "Englisch").strip(),
         "upload": upload,
     }
     for template in (channel["title_template"], channel["caption_template"]):

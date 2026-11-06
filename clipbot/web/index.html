@@ -329,6 +329,8 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   <label class="field"><span>Beschreibungs-Vorlage</span><textarea name="caption_template"></textarea></label>
   <p class="muted">Platzhalter: {hook} sind die ersten gesprochenen Worte des Clips, {video_title} der Titel des Quellvideos, {channel} der Kurzname.</p>
   <label class="field"><span>Tags für YouTube, durch Komma getrennt</span><input type="text" name="tags"></label>
+  <label class="field"><span>Credit (steht in jeder Caption, z. B. der Name des Streamers)</span><input type="text" name="credit"></label>
+  <label class="field"><span>Sprache der KI-Texte</span><input type="text" name="caption_language" placeholder="Englisch"></label>
   <div class="stack">
     <label class="check"><input type="checkbox" name="youtube"> Auf YouTube hochladen</label>
     <label class="check"><input type="checkbox" name="tiktok"> Auf TikTok hochladen</label>
@@ -653,6 +655,8 @@ function openChannelForm(ch, prefill) {
   f.title_template.value = ch?.title_template ?? "{hook} #shorts";
   f.caption_template.value = ch?.caption_template ?? "{hook}\n\nClip aus: {video_title}";
   f.tags.value = (ch?.tags || []).join(", ");
+  f.credit.value = ch?.credit || "";
+  f.caption_language.value = ch?.caption_language || "Englisch";
   for (const p of Object.keys(PLATFORMS)) f[p].checked = ch ? !!ch.upload[p] : true;
   f.ig_user_id.value = ch?.upload?.instagram?.ig_user_id || "";
   f.ig_token_env.value = ch?.upload?.instagram?.token_env || "";
@@ -666,6 +670,7 @@ $("#channelForm").addEventListener("submit", e => {
   act(async () => {
     await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, source_url: f.source_url.value,
       title_template: f.title_template.value, caption_template: f.caption_template.value, tags: f.tags.value,
+      credit: f.credit.value, caption_language: f.caption_language.value,
       platforms: { youtube: f.youtube.checked, tiktok: f.tiktok.checked, instagram: f.instagram.checked },
       ig_user_id: f.ig_user_id.value, ig_token_env: f.ig_token_env.value });
     $("#channelDialog").close();
@@ -705,6 +710,7 @@ const SETTINGS = [
     ["clips_per_video", "Clips je Video", "number"],
     ["clip_min_seconds", "Mindestlänge in Sekunden", "number"],
     ["clip_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["ai_candidates", "Mit KI: so viele Stellen je Video bewerten", "number"],
     ["skip_start_seconds", "Sekunden am Anfang überspringen", "number"],
     ["skip_end_seconds", "Sekunden am Ende überspringen", "number"],
     ["max_video_minutes", "Videos überspringen ab (Minuten)", "number"],
@@ -718,7 +724,8 @@ const SETTINGS = [
     ["subtitle_size", "Schriftgröße", "number"],
     ["subtitle_margin_bottom", "Abstand vom unteren Rand", "number"],
     ["subtitle_words_per_line", "Wörter pro Einblendung", "number"],
-    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"]]],
+    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"],
+    ["hook_overlay", "Hook-Zeile am Anfang einblenden (mit KI)", "check"]]],
   ["Spracherkennung", "blue", [
     ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
     ["language", "Sprache (leer = automatisch, sonst z. B. en)", "text"]]],
