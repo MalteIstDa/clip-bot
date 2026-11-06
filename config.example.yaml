@@ -11,6 +11,7 @@ settings:
   clip_max_seconds: 120
   skip_start_seconds: 60     # Intro ignorieren
   skip_end_seconds: 30
+  require_approval: true     # neue Clips warten auf deine Freigabe im Dashboard, bevor sie hochgeladen werden
   max_uploads_per_run: 6     # je Plattform und Kanal
   keep_source_videos: false  # Quellvideo nach dem Schneiden loeschen
 
@@ -18,7 +19,7 @@ settings:
   language: null             # null = automatisch, sonst z.B. "en" oder "de"
 
   layout: blur               # blur = Video mittig + unscharfer Hintergrund | crop = Vollbild-Ausschnitt
-  zoom: 1.4                  # nur bei blur: 1.0 = ganzes Bild sichtbar, groesser = naeher dran
+  zoom: 1.15                 # nur bei blur: 1.0 = ganzes Bild sichtbar, groesser = naeher dran
   subtitle_font: Arial
   subtitle_size: 86
   subtitle_margin_bottom: 430
@@ -29,12 +30,32 @@ settings:
   privacy: public            # public | unlisted | private
   instagram_api_version: v26.0
 
+  ai_candidates: 6           # mit KI: so viele Stellen je Video bewerten lassen (mehr = langsamer)
+  hook_overlay: true         # Hook-Zeile in den ersten Sekunden oben einblenden (nur mit KI)
+  ai_backend: "off"          # off | claude (ANTHROPIC_API_KEY in .env) | ollama (lokal, kostenlos)
+  ai_claude_model: claude-opus-5-5
+  ai_effort: low             # low | medium | high - hoeher = gruendlicher, teurer
+  ai_ollama_model: qwen3:8b  # vorher im Terminal: ollama pull qwen3:8b
+  ai_ollama_url: http://localhost:11434
+
+  # Erklaervideos (Node.js 22+ noetig fuer hyperframes)
+  voice_backend: elevenlabs  # elevenlabs (ELEVENLABS_API_KEY in .env) | stumm (Vorschau ohne Stimme)
+  elevenlabs_voice_id: JBFqnCBsd6RMkjVDRZzb   # Stimme aus deiner ElevenLabs-Bibliothek
+  elevenlabs_model: eleven_multilingual_v2
+  hyperframes_cmd: npx --yes hyperframes@0.9.18
+  explainer_queries: "was passiert wenn, menschlicher körper fakten, geschichte erklärt, politik einfach erklärt, ki erklärt"
+  explainer_min_seconds: 65  # ueber 1 Minute, sonst keine Verguetung (z. B. TikTok Creator Rewards)
+  explainer_max_seconds: 90
+  explainer_themes: "menschlicher Körper, Was passiert wenn, Geschichte, Politik, Wissenschaft, KI und Technik"
+
 channels:
   - name: n3on
     source_url: https://www.youtube.com/@N3on
     title_template: "{hook} #n3on #shorts"
     caption_template: "{hook}\n\nClip aus: {video_title}\nCredit: N3on\n#n3on #clips #fyp"
     tags: [n3on, clips, stream]
+    credit: N3on               # steht in jeder Caption
+    caption_language: Englisch # Sprache der KI-Texte
     upload:
       youtube:
         token_file: tokens/n3on_youtube.json
@@ -43,6 +64,14 @@ channels:
       instagram:
         ig_user_id: "1784xxxxxxxxxxxxx"
         token_env: IG_TOKEN_N3ON
+
+  # Eigener Kanal fuer Erklaervideos (keine Quelle noetig):
+  # - name: wissen
+  #   kind: explainer
+  #   credit: ""
+  #   upload:
+  #     youtube:
+  #       token_file: tokens/wissen_youtube.json
 
   # Weiteren Kanal einfach als neuen Block anhaengen:
   # - name: anderer_streamer
