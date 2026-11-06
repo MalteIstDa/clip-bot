@@ -14,13 +14,13 @@ SCRIPT = {
     "title": "Plastik verschluckt",
     "scenes": [
         {"kind": "hook", "voice": "Was passiert, wenn du Plastik verschluckst?", "headline": "Plastik verschluckt?",
-         "sub": "", "emoji": "🧃", "number": "", "items": []},
+         "sub": "", "emoji": "🧃", "number": "", "items": [], "visual": "koerper_weg", "visual_from": "aussen", "visual_to": "magen"},
         {"kind": "number", "voice": "Dein Darm ist etwa sieben Meter lang.", "headline": "Langer Weg",
-         "sub": "", "emoji": "📏", "number": "7 m", "items": []},
+         "sub": "", "emoji": "📏", "number": "7 m", "items": [], "visual": "koerper_organ", "visual_from": "aussen", "visual_to": "duenndarm"},
         {"kind": "steps", "voice": "Magen, Dünndarm, Dickdarm. Dann ist es wieder draußen.", "headline": "Der Weg",
-         "sub": "", "emoji": "➡️", "number": "", "items": ["Magen", "Dünndarm", "Dickdarm"]},
+         "sub": "", "emoji": "➡️", "number": "", "items": ["Magen", "Dünndarm", "Dickdarm"], "visual": "keine", "visual_from": "aussen", "visual_to": "aussen"},
         {"kind": "question", "voice": "Hast du schon mal was verschluckt?", "headline": "Und du?",
-         "sub": "", "emoji": "💬", "number": "", "items": []},
+         "sub": "", "emoji": "💬", "number": "", "items": [], "visual": "keine", "visual_from": "aussen", "visual_to": "aussen"},
     ],
     "youtube_title": "Was passiert, wenn du Plastik verschluckst?",
     "caption": "Kleine Teile kommen meist von allein wieder raus. Wusstest du das?",
@@ -109,6 +109,24 @@ def test_build_project_structure(tmp_path):
     assert "7 m" in (tmp_path / "compositions" / "s2.html").read_text(encoding="utf-8")
     assert json.loads((tmp_path / "script.json").read_text(encoding="utf-8"))["title"] == "Plastik verschluckt"
     assert "<script" not in "".join(sc["headline"] for sc in SCRIPT["scenes"])
+
+
+def test_route_through_body():
+    from clipbot.explainer import illustrations
+    pts = illustrations.route("aussen", "magen")
+    assert pts[0] == illustrations.STATIONS["aussen"][0] and pts[-1] == illustrations.STATIONS["magen"][0]
+    assert illustrations.route("aussen", "lunge")[-1] == illustrations.STATIONS["lunge"][0]
+    assert illustrations.route("magen", "mund") == []
+
+
+def test_visual_scenes_draw_body(tmp_path):
+    sc = SCRIPT["scenes"]
+    walk = compose.scene_html("s1", sc[0], 4.0, compose.THEMES[0])
+    assert "s1-f-obj" in walk and "s1-f-o-magen" in walk and "Magen" in walk
+    organ = compose.scene_html("s2", sc[1], 3.0, compose.THEMES[0])
+    assert "s2-f-obj" not in organ and "Dünndarm" in organ
+    backwards = compose.scene_html("s3", {**sc[0], "visual_from": "magen", "visual_to": "mund"}, 3.0, compose.THEMES[0])
+    assert "s3-f-obj" not in backwards and "s3-f-lab" in backwards  # kein Weg rueckwaerts: nur das Ziel zeigen
 
 
 def test_scene_text_is_escaped(tmp_path):

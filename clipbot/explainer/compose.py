@@ -20,6 +20,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from clipbot.explainer import illustrations
+
 log = logging.getLogger("clipbot")
 
 VENDOR = Path(__file__).resolve().parent / "vendor"
@@ -58,7 +60,7 @@ SCENE_CSS = """
           letter-spacing: -0.01em; }
   .head em { font-style: normal; color: %(accent)s; }
   .sub { font-family: %(body)s; font-weight: 700; font-size: 46px; line-height: 1.2; color: rgba(255,255,255,0.86); }
-  .num { font-family: %(head)s; font-size: 200px; line-height: 1; color: %(accent)s; }
+  .num { font-family: %(head)s; font-size: 170px; line-height: 1; color: %(accent)s; white-space: nowrap; }
   .cards { display: flex; flex-direction: column; gap: 26px; width: 100%%; }
   .card { border-radius: 30px; padding: 30px 34px; font-family: %(body)s; font-weight: 800; font-size: 50px;
           line-height: 1.15; color: #fff; text-align: left; background: rgba(255,255,255,0.10);
@@ -78,7 +80,41 @@ def _headline(text: str) -> str:
     return " ".join(words)
 
 
+def visual_scene_html(sid: str, scene: dict, duration: float, theme: tuple[str, str, str]) -> str:
+    """Szene mit Zeichnung: Headline oben, darunter der animierte Koerper."""
+    _, accent, accent2 = theme
+    fig, anims = illustrations.figure(sid, scene, duration, start=0.5)
+    head = (f'<div class="vhead"><div id="{sid}-head" class="head" style="font-size: 76px">'
+            f'{_headline(scene["headline"])}</div></div>')
+    anims.insert(0, f'tl.fromTo("#{sid}-head", {{opacity: 0, y: 50}}, {{opacity: 1, y: 0, duration: 0.4, '
+                    f'ease: "power3.out"}}, 0.1);')
+    if scene.get("number"):  # Zahl als Stempel neben der Figur
+        head += (f'<div id="{sid}-num" class="num" style="position: absolute; right: 40px; top: 1150px; '
+                 f'font-size: 130px; transform: rotate(-6deg)">{esc(scene["number"])}</div>')
+        anims.append(f'tl.fromTo("#{sid}-num", {{opacity: 0, scale: 0.5}}, {{opacity: 1, scale: 1, duration: 0.4, '
+                     f'ease: "back.out(2)"}}, 0.9);')
+    css = (SCENE_CSS % {"head": FONT_HEAD, "body": FONT_BODY, "accent": accent, "accent2": accent2}
+           + illustrations.figure_css(accent))
+    return f"""<template>
+<style>{css}</style>
+<div id="root" data-composition-id="{sid}" data-width="{W}" data-height="{H}">
+  <div id="{sid}-box" class="box clip" data-start="0" data-duration="{_f(duration)}">
+    {head}
+    {fig}
+  </div>
+</div>
+<script>
+  const tl = gsap.timeline({{ paused: true }});
+  {chr(10).join("  " + a for a in anims)}
+  window.__timelines["{sid}"] = tl;
+</script>
+</template>
+"""
+
+
 def scene_html(sid: str, scene: dict, duration: float, theme: tuple[str, str, str]) -> str:
+    if scene.get("visual", "keine") in ("koerper_weg", "koerper_organ"):
+        return visual_scene_html(sid, scene, duration, theme)
     _, accent, accent2 = theme
     kind = scene["kind"]
     parts, anims = [], []
@@ -202,7 +238,7 @@ def captions_html(words, duration: float, theme: tuple[str, str, str]) -> str:
     return f"""<template>
 <style>
   #root {{ position: absolute; inset: 0; }}
-  .grp {{ position: absolute; left: 0; top: 1130px; width: {W}px; height: 170px; overflow: visible; }}
+  .grp {{ position: absolute; left: 0; top: 1370px; width: {W}px; height: 170px; overflow: visible; }}
   .line {{ width: 100%; text-align: center; font-family: {FONT_HEAD}; font-size: 76px; line-height: 1.05;
            text-transform: uppercase; color: #fff; padding: 0 70px; box-sizing: border-box;
            text-shadow: 0 6px 0 rgba(0,0,0,0.55), 0 0 24px rgba(0,0,0,0.5); }}

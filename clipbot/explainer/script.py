@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from clipbot import ai, viral
+from clipbot.explainer.illustrations import ORGANS, VISUALS
 
 log = logging.getLogger("clipbot")
 
@@ -27,8 +28,12 @@ SCRIPT_SCHEMA = {
                     "emoji": {"type": "string"},
                     "number": {"type": "string"},
                     "items": {"type": "array", "items": {"type": "string"}, "maxItems": 4},
+                    "visual": {"type": "string", "enum": list(VISUALS)},
+                    "visual_from": {"type": "string", "enum": list(ORGANS)},
+                    "visual_to": {"type": "string", "enum": list(ORGANS)},
                 },
-                "required": ["kind", "voice", "headline", "sub", "emoji", "number", "items"],
+                "required": ["kind", "voice", "headline", "sub", "emoji", "number", "items",
+                             "visual", "visual_from", "visual_to"],
             },
         },
         "youtube_title": {"type": "string"},
@@ -61,6 +66,13 @@ def write(settings: dict, topic: str, hook: str = "") -> dict:
         "- headline: 2 bis 5 Woerter fuer den Bildschirm (nicht den gesprochenen Text wiederholen). "
         "sub: optional eine kurze zweite Zeile, sonst leer. emoji: ein passendes Emoji. "
         "number und items leer lassen, wenn die Szene sie nicht braucht.\n"
+        "- Zeig, was passiert, statt nur Text: Es gibt eine gezeichnete Figur eines Menschen mit Organen. "
+        "visual 'koerper_weg' laesst das emoji sichtbar durch den Koerper wandern, von visual_from bis visual_to "
+        "(Verdauung: aussen, mund, speiseroehre, magen, duenndarm, dickdarm, ausgang; Atemweg: aussen, mund, "
+        "luftroehre, lunge). Beispiel Kaugummi verschluckt: Szene 1 aussen bis magen, spaeter magen bis ausgang. "
+        "visual 'koerper_organ' zeigt und benennt ein Organ (visual_to: gehirn, herz, lunge, leber, magen, nieren ...). "
+        "Bei Themen zum Koerper nutze die Figur in moeglichst vielen Szenen, passend zum gesprochenen Text. "
+        "Sonst visual 'keine'. visual_from und visual_to immer ausfuellen (bei 'keine' egal, z. B. aussen).\n"
         "- youtube_title: hoechstens 70 Zeichen. caption: 1 bis 2 Saetze mit Frage am Ende, ohne Hashtags. "
         "hashtags: 5 bis 8 passende deutsche und breite Hashtags."
     )
