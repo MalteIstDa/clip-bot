@@ -4,7 +4,9 @@ ClipBot holt die neuesten Videos deiner Quellkanäle, findet die spannendsten St
 
 ## Dashboard
 
-Ein Doppelklick auf `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) öffnet das Dashboard im Browser unter `http://127.0.0.1:8765`. Es läuft nur auf deinem PC und ist von außen nicht erreichbar. Das Programmfenster muss dabei offen bleiben.
+**Mac:** Doppelklick auf **ClipBot.app** im ClipBot-Ordner (du kannst sie auch ins Dock ziehen, die App muss aber im Ordner bleiben). Beim ersten Start richtet sie alles ein, das dauert ein paar Minuten. Beendet wird ClipBot im Dashboard unten links mit „ClipBot beenden“. Das Protokoll steht in `data/clipbot.log`. Falls macOS meldet, die App sei von einem unbekannten Entwickler: Rechtsklick auf die App → Öffnen → Öffnen.
+
+Alternativ öffnet ein Doppelklick auf `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) öffnet das Dashboard im Browser unter `http://127.0.0.1:8765`. Es läuft nur auf deinem PC und ist von außen nicht erreichbar. Das Programmfenster muss dabei offen bleiben.
 
 - **Übersicht:** Läufe starten (nur Clips erzeugen, offene Clips hochladen oder beides), ein einzelnes Video per Adresse clippen, Protokoll mitlesen.
 - **Clips:** alle Clips nach Quellvideo sortiert. Ein Klick öffnet den Clip zum Ansehen, Titel und Beschreibung ändern, einzeln je Plattform hochladen oder löschen.
