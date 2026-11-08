@@ -55,4 +55,6 @@ Mehr zu allen Funktionen steht im [README](README.md).
 
 ## ClipBot aktualisieren
 
-Neue ZIP herunterladen (wie in Schritt 1) und entpacken. Aus dem alten Ordner kopierst du diese Dateien und Ordner in den neuen: `.env`, `client_secret.json`, `config.yaml`, `tokens`, `data`. Danach den alten Ordner löschen und die Desktop-Verknüpfung löschen; beim nächsten Start von ClipBot.bat wird sie neu angelegt.
+Das passiert automatisch. Bei jedem Start schaut ClipBot.bat auf GitHub nach einer neuen Version, lädt sie und startet sich danach neu (das Fenster geht kurz zu und wieder auf). Deine eigenen Dateien (`.env`, `client_secret.json`, `config.yaml`, `tokens`, `data`) bleiben dabei unberührt. Ohne Internet startet ClipBot einfach mit der vorhandenen Version.
+
+Beim allerersten Start lädt ClipBot die neueste Version einmal nach, auch wenn die ZIP gerade erst heruntergeladen wurde. Das ist normal.
