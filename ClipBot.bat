@@ -1,5 +1,6 @@
 @echo off
 rem ClipBot-Starter fuer Windows: Doppelklick genuegt.
+rem Bei jedem Start holt es die neueste Version von GitHub (update.ps1).
 rem Beim ersten Start wird alles eingerichtet (Python, ffmpeg, Node.js, Pakete) und eine
 rem Verknuepfung auf dem Desktop angelegt. Danach startet das Dashboard und der Browser oeffnet sich.
 rem Laeuft ClipBot schon, wird nur der Browser geoeffnet.
@@ -25,6 +26,10 @@ curl.exe -s -o nul -m 2 "%URL%/api/state" && (
   start "" "%URL%"
   exit /b 0
 )
+
+rem Neue Version von GitHub holen. Muss in EINER Zeile stehen, weil update.ps1 diese Datei ersetzen
+rem kann: cmd liest die Zeile vorher ganz ein und startet danach die neue ClipBot.bat.
+if exist "%ROOT%update.ps1" (powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%update.ps1" & if errorlevel 10 (set "CLIPBOT_NO_UPDATE=1" & start "ClipBot" "%ROOT%ClipBot.bat" & exit /b 0))
 
 if exist .venv\Scripts\python.exe goto :packages
 
