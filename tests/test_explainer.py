@@ -210,3 +210,13 @@ def test_create_endpoint_validates(dashboard, fake_ai, monkeypatch):
     monkeypatch.setattr(app, "start_job", lambda label, fn: started.append(label) or True)
     assert post("/api/explainer/create", {"channel": "wissen", "topic": "Warum ist der Himmel blau?"}).status_code == 200
     assert started == ["Erklaervideo: Warum ist der Himmel blau?"]
+
+
+def test_quit_endpoint(dashboard, monkeypatch):
+    post, app = dashboard
+    timers = []
+    monkeypatch.setattr(app.threading, "Timer", lambda delay, fn: timers.append(fn) or type("T", (), {"start": lambda self: None})())
+    monkeypatch.setitem(app.job, "running", True)
+    assert post("/api/quit", {}).status_code == 409 and not timers
+    monkeypatch.setitem(app.job, "running", False)
+    assert post("/api/quit", {}).status_code == 200 and len(timers) == 1

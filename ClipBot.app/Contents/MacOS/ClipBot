@@ -1,0 +1,56 @@
+#!/bin/bash
+# ClipBot-Starter fuer den Mac: startet das Dashboard im Hintergrund und oeffnet es im Browser.
+# Laeuft ClipBot schon, wird nur der Browser geoeffnet. Beenden: im Dashboard auf "ClipBot beenden".
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(dirname "$APP_DIR")"
+URL="http://127.0.0.1:8765"
+LOG="$ROOT/data/clipbot.log"
+
+say_msg() { osascript -e "display notification \"$1\" with title \"ClipBot\"" >/dev/null 2>&1; }
+fail() {
+  osascript -e "display dialog \"$1\" with title \"ClipBot\" buttons {\"OK\"} default button 1 with icon stop" >/dev/null 2>&1
+  exit 1
+}
+
+cd "$ROOT" || fail "Der ClipBot-Ordner wurde nicht gefunden. Die App muss im ClipBot-Ordner liegen."
+[ -f app.py ] || fail "app.py fehlt. Die App muss im ClipBot-Ordner liegen (neben app.py)."
+mkdir -p data
+
+# Laeuft schon? Dann nur oeffnen.
+if curl -s -o /dev/null -m 2 -H "Host: 127.0.0.1:8765" "$URL/api/state"; then
+  open "$URL"; exit 0
+fi
+
+# Python waehlen: 3.12 bevorzugt (fuer die Spracherkennung gibt es dort fertige Pakete)
+if [ ! -x .venv/bin/python ]; then
+  PY=""
+  for c in python3.12 python3.13 python3.11 python3; do
+    if command -v "$c" >/dev/null 2>&1; then PY="$c"; break; fi
+  done
+  [ -n "$PY" ] || fail "Python fehlt. Installiere es im Terminal mit: brew install python@3.12"
+  command -v ffmpeg >/dev/null 2>&1 || fail "ffmpeg fehlt. Installiere es im Terminal mit: brew install ffmpeg"
+  say_msg "Erste Einrichtung, das dauert ein paar Minuten …"
+  "$PY" -m venv .venv >>"$LOG" 2>&1 || fail "Konnte keine Python-Umgebung anlegen. Details: data/clipbot.log"
+  .venv/bin/python -m pip install --upgrade pip >>"$LOG" 2>&1
+fi
+
+# Pakete nur neu installieren, wenn sich requirements.txt geaendert hat
+STAMP=".venv/.requirements-installed"
+if [ ! -f "$STAMP" ] || ! cmp -s requirements.txt "$STAMP"; then
+  say_msg "Pakete werden installiert …"
+  .venv/bin/python -m pip install -q --upgrade -r requirements.txt >>"$LOG" 2>&1 \
+    || fail "Pakete konnten nicht installiert werden. Details stehen in data/clipbot.log"
+  cp requirements.txt "$STAMP"
+fi
+
+# Dashboard im Hintergrund starten
+echo "=== Start $(date) ===" >>"$LOG"
+nohup .venv/bin/python app.py --no-browser >>"$LOG" 2>&1 &
+for _ in $(seq 1 60); do
+  if curl -s -o /dev/null -m 2 -H "Host: 127.0.0.1:8765" "$URL/api/state"; then
+    open "$URL"; exit 0
+  fi
+  sleep 1
+done
+fail "ClipBot ist nicht gestartet. Details stehen in data/clipbot.log"

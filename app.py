@@ -545,6 +545,15 @@ def explainer_create():
     return jsonify(ok=True, label=label)
 
 
+@app.post("/api/quit")
+def quit_app():
+    """ClipBot beenden (fuer den Start per Mac-App ohne Terminalfenster)."""
+    if job["running"]:
+        raise ApiError(f"Es laeuft noch: {job['label']}. Warte, bis es fertig ist.", 409)
+    threading.Timer(0.5, lambda: os._exit(0)).start()
+    return jsonify(ok=True)
+
+
 # ---------------------------------------------------------------- Konten verbinden
 @app.post("/api/connect/youtube")
 def connect_youtube():
