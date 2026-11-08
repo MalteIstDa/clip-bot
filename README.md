@@ -6,7 +6,9 @@ ClipBot holt die neuesten Videos deiner Quellkanäle, findet die spannendsten St
 
 **Mac:** Doppelklick auf **ClipBot.app** im ClipBot-Ordner (du kannst sie auch ins Dock ziehen, die App muss aber im Ordner bleiben). Beim ersten Start richtet sie alles ein, das dauert ein paar Minuten. Beendet wird ClipBot im Dashboard unten links mit „ClipBot beenden“. Das Protokoll steht in `data/clipbot.log`. Falls macOS meldet, die App sei von einem unbekannten Entwickler: Rechtsklick auf die App → Öffnen → Öffnen.
 
-Alternativ öffnet ein Doppelklick auf `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) öffnet das Dashboard im Browser unter `http://127.0.0.1:8765`. Es läuft nur auf deinem PC und ist von außen nicht erreichbar. Das Programmfenster muss dabei offen bleiben.
+**Windows:** Doppelklick auf **ClipBot.bat**. Beim ersten Start installiert es Python, ffmpeg und Node.js (über winget) sowie die Pakete und legt eine Verknüpfung „ClipBot“ auf dem Desktop an. Danach öffnet sich das Dashboard. Beendet wird ClipBot wie auf dem Mac im Dashboard oder durch Schließen des Fensters „ClipBot“ in der Taskleiste. Schritt für Schritt: [ANLEITUNG-WINDOWS.md](ANLEITUNG-WINDOWS.md).
+
+Alternativ öffnet `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) das Dashboard im Browser unter `http://127.0.0.1:8765`. Es läuft nur auf deinem PC und ist von außen nicht erreichbar. Das Programmfenster muss dabei offen bleiben.
 
 - **Übersicht:** Läufe starten (nur Clips erzeugen, offene Clips hochladen oder beides), ein einzelnes Video per Adresse clippen, Protokoll mitlesen.
 - **Clips:** alle Clips nach Quellvideo sortiert. Ein Klick öffnet den Clip zum Ansehen, Titel und Beschreibung ändern, einzeln je Plattform hochladen oder löschen.
@@ -17,8 +19,8 @@ Für Läufe ohne Oberfläche (z. B. über die Windows-Aufgabenplanung alle 6 Stu
 
 ## Einmalige Einrichtung
 
-1. **Python 3.10+** und **ffmpeg** installieren (Windows: `winget install Python.Python.3.12` und `winget install Gyan.FFmpeg`).
-2. `start.bat` starten. Beim ersten Mal werden die Pakete installiert, danach öffnet sich das Dashboard.
+1. **Python 3.10+** und **ffmpeg** installieren (unter Windows erledigt das `ClipBot.bat` beim ersten Start, von Hand: `winget install Python.Python.3.12` und `winget install Gyan.FFmpeg`).
+2. `ClipBot.bat` (Windows) bzw. `ClipBot.app` (Mac) starten. Beim ersten Mal werden die Pakete installiert, danach öffnet sich das Dashboard.
 3. Unter „Kanäle“ den Quellkanal anlegen und unter „Übersicht“ auf „Clips erzeugen“ klicken. Dabei wird nichts hochgeladen.
 4. Clips unter „Clips“ ansehen, bei Bedarf die Einstellungen anpassen.
 5. Für Uploads die Entwickler-Apps einrichten (siehe unten) und die Konten unter „Kanäle“ verbinden. Für YouTube genügt die Datei `client_secret.json` im ClipBot-Ordner; für TikTok und Instagram `.env.example` → `.env` kopieren und die Zugangsdaten eintragen.
@@ -48,7 +50,7 @@ Passwörter gehören **nicht** in die Konfiguration. Du meldest dich einmal im B
 
 ## Wenn etwas nicht geht
 
-- **Windows blockiert `start.bat` (Smart App Control):** Rechtsklick auf die heruntergeladene ZIP-Datei → Eigenschaften → unten „Zulassen“ ankreuzen → OK, dann neu entpacken.
+- **Windows blockiert `ClipBot.bat` (Smart App Control):** Rechtsklick auf die heruntergeladene ZIP-Datei → Eigenschaften → unten „Zulassen“ ankreuzen → OK, dann neu entpacken.
 - **Es entstehen keine Clips:** Das Protokoll unter „Übersicht“ nennt den Grund. Übersprungen werden Videos unter 150 Sekunden, Livestreams und Videos über der Höchstlänge aus den Einstellungen. Endet ein Lauf mit „Mit Fehlern beendet“, steht die Ursache in der roten Zeile darüber.
 - **Clips erscheinen erst, wenn sie fertig gerendert sind.** Das dauert je nach PC einige Minuten pro Clip; beim ersten Lauf wird zusätzlich das Sprachmodell geladen.
 

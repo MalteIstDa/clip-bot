@@ -220,3 +220,20 @@ def test_quit_endpoint(dashboard, monkeypatch):
     assert post("/api/quit", {}).status_code == 409 and not timers
     monkeypatch.setitem(app.job, "running", False)
     assert post("/api/quit", {}).status_code == 200 and len(timers) == 1
+
+
+def test_render_startet_hyperframes_mit_vollem_pfad(tmp_path, monkeypatch):
+    """Unter Windows ist npx eine .cmd-Datei, die subprocess nur mit vollem Pfad findet."""
+    calls = []
+    monkeypatch.setattr(compose.shutil, "which", lambda name: r"C:\Programme\nodejs\npx.cmd")
+
+    def fake_run(args, **kwargs):
+        calls.append(args)
+        if "render" in args:
+            (tmp_path / "out.mp4").write_bytes(b"x")
+        return compose.subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(compose.subprocess, "run", fake_run)
+    compose.render(tmp_path, tmp_path / "out.mp4", "npx hyperframes")
+    assert all(c[0] == r"C:\Programme\nodejs\npx.cmd" for c in calls)
+    assert calls[0][1:] == ["hyperframes", "lint"]
