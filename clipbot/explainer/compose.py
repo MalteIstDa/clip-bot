@@ -308,8 +308,10 @@ def build_project(project: Path, script: dict, voice: dict) -> Path:
 def render(project: Path, out: Path, cmd: str, quality: str = "looks", timeout: int = 1800) -> Path:
     """Rendert mit der hyperframes-CLI (Node.js 22+ noetig)."""
     base = shlex.split(cmd)
-    if not shutil.which(base[0]):
+    exe = shutil.which(base[0])
+    if not exe:
         raise RuntimeError(f"'{base[0]}' nicht gefunden. Fuer Erklaervideos wird Node.js 22 oder neuer gebraucht (nodejs.org).")
+    base[0] = exe  # Windows: 'npx' ist npx.cmd und wird nur mit vollem Pfad gestartet
     lint = subprocess.run(base + ["lint"], cwd=project, capture_output=True, text=True, timeout=600)
     if lint.returncode != 0:
         log.info("hyperframes lint meldet: %s", (lint.stdout + lint.stderr).strip()[-800:])
