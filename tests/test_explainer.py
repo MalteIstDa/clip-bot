@@ -237,3 +237,37 @@ def test_render_startet_hyperframes_mit_vollem_pfad(tmp_path, monkeypatch):
     compose.render(tmp_path, tmp_path / "out.mp4", "npx hyperframes")
     assert all(c[0] == r"C:\Programme\nodejs\npx.cmd" for c in calls)
     assert calls[0][1:] == ["hyperframes", "lint"]
+
+
+# ---------------------------------------------------------------- ohne Kanal
+def test_create_endpoint_works_without_channel(tmp_path, monkeypatch, fake_ai):
+    import app
+    cfg = {"settings": s(tmp_path), "channels": []}
+    monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
+    jobs = []
+    monkeypatch.setattr(app, "start_job", lambda label, fn: jobs.append(fn) or True)
+    used = []
+    monkeypatch.setattr(pipeline, "create", lambda settings, channel, state, topic, hook="": used.append(channel))
+    client = app.app.test_client()
+    r = client.post("/api/explainer/create", json={"channel": "", "topic": "Warum ist der Himmel blau?"},
+                    headers={"X-ClipBot": "1", "Host": "127.0.0.1:8765"})
+    assert r.status_code == 200
+    jobs[0]()
+    assert used[0]["name"] == pipeline.LOCAL_NAME and used[0]["upload"] == {}
+
+
+def test_local_clip_cannot_be_uploaded(tmp_path, monkeypatch):
+    import app
+    cfg = {"settings": s(tmp_path), "channels": []}
+    monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
+    state = app.open_state(cfg["settings"])
+    state.add_clip("exp-1", "exp-1", pipeline.LOCAL_NAME, tmp_path / "x.mp4", "T", "C", 0, 70,
+                   {}, "Hook", "ok", "wartet", "text")
+    state.close()
+    client = app.app.test_client()
+    h = {"X-ClipBot": "1", "Host": "127.0.0.1:8765"}
+    r = client.post("/api/clips/exp-1/upload", json={"platform": "youtube"}, headers=h)
+    assert r.status_code == 400 and "ohne Kanal" in r.get_json()["error"]
+    st = client.get("/api/state", headers=h).get_json()
+    assert st["local_channel"] == pipeline.LOCAL_NAME
+    assert [c["clip_id"] for c in st["clips"]] == ["exp-1"]
