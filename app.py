@@ -105,6 +105,9 @@ def find_channel(cfg: dict, name: str) -> dict:
     for ch in cfg["channels"]:
         if ch["name"] == name:
             return ch
+    from clipbot.explainer.pipeline import LOCAL_NAME, local_channel
+    if name == LOCAL_NAME:  # Erklaervideos ohne Kanal: nur lokal gespeichert, keine Konten
+        return local_channel()
     raise ApiError(f"Kanal '{name}' gibt es nicht.", 404)
 
 
@@ -133,6 +136,11 @@ def index():
     return send_file(WEB / "index.html")
 
 
+def _local_name() -> str:
+    from clipbot.explainer.pipeline import LOCAL_NAME
+    return LOCAL_NAME
+
+
 @app.get("/api/state")
 def api_state():
     cfg = config.load(allow_empty=True)
@@ -149,6 +157,7 @@ def api_state():
     channels = [{**ch, "accounts": account_status(ch)} for ch in cfg["channels"]]
     return jsonify(
         job=job, log=list(log_lines), clips=clips, videos=videos, channels=channels,
+        local_channel=_local_name(),
         settings={k: s[k] for k in config.DEFAULTS if k != "work_dir"},
         setup={
             "ffmpeg": bool(shutil.which("ffmpeg")),
@@ -272,6 +281,9 @@ def clip_upload(clip_id: str):
     finally:
         state.close()
     channel = find_channel(cfg, clip["channel"])
+    if channel.get("local"):
+        raise ApiError("Dieses Video wurde ohne Kanal erstellt und liegt nur lokal. "
+                       "Lege unter „Kanäle“ einen Kanal an, um hochzuladen.")
     if platform not in channel["upload"]:
         raise ApiError(f"{platform} ist fuer den Kanal '{channel['name']}' nicht eingerichtet.")
 
@@ -524,7 +536,12 @@ def explainer_create():
     data = body()
     cfg = config.load(allow_empty=True)
     s = cfg["settings"]
-    channel = find_channel(cfg, str(data.get("channel") or ""))
+    name = str(data.get("channel") or "").strip()
+    if name:
+        channel = find_channel(cfg, name)
+    else:  # Kein Kanal gewaehlt oder angelegt: Video trotzdem bauen, es bleibt lokal.
+        from clipbot.explainer.pipeline import local_channel
+        channel = local_channel()
     topic = str(data.get("topic") or "").strip()[:200]
     hook = str(data.get("hook") or "").strip()[:200]
     if len(topic) < 4:

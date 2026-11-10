@@ -12,6 +12,14 @@ from clipbot.state import State
 
 log = logging.getLogger("clipbot")
 
+# Ersatz-Kanal, wenn (noch) kein Erklaervideo-Kanal angelegt ist: Das Video wird nur lokal gespeichert
+# und wartet unter "Freigabe", hochgeladen wird nichts (keine Konten).
+LOCAL_NAME = "ohne-kanal"
+
+
+def local_channel() -> dict:
+    return {"name": LOCAL_NAME, "kind": "explainer", "credit": "", "upload": {}, "local": True}
+
 
 def slug(text: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", text.lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss"))
@@ -73,4 +81,6 @@ def create(settings: dict, channel: dict, state: State, topic: str, hook: str = 
                    0, spoken["duration"], texts, sc["scenes"][0]["headline"], reason,
                    "wartet" if settings["require_approval"] else "freigegeben", transcript)
     log.info("[%s] Erklaervideo fertig: %s (wartet unter 'Freigabe')", name, sc["title"])
+    if not channel.get("upload"):
+        log.info("[%s] Kein Konto hinterlegt, das Video wird nicht hochgeladen. Gespeichert unter: %s", name, out)
     return video_id

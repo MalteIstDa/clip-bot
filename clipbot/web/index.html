@@ -310,9 +310,9 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     </div>
     <p class="muted" style="margin:-10px 0 18px">Die KI schreibt ein Skript, prüft es auf Fakten, ElevenLabs spricht es ein und hyperframes animiert es. Das fertige Video wartet danach unter „Freigabe“.</p>
     <div class="panel stack" id="explainNoChannel" hidden style="margin-bottom:20px">
-      <h3>Zuerst einen Erklärvideo-Kanal anlegen</h3>
-      <p class="muted">Lege unter „Kanäle“ einen Kanal mit der Art „Eigene Erklärvideos“ an und verbinde dort deine Konten.</p>
-      <div class="row"><button class="btn fill teal" id="explainAddChannel">Erklärvideo-Kanal anlegen</button></div>
+      <h3>Noch kein Erklärvideo-Kanal</h3>
+      <p class="muted">Du kannst trotzdem sofort Videos erstellen. Sie werden nur auf deinem Rechner gespeichert und warten unter „Freigabe“, hochgeladen wird nichts. Zum Hochladen lege später einen Kanal mit der Art „Eigene Erklärvideos“ an und verbinde dort deine Konten.</p>
+      <div class="row"><button class="btn teal" id="explainAddChannel">Erklärvideo-Kanal anlegen</button></div>
     </div>
     <div class="explain">
       <form class="panel stack" id="explainForm">
@@ -484,6 +484,7 @@ const timecode = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s /
   return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
 const when = ts => new Date(ts * 1000).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 const channelOf = name => data.channels.find(c => c.name === name);
+const isLocal = name => name === data.local_channel && !channelOf(name);
 
 function platformState(clip, platform) {
   const account = channelOf(clip.channel)?.accounts?.[platform];
@@ -609,7 +610,8 @@ function renderClipPlatforms() {
   $("#clipPlatforms").innerHTML = Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
     const account = accounts[p] || {}, up = clip.uploads[p];
     let text, state = "muted", button = "";
-    if (!account.enabled) text = "Für diesen Kanal nicht eingerichtet";
+    if (isLocal(clip.channel)) text = "Ohne Kanal erstellt, nur lokal gespeichert";
+    else if (!account.enabled) text = "Für diesen Kanal nicht eingerichtet";
     else if (up?.status === "ok") {
       state = "state-ok"; text = "Hochgeladen am " + when(up.ts);
       if (p === "youtube" && up.remote_id) text += ` <small><a href="https://youtu.be/${esc(up.remote_id)}" target="_blank" rel="noopener">Auf YouTube ansehen</a></small>`;
@@ -901,7 +903,7 @@ function renderReview() {
       <div class="stack editor-box">${reviewEditor(c)}</div>
       <div class="row">
         <button class="btn fill" style="--c:var(--green)" data-act="approve">Freigeben</button>
-        <button class="btn fill teal" data-act="approve-upload" ${data.job.running ? "disabled" : ""}>Freigeben und hochladen</button>
+        ${isLocal(c.channel) ? "" : `<button class="btn fill teal" data-act="approve-upload" ${data.job.running ? "disabled" : ""}>Freigeben und hochladen</button>`}
         ${data.settings.ai_backend !== "off" ? `<button class="btn" data-act="retext">Neu texten (KI)</button>` : ""}
         <button class="btn danger push" data-act="reject">Verwerfen</button>
       </div>
@@ -953,8 +955,10 @@ function renderExplainer() {
   const sel = $("#explainChannel");
   if (changed("explainChannel", own)) {
     const keep = sel.value;
-    sel.innerHTML = own.map(n => `<option>${esc(n)}</option>`).join("");
-    if (own.includes(keep)) sel.value = keep;
+    sel.innerHTML = own.map(n => `<option>${esc(n)}</option>`).join("")
+      + `<option value="">Ohne Kanal (nur speichern)</option>`;
+    if (own.includes(keep) || (keep === "" && sel.dataset.filled)) sel.value = keep;
+    sel.dataset.filled = "1";
   }
   sel.hidden = !own.length;
   const s = data.settings;
@@ -991,12 +995,12 @@ $("#trendResults").addEventListener("click", e => {
 });
 $("#explainForm").addEventListener("submit", e => {
   e.preventDefault();
-  const f = e.target, channel = $("#explainChannel").value;
-  if (!channel) return toast("Lege zuerst einen Erklärvideo-Kanal an.", true);
+  const f = e.target, channel = $("#explainChannel").value;  // leer = ohne Kanal, nur lokal speichern
   act(async () => {
     await api("/api/explainer/create", { channel, topic: f.topic.value, hook: f.hook.value });
     f.reset();
-  }, "Erklärvideo wird erstellt. Den Fortschritt siehst du im Protokoll unter „Übersicht“.");
+  }, channel ? "Erklärvideo wird erstellt. Den Fortschritt siehst du im Protokoll unter „Übersicht“."
+    : "Erklärvideo wird ohne Kanal erstellt und nur lokal gespeichert. Fortschritt im Protokoll unter „Übersicht“.");
 });
 $("#explainAddChannel").addEventListener("click", () => openChannelForm(null, { name: "wissen", kind: "explainer", display: "Erklärvideo-Kanal" }));
 
