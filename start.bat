@@ -6,7 +6,7 @@ if not exist .venv (
   python -m venv .venv || goto :err
   .venv\Scripts\python -m pip install --upgrade pip
 )
-.venv\Scripts\python -m pip install -q --upgrade -r requirements.txt || goto :err
+.venv\Scripts\python -m pip install --upgrade -r requirements.txt || goto :err
 .venv\Scripts\python app.py %*
 pause
 exit /b
