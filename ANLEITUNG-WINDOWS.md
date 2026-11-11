@@ -50,6 +50,8 @@ Mehr zu allen Funktionen steht im [README](README.md).
 
 - **Das Fenster meldet einen Fehler:** Die Meldung nennt meistens schon die Lösung. Alle Details stehen in `data\clipbot.log` im ClipBot-Ordner. Schau vor dem Weiterschicken kurz hinein, ob dort ein Schlüssel steht.
 - **„winget fehlt“:** Im Microsoft Store **App Installer** installieren und ClipBot.bat erneut starten. Oder Python 3.12 von python.org (beim Installieren „Add python.exe to PATH“ ankreuzen) und ffmpeg mit `winget install Gyan.FFmpeg` von Hand installieren.
+- **Es scheint bei den Python-Paketen zu hängen:** Das ist normal. Die Spracherkennung ist mehrere hundert MB groß, beim ersten Mal dauert das 5 bis 15 Minuten. Einfach warten, bis sich der Browser öffnet.
+- **„ffmpeg wurde nicht gefunden“ direkt nach der Installation:** Fenster schließen und ClipBot.bat noch einmal per Doppelklick starten.
 - **Python wurde gerade installiert, wird aber nicht gefunden:** Einmal ab- und wieder anmelden (oder neu starten) und ClipBot.bat erneut starten.
 - **Alles neu einrichten:** den Ordner `.venv` im ClipBot-Ordner löschen und ClipBot.bat starten.
 
