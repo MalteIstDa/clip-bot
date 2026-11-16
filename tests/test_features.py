@@ -661,6 +661,17 @@ def test_accounts_creators_and_channels_in_dashboard(dashboard):
     assert [c["notify"] for c in data["creators"] if c["id"] == "n3on"] == [False]
 
 
+def test_channel_name_with_spaces_and_umlauts_is_converted(dashboard):
+    post, state, tmp, app = dashboard
+    r = post("/api/channels", {"is_new": True, "name": "  Deutsche Größen & Streamer! "})
+    assert r.status_code == 200 and r.get_json()["name"] == "deutsche-groessen-streamer"
+    assert [c["name"] for c in state()["channels"]] == ["deutsche-groessen-streamer"]
+    r = post("/api/channels", {"is_new": True, "name": "Deutsche Größen Streamer"})
+    assert r.status_code == 400 and "gibt es schon" in r.get_json()["error"]
+    r = post("/api/channels", {"is_new": True, "name": " !! "})
+    assert r.status_code == 400 and "Namen" in r.get_json()["error"]
+
+
 def test_autopilot_switch_and_notifications(dashboard):
     post, state, tmp, app = dashboard
     assert state()["auto"]["enabled"] is False

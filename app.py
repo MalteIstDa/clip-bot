@@ -485,6 +485,10 @@ def _ids(value) -> list[str]:
 def channel_save():
     data = body()
     name = str(data.get("name") or "").strip()
+    if data.get("is_new"):
+        name = config.slug(name)
+        if not name:
+            raise ApiError("Gib dem Kanal einen Namen, z. B. deutsche-streamer.")
     with config.LOCK:
         raw = config.load_raw()
         existing = next((c for c in raw["channels"] if c["name"] == name), None)
@@ -517,7 +521,7 @@ def channel_save():
         else:
             raw["channels"].append(channel)
         config.save(raw)
-    return jsonify(ok=True)
+    return jsonify(ok=True, name=name)
 
 
 @app.post("/api/channels/<name>/delete")
