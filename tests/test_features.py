@@ -400,6 +400,17 @@ def test_queued_video_is_clipped_for_all_channels(autopilot, monkeypatch):
     assert auto.next_task(cfg, open_state, at(9, 0)) is None and st.video_status("fremd") == "seen"
 
 
+def test_stale_queue_entries_are_dropped(autopilot):
+    """War die Automatik lange aus, wird nicht tagelang Altes nachgeclippt."""
+    cfg, st, uploaded, open_state = autopilot
+    cfg["settings"]["upload_times"] = ""
+    cfg["accounts"][1]["times"] = ""
+    st.mark_video("alt", "", "Von letzter Woche", "queued", creator="gtasty", url="https://x/alt")
+    st.db.execute("UPDATE videos SET ts=? WHERE video_id='alt'", (time.time() - 5 * 86400,))
+    st.db.commit()
+    assert auto.next_task(cfg, open_state, datetime.now()) is None and st.video_status("alt") == "skipped"
+
+
 def test_failed_clip_job_is_not_retried(autopilot, monkeypatch):
     cfg, st, uploaded, open_state = autopilot
     cfg["settings"]["upload_times"] = ""
@@ -499,6 +510,16 @@ def test_plan_fills_up_when_ai_picks_too_little(fake_ai):
                                "youtube_description": "D", "tiktok_caption": "C", "hashtags": []}))
     todo = bestof.plan(s(ai_backend="fake"), channel(), moments, "daily")
     assert sum(m["duration"] for m, _ in todo["picks"]) >= 60 and todo["picks"][0][1] == "Gtastys Stunt"
+
+
+def test_plan_limits_creators_even_if_ai_ignores_it(fake_ai):
+    moments = [moment(1, "gtasty", 15, 9), moment(2, "gtasty", 15, 8), moment(3, "gtasty", 15, 7),
+               moment(4, "gtasty", 15, 6), moment(5, "n3on", 15, 5), moment(6, "speed", 15, 4)]
+    fake_ai.append(json.dumps({"picks": [{"index": i, "headline": f"Zeile {i}"} for i in range(4)], "youtube_title": "T",
+                               "youtube_description": "D", "tiktok_caption": "C", "hashtags": []}))
+    todo = bestof.plan(s(ai_backend="fake", bestof_max_per_creator=2), channel(), moments, "daily")
+    ids = [m["moment_id"] for m, _ in todo["picks"]]
+    assert ids[0] == "m1" and sorted(ids) == ["m1", "m2", "m5", "m6"]  # nur 2x Gtasty, aufgefuellt mit anderen
 
 
 @pytest.fixture(scope="module")
@@ -682,3 +703,34 @@ def test_bestof_button(dashboard, monkeypatch):
     assert post("/api/run", {"mode": "bestof", "channel": "clips", "period": "weekly"}).status_code == 200
     jobs[0][1]()
     assert jobs[0][0] == "Best-of bauen (clips)" and built == [("clips", "weekly", True)]
+
+
+def test_dashboard_page_has_all_views(tmp_path, monkeypatch):
+    """Die Oberflaeche wird ausgeliefert und kennt alle Bereiche und Schnittstellen, die sie aufruft."""
+    import re
+
+    import app as dashboard
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    client = dashboard.app.test_client()
+    page = client.get("/", base_url=f"http://127.0.0.1:{dashboard.PORT}")
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200 and '<canvas id="sky"' in html
+    for view in ("overview", "review", "clips", "explainer", "watchlist", "accounts", "channels", "settings"):
+        assert f'id="view-{view}"' in html and f'data-view="{view}"' in html
+    routes = {re.sub(r"<[^>]+>", "*", str(rule)) for rule in dashboard.app.url_map.iter_rules()}
+    called = {re.sub(r"\$\{[^}]+\}", "*", path) + ("*" if path.endswith("/") else "")
+              for path in re.findall(r'api\([`"](/api/[^`"?]+)[`"]', html)}
+    assert called and not {path for path in called if path not in routes}
+    assert {"/api/creators", "/api/accounts", "/api/autopilot", "/api/watch/check", "/api/notifications/read"} <= called
+    for key in re.findall(r'\["([a-z_]+)", "[^"]+", "(?:check|text|number|select)"', html):
+        assert key in config.DEFAULTS, key  # jedes Feld der Einstellungen gibt es wirklich
+
+
+def test_reminder_wording_for_one_clip(autopilot, monkeypatch):
+    cfg, st, _, open_state = autopilot
+    creator = cfg["creators"][0]
+    monkeypatch.setattr(run, "process_video", lambda *a, **k: 1)
+    st.mark_video("v1", "", "Video", "queued", creator=creator["id"], url="https://x")
+    auto.run_clip(cfg, creator, {"id": "v1", "title": "Video", "url": "https://x"}, open_state)
+    note = st.notifications()[0]
+    assert note["title"] == "1 neuer Clip von Gtasty" and note["text"].startswith("Er wartet")

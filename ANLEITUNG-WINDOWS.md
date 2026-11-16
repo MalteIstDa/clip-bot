@@ -40,9 +40,11 @@ Doppelklick auf **ClipBot.bat**.
 
 ## 4. Erste Schritte im Dashboard
 
-1. Unter **Kanäle** einen Quellkanal suchen und anlegen.
-2. Unter **Übersicht** auf **Clips erzeugen** klicken. Dabei wird nichts hochgeladen.
-3. Die Clips unter **Clips** ansehen. Hochgeladen wird erst, wenn du sie unter **Freigabe** freigibst.
+1. Unter **Watchlist** die YouTuber und Streamer eintragen, die du im Blick behalten willst (eine Adresse je Zeile). Ab jetzt bekommst du einen Reminder, wenn jemand live geht oder ein Video hochlädt.
+2. Unter **Kanäle** einen Kanal anlegen und die Creator ankreuzen, aus denen geclippt wird.
+3. Unter **Übersicht** auf **Clips erzeugen** klicken. Dabei wird nichts hochgeladen.
+4. Die Clips unter **Freigabe** ansehen. Hochgeladen wird erst, wenn du sie freigibst.
+5. Zum Hochladen unter **Konten** deine YouTube- und TikTok-Accounts anlegen und verbinden, dem Kanal zuordnen und unter **Einstellungen** die Upload-Zeiten eintragen. Mit dem Schalter **Automatik** oben rechts läuft danach alles von selbst.
 
 Mehr zu allen Funktionen steht im [README](README.md).
 

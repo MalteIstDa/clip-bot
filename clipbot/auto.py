@@ -18,6 +18,7 @@ from clipbot.state import State
 
 log = logging.getLogger("clipbot")
 TICK_SECONDS = 20
+QUEUE_MAX_AGE = 3 * 86400  # aeltere wartende Videos nicht mehr clippen (z. B. wenn die Automatik lange aus war)
 
 
 def account_times(account: dict, settings: dict) -> list[tuple[int, int]]:
@@ -84,8 +85,13 @@ def run_clip(cfg: dict, creator: dict, video: dict, open_state) -> None:
         if state.video_status(video["id"]) == "queued":
             state.mark_video(video["id"], "", "", "done")
         if made:
-            where = "Sie warten unter „Freigabe“ auf dich." if s["require_approval"] else "Sie sind freigegeben."
-            notify.send(state, s, "clips", f"{made} neue Clips von {creator['name']}", where)
+            many = made != 1
+            if s["require_approval"]:
+                where = "Sie warten unter „Freigabe“ auf dich." if many else "Er wartet unter „Freigabe“ auf dich."
+            else:
+                where = "Sie sind freigegeben." if many else "Er ist freigegeben."
+            count = f"{made} neue Clips" if many else "1 neuer Clip"
+            notify.send(state, s, "clips", f"{count} von {creator['name']}", where)
     finally:
         state.close()
 
@@ -120,6 +126,9 @@ def next_task(cfg: dict, open_state, now: datetime | None = None):
             creator = creators.get(row["creator"])
             if not creator or not watch.wants_clips(cfg, creator):  # Creator entfernt oder Clippen abgeschaltet
                 state.mark_video(row["video_id"], "", "", "seen")
+                continue
+            if now.timestamp() - (row["ts"] or 0) > QUEUE_MAX_AGE:
+                state.mark_video(row["video_id"], "", "", "skipped", note="Lag zu lange in der Warteschlange")
                 continue
             video = {"id": row["video_id"], "title": row["title"] or row["video_id"], "url": row["url"]}
             return (f"Automatisch clippen: {creator['name']} – {video['title']}"[:140],

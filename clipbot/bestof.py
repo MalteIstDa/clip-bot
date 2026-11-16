@@ -138,27 +138,33 @@ def _ai_plan(s: dict, channel: dict, moments: list[dict], label: str) -> dict | 
     except ai.AIError as exc:
         log.info("KI-Auswahl fuer das Best-of nicht moeglich (%s), nehme die lautesten Momente.", exc)
         return None
-    picks, seen, total = [], set(), 0.0
+    limit = s["bestof_max_per_creator"]
+    picks, seen, total, used = [], set(), 0.0, {}
     for entry in data["picks"]:
         i = entry["index"]
         if not 0 <= i < len(candidates) or i in seen:
             continue
         moment = candidates[i]
-        if total + moment["duration"] > s["bestof_max_seconds"]:
-            continue
+        if total + moment["duration"] > s["bestof_max_seconds"] or used.get(moment["creator"], 0) >= limit:
+            continue  # zu lang oder dieser Creator kommt schon oft genug vor (die KI haelt sich nicht immer daran)
         seen.add(i)
         total += moment["duration"]
+        used[moment["creator"]] = used.get(moment["creator"], 0) + 1
         picks.append((moment, entry["headline"].strip()[:60] or moment["creator_name"]))
     if not picks:
         return None
-    if total < s["bestof_min_seconds"]:  # die KI war zu sparsam: mit den naechstbesten auffuellen (vor dem Schluss)
+    # Zu kurz? Mit den naechstbesten auffuellen (vor dem Schluss), erst zuletzt darf ein Creator oefter vorkommen.
+    for cap in (limit, None):
         for moment in candidates:
             if total >= s["bestof_min_seconds"]:
                 break
             if any(moment is m for m, _ in picks) or total + moment["duration"] > s["bestof_max_seconds"]:
                 continue
+            if cap is not None and used.get(moment["creator"], 0) >= cap:
+                continue
             picks.insert(max(1, len(picks) - 1), (moment, moment["creator_name"]))
             total += moment["duration"]
+            used[moment["creator"]] = used.get(moment["creator"], 0) + 1
     return {"picks": picks, "data": data}
 
 

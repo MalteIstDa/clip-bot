@@ -60,11 +60,11 @@ class _Check:
         """Ein fertiges Video oder eine fertige Aufzeichnung: Reminder und, falls gewuenscht, ab in die Warteschlange."""
         title = video.get("title") or ""
         self.state.watch_set(self.id, last_title=title, last_url=video.get("url") or "", last_ts=self.now)
-        tail = " Die Clips werden automatisch erstellt." if self.auto else ""
+        text = f"{title} (Clips werden automatisch erstellt)" if self.auto else title
         if was_stream:
-            self.notify("video", f"{self.name}: Stream-Aufzeichnung ist da", title + tail, video.get("url") or "")
+            self.notify("video", f"{self.name}: Stream-Aufzeichnung ist da", text, video.get("url") or "")
         else:
-            self.notify("video", f"{self.name} hat ein neues Video", title + tail, video.get("url") or "")
+            self.notify("video", f"{self.name} hat ein neues Video", text, video.get("url") or "")
         self.mark(video, "queued" if self.auto else "seen", "live" if was_stream else "video")
 
     # ------------------------------------------------------------ YouTube
