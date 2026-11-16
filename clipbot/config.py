@@ -95,6 +95,15 @@ def _config_path(path=None) -> Path:
     return Path(path) if path else ROOT / "config.yaml"
 
 
+_UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "ae", "Ö": "oe", "Ü": "ue", "ß": "ss"})
+
+
+def slug(text: str) -> str:
+    """Freien Namen ("Deutsche Größen") in einen Kurznamen ("deutsche-groessen") umwandeln."""
+    text = str(text or "").translate(_UMLAUTS).lower()
+    return re.sub(r"[^a-z0-9_-]+", "-", text).strip("-_")[:40].strip("-_")
+
+
 def _unique(base: str, taken) -> str:
     base = re.sub(r"[^A-Za-z0-9_-]+", "_", base).strip("_")[:36] or "eintrag"
     name, n = base, 2

@@ -577,7 +577,7 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
 <dialog id="channelDialog"><form class="dlg stack" id="channelForm">
   <h2 id="channelDialogTitle">Kanal anlegen</h2>
   <div class="two">
-    <label class="field"><span>Kurzname (nur Buchstaben, Ziffern, - und _)</span><input type="text" name="name" required pattern="[A-Za-z0-9_\-]{1,40}"></label>
+    <label class="field"><span>Name (z. B. deutsche-streamer)</span><input type="text" name="name" required maxlength="60" placeholder="deutsche-streamer"></label>
     <label class="field"><span>Art</span><select name="kind">
       <option value="clips">Clips aus Videos und Streams</option>
       <option value="explainer">Eigene Erklärvideos</option></select></label>
