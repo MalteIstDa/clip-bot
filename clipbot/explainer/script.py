@@ -51,6 +51,15 @@ SYSTEM = (
 )
 
 
+def system_for(language: dict | None) -> str:
+    """Anweisung an die KI in der Sprache des Kanals (Standard: Deutsch)."""
+    if not language or language.get("code") == "de":
+        return SYSTEM
+    return (SYSTEM.replace("virale deutsche Erklaervideos", f"virale Erklaervideos auf {language['prompt']}")
+            + f" Alle Texte fuer die Zuschauer (voice, headline, sub, items, title, youtube_title, caption, hashtags)"
+              f" schreibst du auf {language['prompt']}, in der dort ueblichen lockeren Anrede.")
+
+
 WORDS_PER_SECOND = 2.4  # deutsches Sprechtempo von ElevenLabs, grob
 
 
@@ -63,7 +72,7 @@ def word_count(script: dict) -> int:
     return sum(len(s["voice"].split()) for s in script["scenes"])
 
 
-def write(settings: dict, topic: str, hook: str = "") -> dict:
+def write(settings: dict, topic: str, hook: str = "", language: dict | None = None) -> dict:
     lo_s, hi_s = settings["explainer_min_seconds"], settings["explainer_max_seconds"]
     lo_w, hi_w = word_range(settings)
     prompt = (
@@ -90,14 +99,14 @@ def write(settings: dict, topic: str, hook: str = "") -> dict:
         "Bei Themen zum Koerper nutze die Figur in moeglichst vielen Szenen, passend zum gesprochenen Text. "
         "Sonst visual 'keine'. visual_from und visual_to immer ausfuellen (bei 'keine' egal, z. B. aussen).\n"
         "- youtube_title: hoechstens 70 Zeichen. caption: 1 bis 2 Saetze mit Frage am Ende, ohne Hashtags. "
-        "hashtags: 5 bis 8 passende deutsche und breite Hashtags."
+        "hashtags: 5 bis 8 passende Hashtags in der Sprache des Videos, gemischt mit breiten Hashtags."
     )
-    data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)
+    data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, system_for(language))
     data["hashtags"] = viral.normalize_hashtags(data["hashtags"], 8)
-    return lengthen(settings, data)
+    return lengthen(settings, data, language)
 
 
-def lengthen(settings: dict, script: dict) -> dict:
+def lengthen(settings: dict, script: dict, language: dict | None = None) -> dict:
     """Ist das Skript zu kurz fuer die Mindestlaenge, laesst die KI es einmal ausbauen."""
     import json
     lo_w, hi_w = word_range(settings)
@@ -112,7 +121,7 @@ def lengthen(settings: dict, script: dict) -> dict:
         "Hook am Anfang und Frage am Ende bleiben.\n\nSkript:\n" + json.dumps(script, ensure_ascii=False)
     )
     try:
-        data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)
+        data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, system_for(language))
     except ai.AIError as exc:
         log.info("Verlaengern nicht moeglich (%s), nehme das kurze Skript.", exc)
         return script
@@ -165,7 +174,7 @@ def fact_check(settings: dict, script: dict) -> dict:
     return {**data, "summary": summary}
 
 
-def revise(settings: dict, script: dict, check: dict) -> dict:
+def revise(settings: dict, script: dict, check: dict, language: dict | None = None) -> dict:
     """Skript mit den Beanstandungen des Faktenchecks neu schreiben lassen (nur bei verdict 'falsch')."""
     import json
     if check.get("verdict") != "falsch" or not check.get("issues"):
@@ -175,6 +184,6 @@ def revise(settings: dict, script: dict, check: dict) -> dict:
         "moeglich am Original, auch die Laenge.\n\nSkript:\n" + json.dumps(script, ensure_ascii=False) +
         "\n\nBeanstandungen:\n" + json.dumps(check["issues"], ensure_ascii=False)
     )
-    data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, SYSTEM)
+    data = ai.generate_json(settings, prompt, SCRIPT_SCHEMA, system_for(language))
     data["hashtags"] = viral.normalize_hashtags(data["hashtags"], 8)
     return data

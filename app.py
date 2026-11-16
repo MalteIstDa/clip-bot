@@ -12,12 +12,13 @@ import sys
 import threading
 import time
 import webbrowser
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file
 
 import run as pipeline
-from clipbot import config
+from clipbot import auto, config, lang, schedule, sources
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -44,7 +45,7 @@ class BufferHandler(logging.Handler):
 
 job = {"running": False, "label": "", "started": 0.0}
 job_lock = threading.Lock()
-tiktok_pending: dict[str, str] = {}  # Kanalname -> state der laufenden Anmeldung
+tiktok_pending: dict[str, str] = {}  # Konto -> state der laufenden Anmeldung
 
 
 def start_job(label: str, fn) -> bool:
@@ -68,6 +69,13 @@ def start_job(label: str, fn) -> bool:
 
     threading.Thread(target=wrapper, daemon=True).start()
     return True
+
+
+def _open_state(settings: dict) -> State:
+    return State(settings["work_dir"] / "state.sqlite")
+
+
+autopilot = auto.Autopilot(lambda label, fn: start_job(label, fn), lambda: job["running"], _open_state)
 
 
 # ---------------------------------------------------------------- Hilfsfunktionen
@@ -111,19 +119,52 @@ def find_channel(cfg: dict, name: str) -> dict:
     raise ApiError(f"Kanal '{name}' gibt es nicht.", 404)
 
 
-def account_status(channel: dict) -> dict:
-    result = {}
-    for platform in PLATFORMS:
-        target = (channel.get("upload") or {}).get(platform)
-        if not target:
-            result[platform] = {"enabled": False, "connected": False}
-        elif platform == "instagram":
-            token = os.environ.get(str(target.get("token_env") or ""))
-            result[platform] = {"enabled": True, "connected": bool(target.get("ig_user_id") and token)}
-        else:
-            result[platform] = {"enabled": True,
-                                "connected": config.resolve(target["token_file"]).exists()}
-    return result
+def find_account(cfg: dict, account_id: str) -> dict:
+    for account in cfg["accounts"]:
+        if account["id"] == account_id:
+            return account
+    raise ApiError(f"Das Konto '{account_id}' gibt es nicht.", 404)
+
+
+def accounts_payload(cfg: dict, state: State, now: datetime) -> list[dict]:
+    """Konten fuer das Dashboard: verbunden?, Warteschlange, letzter Upload, naechste Uhrzeit."""
+    s = cfg["settings"]
+    out = []
+    for account in cfg["accounts"]:
+        channels = config.channels_of_account(cfg, account["id"])
+        queue = sum(len(state.pending_clips(ch["name"], account["id"], account["platform"],
+                                            ch.get("distribute") == "abwechselnd")) for ch in channels)
+        times = auto.account_times(account, s)
+        slot = schedule.next_slot(times, now) if times else None
+        last = state.last_post(account["id"])
+        out.append({
+            "id": account["id"], "platform": account["platform"], "label": account.get("label") or account["id"],
+            "times": account.get("times") or "", "effective_times": schedule.format_times(times),
+            "ig_user_id": account.get("ig_user_id") or "", "ig_token_env": account.get("token_env") or "",
+            "connected": config.account_connected(account), "queue": queue,
+            "next_slot": slot.timestamp() if slot else None,
+            "last_ts": last["ts"] if last else None, "channels": [ch["name"] for ch in channels],
+        })
+    return out
+
+
+def creators_payload(cfg: dict, state: State) -> list[dict]:
+    """Watchlist fuer das Dashboard: Creator samt Live-Status und letztem Video."""
+    watched = state.watch_all()
+    out = []
+    for creator in cfg["creators"]:
+        w = watched.get(creator["id"], {})
+        out.append({
+            "id": creator["id"], "name": creator.get("name") or creator["id"], "url": creator["url"],
+            "platform": sources.platform_of(creator["url"]),
+            "notify": bool(creator.get("notify", True)), "auto_clip": bool(creator.get("auto_clip", True)),
+            "channels": [ch["name"] for ch in config.channels_of_creator(cfg, creator["id"])],
+            "live": bool(w.get("live")), "live_title": w.get("live_title") or "", "live_url": w.get("live_url") or "",
+            "live_since": w.get("live_since"), "last_title": w.get("last_title") or "",
+            "last_url": w.get("last_url") or "", "last_ts": w.get("last_ts"), "last_check": w.get("last_check"),
+            "error": w.get("error") or "",
+        })
+    return out
 
 
 def body() -> dict:
@@ -149,21 +190,30 @@ def api_state():
     try:
         clips = state.clips()
         videos = state.videos()
+        accounts = accounts_payload(cfg, state, datetime.now())
+        creators = creators_payload(cfg, state)
+        notifications = state.notifications()
+        unread = state.unread_count()
+        queued = len(state.videos_by_status(("queued",)))
+        moments = state.moment_counts(time.time() - 8 * 86400)
     finally:
         state.close()
     for clip in clips:
         clip["exists"] = Path(clip["path"]).exists()
         del clip["path"]
-    channels = [{**ch, "accounts": account_status(ch)} for ch in cfg["channels"]]
     return jsonify(
-        job=job, log=list(log_lines), clips=clips, videos=videos, channels=channels,
-        local_channel=_local_name(),
+        job=job, log=list(log_lines), clips=clips, videos=videos, channels=cfg["channels"],
+        accounts=accounts, creators=creators, notifications=notifications, unread=unread,
+        auto={"enabled": bool(s["autopilot"]), "dry_run": bool(s["dry_run"]), "queued": queued,
+              "watching": autopilot.watching, "last_watch": autopilot.last_watch or None, "moments": moments},
+        local_channel=_local_name(), languages=lang.labels(),
         settings={k: s[k] for k in config.DEFAULTS if k != "work_dir"},
         setup={
             "ffmpeg": bool(shutil.which("ffmpeg")),
             "youtube_app": config.youtube_secrets_file().exists(),
             "tiktok_app": all(os.environ.get(k) for k in
                               ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")),
+            "discord": bool(os.environ.get("DISCORD_WEBHOOK_URL")),
         },
     )
 
@@ -189,6 +239,19 @@ def api_run():
         def work():
             state = open_state(s)
             pipeline.process_video(channels[0], s, state, {"id": None, "title": url, "url": url})
+    elif mode == "bestof":
+        if len(channels) != 1 or channels[0].get("kind", "clips") != "clips":
+            raise ApiError("Waehle einen Clip-Kanal fuer das Best-of.")
+        period = data.get("period") if data.get("period") in ("daily", "weekly") else None
+        label = f"Best-of bauen ({names})"
+
+        def work():
+            from clipbot import bestof
+            state = open_state(s)
+            try:
+                bestof.build(cfg, channels[0], state, period, force=True)
+            finally:
+                state.close()
     elif mode in ("make", "upload", "both"):
         label = {"make": "Clips erzeugen", "upload": "Offene Clips hochladen",
                  "both": "Erzeugen und hochladen"}[mode] + f" ({names})"
@@ -199,9 +262,9 @@ def api_run():
             for channel in channels:
                 try:
                     if mode in ("make", "both"):
-                        pipeline.make_clips(channel, s, state)
+                        pipeline.make_clips(channel, s, state, cfg)
                     if mode in ("upload", "both"):
-                        pipeline.upload_clips(channel, s, state)
+                        pipeline.upload_clips(channel, s, state, config.accounts_of(cfg, channel))
                 except Exception:
                     ok = False
                     log.exception("[%s] Fehler - weiter mit dem naechsten Kanal", channel["name"])
@@ -270,9 +333,6 @@ def clip_update(clip_id: str):
 
 @app.post("/api/clips/<clip_id>/upload")
 def clip_upload(clip_id: str):
-    platform = body().get("platform")
-    if platform not in PLATFORMS:
-        raise ApiError("Unbekannte Plattform.")
     cfg = config.load(allow_empty=True)
     s = cfg["settings"]
     state = open_state(s)
@@ -284,21 +344,19 @@ def clip_upload(clip_id: str):
     if channel.get("local"):
         raise ApiError("Dieses Video wurde ohne Kanal erstellt und liegt nur lokal. "
                        "Lege unter „Kanäle“ einen Kanal an, um hochzuladen.")
-    if platform not in channel["upload"]:
-        raise ApiError(f"{platform} ist fuer den Kanal '{channel['name']}' nicht eingerichtet.")
+    account = find_account(cfg, str(body().get("account")))
+    if account["id"] not in (channel.get("accounts") or []):
+        raise ApiError(f"Das Konto '{account['label']}' gehoert nicht zum Kanal '{channel['name']}'.")
 
     def work():
         st = open_state(s)
-        st.set_review(clip_id, "freigegeben")  # Wer selbst auf Hochladen klickt, gibt den Clip frei.
         try:
-            remote_id = pipeline.upload_one(platform, clip, channel, s)
-            st.mark_upload(clip_id, platform, "ok", remote_id)
-            log.info("[%s] %s: hochgeladen (%s) - %s", channel["name"], platform, remote_id, clip["title"])
-        except (UploadError, config.ConfigError) as exc:
-            st.mark_upload(clip_id, platform, "failed", error=str(exc))
-            log.error("[%s] %s: %s", channel["name"], platform, exc)
+            st.set_review(clip_id, "freigegeben")  # Wer selbst auf Hochladen klickt, gibt den Clip frei.
+            return pipeline.post_clip(account, clip, channel, s, st)
+        finally:
+            st.close()
 
-    if not start_job(f"{platform}: {clip['title']}", work):
+    if not start_job(f"{account['label']}: {clip['title']}", work):
         raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
     return jsonify(ok=True)
 
@@ -365,7 +423,7 @@ def clip_retext(clip_id: str):
     channel = find_channel(cfg, clip["channel"])
     transcript = clip.get("transcript") or clip["title"]
     texts = viral.write_texts(s, channel, video["title"] if video else clip["title"], transcript, 1,
-                              clip.get("reason") or "")
+                              clip.get("reason") or "", clip.get("creator") or "")
     if not texts["platforms"]:
         raise ApiError("Die KI hat keine brauchbaren Texte geliefert. Details im Protokoll.", 502)
     state = open_state(s)
@@ -419,54 +477,209 @@ def settings_save():
     return jsonify(ok=True)
 
 
+def _ids(value) -> list[str]:
+    return [str(v) for v in (value if isinstance(value, list) else []) if str(v)]
+
+
 @app.post("/api/channels")
 def channel_save():
     data = body()
     name = str(data.get("name") or "").strip()
-    raw = config.load_raw()
-    existing = next((c for c in raw["channels"] if c["name"] == name), None)
-    if data.get("is_new") and existing:
-        raise ApiError(f"Den Kanal '{name}' gibt es schon.")
-    old_upload = (existing or {}).get("upload") or {}
-    upload = {}
-    wanted = data.get("platforms") or {}
-    for platform in ("youtube", "tiktok"):
-        if wanted.get(platform):
-            upload[platform] = old_upload.get(platform) or {"token_file": f"tokens/{name}_{platform}.json"}
-    if wanted.get("instagram"):
-        upload["instagram"] = {"ig_user_id": str(data.get("ig_user_id") or "").strip(),
-                               "token_env": str(data.get("ig_token_env") or "").strip()}
-    kind = "explainer" if data.get("kind") == "explainer" else "clips"
-    channel = {
-        "name": name,
-        "kind": kind,
-        "source_url": "" if kind == "explainer" else str(data.get("source_url") or "").strip(),
-        "title_template": str(data.get("title_template") or "{hook} #shorts"),
-        "caption_template": str(data.get("caption_template") or "{hook}"),
-        "tags": [t.strip() for t in str(data.get("tags") or "").split(",") if t.strip()],
-        "credit": str(data.get("credit") or "").strip(),
-        "caption_language": str(data.get("caption_language") or "Englisch").strip(),
-        "upload": upload,
-    }
-    for template in (channel["title_template"], channel["caption_template"]):
-        try:
-            template.format(hook="", video_title="", channel="", n=1)
-        except (KeyError, IndexError, ValueError):
-            raise ApiError("Vorlagen duerfen nur {hook}, {video_title}, {channel} und {n} enthalten.")
-    if existing:
-        raw["channels"][raw["channels"].index(existing)] = channel
-    else:
-        raw["channels"].append(channel)
-    config.save(raw)
+    with config.LOCK:
+        raw = config.load_raw()
+        existing = next((c for c in raw["channels"] if c["name"] == name), None)
+        if data.get("is_new") and existing:
+            raise ApiError(f"Den Kanal '{name}' gibt es schon.")
+        kind = "explainer" if data.get("kind") == "explainer" else "clips"
+        known_creators = {c["id"] for c in raw["creators"]}
+        known_accounts = {a["id"] for a in raw["accounts"]}
+        channel = {
+            "name": name,
+            "kind": kind,
+            "language": lang.code(data.get("language"), "de" if kind == "explainer" else "en"),
+            "creators": [] if kind == "explainer" else [c for c in _ids(data.get("creators")) if c in known_creators],
+            "accounts": [a for a in _ids(data.get("accounts")) if a in known_accounts],
+            "title_template": str(data.get("title_template") or "{hook} #shorts"),
+            "caption_template": str(data.get("caption_template") or "{hook}"),
+            "tags": [t.strip() for t in str(data.get("tags") or "").split(",") if t.strip()],
+            "credit": str(data.get("credit") or "").strip(),
+            "clips": bool(data.get("clips", True)),
+            "bestof": data.get("bestof") if data.get("bestof") in ("daily", "weekly") and kind == "clips" else "off",
+            "distribute": "abwechselnd" if data.get("distribute") == "abwechselnd" else "alle",
+        }
+        for template in (channel["title_template"], channel["caption_template"]):
+            try:
+                template.format(hook="", video_title="", channel="", n=1)
+            except (KeyError, IndexError, ValueError):
+                raise ApiError("Vorlagen duerfen nur {hook}, {video_title}, {channel} und {n} enthalten.")
+        if existing:
+            raw["channels"][raw["channels"].index(existing)] = channel
+        else:
+            raw["channels"].append(channel)
+        config.save(raw)
     return jsonify(ok=True)
 
 
 @app.post("/api/channels/<name>/delete")
 def channel_delete(name: str):
-    raw = config.load_raw()
-    raw["channels"] = [c for c in raw["channels"] if c["name"] != name]
-    config.save(raw)
+    with config.LOCK:
+        raw = config.load_raw()
+        raw["channels"] = [c for c in raw["channels"] if c["name"] != name]
+        config.save(raw)
     return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- Konten
+ACCOUNT_PREFIX = {"youtube": "yt", "tiktok": "tt", "instagram": "ig"}
+
+
+@app.post("/api/accounts")
+def account_save():
+    data = body()
+    label = str(data.get("label") or "").strip()[:60]
+    if not label:
+        raise ApiError("Gib dem Konto einen Namen, z. B. den Namen des Kanals auf der Plattform.")
+    with config.LOCK:
+        raw = config.load_raw()
+        account = next((a for a in raw["accounts"] if a["id"] == data.get("id")), None)
+        if not account:
+            platform = data.get("platform")
+            if platform not in config.PLATFORMS:
+                raise ApiError("Waehle YouTube, TikTok oder Instagram.")
+            account_id = config._unique(f"{ACCOUNT_PREFIX[platform]}_{label.lower()}", {a["id"] for a in raw["accounts"]})
+            account = {"id": account_id, "platform": platform}
+            if platform != "instagram":
+                account["token_file"] = f"tokens/{account_id}.json"
+            raw["accounts"].append(account)
+        account["label"] = label
+        account["times"] = str(data.get("times") or "").strip()
+        if account["platform"] == "instagram":
+            account["ig_user_id"] = str(data.get("ig_user_id") or "").strip()
+            account["token_env"] = str(data.get("ig_token_env") or "").strip()
+        wanted = data.get("channels")
+        if isinstance(wanted, list):  # Zuordnung zu Kanaelen gleich mit speichern
+            for ch in raw["channels"]:
+                ids = [a for a in ch.get("accounts") or [] if a != account["id"]]
+                ch["accounts"] = ids + [account["id"]] if ch["name"] in wanted else ids
+        config.save(raw)
+    return jsonify(ok=True, id=account["id"])
+
+
+@app.post("/api/accounts/<account_id>/delete")
+def account_delete(account_id: str):
+    with config.LOCK:
+        raw = config.load_raw()
+        raw["accounts"] = [a for a in raw["accounts"] if a["id"] != account_id]
+        for ch in raw["channels"]:
+            ch["accounts"] = [a for a in ch.get("accounts") or [] if a != account_id]
+        config.save(raw)
+    return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- Watchlist
+def _attach(raw: dict, creator_id: str, wanted) -> None:
+    """Den Creator genau den gewuenschten Clip-Kanaelen zuordnen."""
+    for ch in raw["channels"]:
+        if ch.get("kind", "clips") != "clips":
+            continue
+        ids = [c for c in ch.get("creators") or [] if c != creator_id]
+        ch["creators"] = ids + [creator_id] if ch["name"] in wanted else ids
+
+
+@app.post("/api/creators")
+def creators_add():
+    """Einen oder viele Creator auf die Watchlist setzen (eine Adresse je Zeile)."""
+    data = body()
+    lines = [line.strip() for line in str(data.get("urls") or "").replace(",", "\n").splitlines() if line.strip()]
+    if not lines:
+        raise ApiError("Gib mindestens eine Adresse an, z. B. https://www.youtube.com/@name oder https://www.twitch.tv/name.")
+    wanted = _ids(data.get("channels"))
+    single_name = str(data.get("name") or "").strip()[:60] if len(lines) == 1 else ""
+    added = skipped = 0
+    with config.LOCK:
+        raw = config.load_raw()
+        for line in lines:
+            if not line.startswith("http"):  # nur ein Name: als YouTube-Kanal deuten
+                line = "https://www.youtube.com/@" + line.lstrip("@")
+            url = sources.clean_url(line.replace("http://", "https://", 1))
+            if not url.startswith("https://") or len(url) > 300:
+                raise ApiError(f"'{line[:80]}' ist keine gueltige Adresse.")
+            creator = next((c for c in raw["creators"] if config._same_url(c.get("url"), url)), None)
+            if creator:
+                skipped += 1
+            else:
+                creator = {"id": config._unique(sources.name_from_url(url).lower(), {c["id"] for c in raw["creators"]}),
+                           "name": single_name or sources.name_from_url(url), "url": url,
+                           "notify": bool(data.get("notify", True)), "auto_clip": bool(data.get("auto_clip", True))}
+                raw["creators"].append(creator)
+                added += 1
+            if wanted:
+                for ch in raw["channels"]:
+                    if ch["name"] in wanted and ch.get("kind", "clips") == "clips" and creator["id"] not in ch["creators"]:
+                        ch["creators"].append(creator["id"])
+        config.save(raw)
+    autopilot.check_now()
+    return jsonify(ok=True, added=added, skipped=skipped)
+
+
+@app.post("/api/creators/<creator_id>")
+def creator_update(creator_id: str):
+    data = body()
+    with config.LOCK:
+        raw = config.load_raw()
+        creator = next((c for c in raw["creators"] if c["id"] == creator_id), None)
+        if not creator:
+            raise ApiError("Diesen Creator gibt es nicht.", 404)
+        if "name" in data:
+            creator["name"] = str(data["name"]).strip()[:60] or creator["name"]
+        for flag in ("notify", "auto_clip"):
+            if flag in data:
+                creator[flag] = bool(data[flag])
+        if isinstance(data.get("channels"), list):
+            _attach(raw, creator_id, _ids(data["channels"]))
+        config.save(raw)
+    return jsonify(ok=True)
+
+
+@app.post("/api/creators/<creator_id>/delete")
+def creator_delete(creator_id: str):
+    with config.LOCK:
+        raw = config.load_raw()
+        raw["creators"] = [c for c in raw["creators"] if c["id"] != creator_id]
+        for ch in raw["channels"]:
+            ch["creators"] = [c for c in ch.get("creators") or [] if c != creator_id]
+        config.save(raw)
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        state.watch_delete(creator_id)
+    finally:
+        state.close()
+    return jsonify(ok=True)
+
+
+@app.post("/api/watch/check")
+def watch_check():
+    autopilot.check_now()
+    return jsonify(ok=True)
+
+
+@app.post("/api/notifications/read")
+def notifications_read():
+    state = open_state(config.load(allow_empty=True)["settings"])
+    try:
+        state.mark_read()
+    finally:
+        state.close()
+    return jsonify(ok=True)
+
+
+@app.post("/api/autopilot")
+def autopilot_switch():
+    with config.LOCK:
+        raw = config.load_raw()
+        raw["settings"]["autopilot"] = bool(body().get("on"))
+        config.save(raw)
+    return jsonify(ok=True, on=raw["settings"]["autopilot"])
 
 
 # ---------------------------------------------------------------- Kanalsuche
@@ -515,7 +728,9 @@ def explainer_trends():
     from clipbot import ai
     from clipbot.explainer import trends
     s = config.load(allow_empty=True)["settings"]
-    query = str(body().get("query") or "").strip()
+    data = body()
+    query = str(data.get("query") or "").strip()
+    language = lang.get(data.get("language"), "de")["prompt"]
     queries = [query] if query else _split(s["explainer_queries"])
     found = trends.find_trending(queries, per_query=20 if query else 12)
     ideas, note = [], ""
@@ -523,7 +738,7 @@ def explainer_trends():
         note = "Fuer eigene Themenideen waehle unter Einstellungen eine KI."
     else:
         try:
-            ideas = trends.ideas(s, found, _split(s["explainer_themes"]))
+            ideas = trends.ideas(s, found, _split(s["explainer_themes"]), language=language)
         except ai.AIError as exc:
             note = f"Keine Ideen von der KI: {exc}"
     return jsonify(ok=True, trending=found, ideas=ideas, note=note)
@@ -572,31 +787,36 @@ def quit_app():
 
 
 # ---------------------------------------------------------------- Konten verbinden
+def _account_for(platform: str) -> tuple[dict, dict]:
+    cfg = config.load(allow_empty=True)
+    account = find_account(cfg, str(body().get("account")))
+    if account["platform"] != platform:
+        raise ApiError(f"Das Konto '{account['label']}' ist kein {platform}-Konto.")
+    return cfg, account
+
+
 @app.post("/api/connect/youtube")
 def connect_youtube():
-    cfg = config.load(allow_empty=True)
-    channel = find_channel(cfg, str(body().get("channel")))
-    target = channel["upload"].get("youtube") or {}
-    if not target:
-        raise ApiError("YouTube ist fuer diesen Kanal nicht eingerichtet.")
+    _, account = _account_for("youtube")
     secrets_file = config.youtube_secrets_file()
     if not secrets_file.exists():
         raise ApiError(f"{secrets_file.name} fehlt im ClipBot-Ordner. Das ist die Zugangsdatei deiner eigenen "
                        "Google-App (Google Cloud Console, OAuth-Client vom Typ Desktop-App). "
                        "Die Schritte stehen in der README unter YouTube.")
+    label = account["label"]
 
     def work():
         from clipbot.uploaders import youtube
         try:
-            youtube.authorize(secrets_file, config.resolve(target["token_file"]))
-            log.info("[%s] YouTube-Konto verbunden", channel["name"])
+            youtube.authorize(secrets_file, config.resolve(account["token_file"]))
+            log.info("[%s] YouTube-Konto verbunden", label)
         except Exception as exc:
             if "timed out" in str(exc).lower():
                 log.error("[%s] YouTube-Anmeldung nicht abgeschlossen: 5 Minuten lang kam keine Zustimmung aus dem "
                           "Browser. Zeigt Google 'Zugriff blockiert', fehlt dein Konto als Testnutzer in der "
-                          "Google-App.", channel["name"])
+                          "Google-App.", label)
             else:
-                log.error("[%s] YouTube-Anmeldung fehlgeschlagen: %s", channel["name"], exc)
+                log.error("[%s] YouTube-Anmeldung fehlgeschlagen: %s", label, exc)
 
     threading.Thread(target=work, daemon=True).start()
     return jsonify(ok=True)
@@ -605,43 +825,38 @@ def connect_youtube():
 @app.post("/api/connect/tiktok/start")
 def connect_tiktok_start():
     from clipbot.uploaders import tiktok
-    channel = find_channel(config.load(allow_empty=True), str(body().get("channel")))
-    if "tiktok" not in channel["upload"]:
-        raise ApiError("TikTok ist fuer diesen Kanal nicht eingerichtet.")
+    _, account = _account_for("tiktok")
     if not all(os.environ.get(k) for k in ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")):
         raise ApiError("Die Zugangsdaten deiner TikTok-Entwickler-App fehlen. Kopiere .env.example nach .env und "
                        "trage TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET und TIKTOK_REDIRECT_URI ein. "
                        "Die Schritte stehen in der README unter TikTok.")
     url, state = tiktok.authorize_url(config.env("TIKTOK_CLIENT_KEY"), config.env("TIKTOK_REDIRECT_URI"))
-    tiktok_pending[channel["name"]] = state
+    tiktok_pending[account["id"]] = state
     return jsonify(url=url)
 
 
 @app.post("/api/connect/tiktok/finish")
 def connect_tiktok_finish():
     from clipbot.uploaders import tiktok
-    data = body()
-    channel = find_channel(config.load(allow_empty=True), str(data.get("channel")))
-    state = tiktok_pending.get(channel["name"])
+    _, account = _account_for("tiktok")
+    state = tiktok_pending.get(account["id"])
     if not state:
         raise ApiError("Starte die Anmeldung zuerst mit 'Verbinden'.")
     tiktok.finish_authorize(
         config.env("TIKTOK_CLIENT_KEY"), config.env("TIKTOK_CLIENT_SECRET"), config.env("TIKTOK_REDIRECT_URI"),
-        state, str(data.get("redirected") or ""), config.resolve(channel["upload"]["tiktok"]["token_file"]))
-    tiktok_pending.pop(channel["name"], None)
-    log.info("[%s] TikTok-Konto verbunden", channel["name"])
+        state, str(body().get("redirected") or ""), config.resolve(account["token_file"]))
+    tiktok_pending.pop(account["id"], None)
+    log.info("[%s] TikTok-Konto verbunden", account["label"])
     return jsonify(ok=True)
 
 
 @app.post("/api/connect/instagram")
 def connect_instagram():
     from clipbot.uploaders import instagram
-    cfg = config.load(allow_empty=True)
-    channel = find_channel(cfg, str(body().get("channel")))
-    target = channel["upload"].get("instagram") or {}
-    if not target.get("ig_user_id") or not target.get("token_env"):
+    cfg, account = _account_for("instagram")
+    if not account.get("ig_user_id") or not account.get("token_env"):
         raise ApiError("Trage zuerst die Instagram-User-ID und den Namen der Token-Variable ein.")
-    username = instagram.whoami(str(target["ig_user_id"]), config.env(target["token_env"]),
+    username = instagram.whoami(str(account["ig_user_id"]), config.env(account["token_env"]),
                                 cfg["settings"]["instagram_api_version"])
     return jsonify(ok=True, username=username)
 
@@ -656,6 +871,7 @@ def main() -> int:
     print(f"\nClipBot-Dashboard laeuft: {url}\nDieses Fenster offen lassen. Beenden mit Strg+C.\n")
     if "--no-browser" not in sys.argv:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    autopilot.start()  # Watchlist und Zeitplan im Hintergrund
     app.run(host="127.0.0.1", port=PORT, threaded=True)
     return 0
 

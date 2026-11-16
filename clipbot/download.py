@@ -1,10 +1,10 @@
 """Neueste Videos eines Kanals finden und herunterladen (yt-dlp)."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-TABS = ("/videos", "/streams", "/shorts", "/live", "/featured", "/playlists")
+from clipbot import sources
+
 MIN_SECONDS = 150  # kuerzere Videos (z. B. Shorts, Trailer) lohnen sich nicht zum Clippen
 
 
@@ -12,39 +12,9 @@ class Skipped(Exception):
     """Das Video wird bewusst nicht verarbeitet; der Text nennt den Grund."""
 
 
-def _channel_videos_url(url: str) -> str:
-    """Kanal-URL ohne Tab -> /videos anhaengen, damit die neuesten Uploads zuerst kommen."""
-    url = url.rstrip("/")
-    is_channel = re.search(r"youtube\.com/(@|channel/|c/|user/)", url)
-    if is_channel and not url.endswith(TABS):
-        url += "/videos"
-    return url
-
-
 def list_latest(source_url: str, limit: int) -> list[dict]:
-    import yt_dlp
-
-    opts = {"quiet": True, "no_warnings": True, "extract_flat": "in_playlist",
-            "playlistend": limit, "skip_download": True}
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(_channel_videos_url(source_url), download=False)
-    flat: list[dict] = []
-    for entry in info.get("entries") or []:
-        if not entry:
-            continue
-        if entry.get("entries"):  # verschachtelte Tabs
-            flat.extend(e for e in entry["entries"] if e)
-        else:
-            flat.append(entry)
-    videos = []
-    for e in flat[:limit]:
-        if e.get("id"):
-            videos.append({
-                "id": e["id"],
-                "title": e.get("title") or e["id"],
-                "url": e.get("url") or f"https://www.youtube.com/watch?v={e['id']}",
-            })
-    return videos
+    """Die neuesten Videos eines Kanals (YouTube, Twitch-Aufzeichnungen, ...), neueste zuerst."""
+    return sources.list_latest(source_url, limit)
 
 
 def download(video: dict, out_dir: Path, max_height: int, max_minutes: int) -> tuple[Path, dict]:
@@ -81,5 +51,6 @@ def download(video: dict, out_dir: Path, max_height: int, max_minutes: int) -> t
         "id": info["id"],
         "title": info.get("title") or video["title"],
         "duration": float(duration),
+        "uploader": info.get("channel") or info.get("uploader") or "",
         "heatmap": info.get("heatmap") or [],  # "Most replayed"-Daten, falls vorhanden
     }

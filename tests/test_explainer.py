@@ -176,7 +176,7 @@ def test_create_needs_ai(tmp_path):
 def test_explainer_channel_needs_no_source():
     raw = {"settings": dict(config.DEFAULTS), "channels": [{"name": "wissen", "kind": "explainer"}]}
     config.validate(raw)
-    raw["channels"][0]["kind"] = "clips"
+    raw["channels"][0].update(kind="clips", creators=["gibt-es-nicht"])
     with pytest.raises(config.ConfigError):
         config.validate(raw)
 
@@ -189,7 +189,7 @@ def test_make_clips_skips_explainer_channel(tmp_path):
 @pytest.fixture
 def dashboard(tmp_path, monkeypatch):
     import app
-    cfg = {"settings": s(tmp_path), "channels": [CHANNEL]}
+    cfg = {"settings": s(tmp_path), "accounts": [], "creators": [], "channels": [CHANNEL]}
     monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
     client = app.app.test_client()
     return lambda url, payload: client.post(url, json=payload, headers={"X-ClipBot": "1", "Host": "127.0.0.1:8765"}), app
@@ -242,7 +242,7 @@ def test_render_startet_hyperframes_mit_vollem_pfad(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- ohne Kanal
 def test_create_endpoint_works_without_channel(tmp_path, monkeypatch, fake_ai):
     import app
-    cfg = {"settings": s(tmp_path), "channels": []}
+    cfg = {"settings": s(tmp_path), "accounts": [], "creators": [], "channels": []}
     monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
     jobs = []
     monkeypatch.setattr(app, "start_job", lambda label, fn: jobs.append(fn) or True)
@@ -253,12 +253,12 @@ def test_create_endpoint_works_without_channel(tmp_path, monkeypatch, fake_ai):
                     headers={"X-ClipBot": "1", "Host": "127.0.0.1:8765"})
     assert r.status_code == 200
     jobs[0]()
-    assert used[0]["name"] == pipeline.LOCAL_NAME and used[0]["upload"] == {}
+    assert used[0]["name"] == pipeline.LOCAL_NAME and used[0]["accounts"] == []
 
 
 def test_local_clip_cannot_be_uploaded(tmp_path, monkeypatch):
     import app
-    cfg = {"settings": s(tmp_path), "channels": []}
+    cfg = {"settings": s(tmp_path), "accounts": [], "creators": [], "channels": []}
     monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
     state = app.open_state(cfg["settings"])
     state.add_clip("exp-1", "exp-1", pipeline.LOCAL_NAME, tmp_path / "x.mp4", "T", "C", 0, 70,
@@ -266,7 +266,7 @@ def test_local_clip_cannot_be_uploaded(tmp_path, monkeypatch):
     state.close()
     client = app.app.test_client()
     h = {"X-ClipBot": "1", "Host": "127.0.0.1:8765"}
-    r = client.post("/api/clips/exp-1/upload", json={"platform": "youtube"}, headers=h)
+    r = client.post("/api/clips/exp-1/upload", json={"account": "yt_main"}, headers=h)
     assert r.status_code == 400 and "ohne Kanal" in r.get_json()["error"]
     st = client.get("/api/state", headers=h).get_json()
     assert st["local_channel"] == pipeline.LOCAL_NAME

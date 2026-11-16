@@ -39,6 +39,18 @@ LABELS = {
     "dickdarm": "Dickdarm", "ausgang": "Ausgang", "luftroehre": "Luftröhre", "lunge": "Lunge", "herz": "Herz",
     "gehirn": "Gehirn", "leber": "Leber", "nieren": "Nieren",
 }
+# Beschriftungen fuer Videos in anderen Sprachen (scene["lang"]); ohne Angabe Deutsch
+LABEL_SETS = {
+    "en": {"aussen": "Outside", "mund": "Mouth", "speiseroehre": "Esophagus", "magen": "Stomach",
+           "duenndarm": "Small intestine", "dickdarm": "Large intestine", "ausgang": "Exit", "luftroehre": "Windpipe",
+           "lunge": "Lungs", "herz": "Heart", "gehirn": "Brain", "leber": "Liver", "nieren": "Kidneys"},
+    "fr": {"aussen": "Extérieur", "mund": "Bouche", "speiseroehre": "Œsophage", "magen": "Estomac",
+           "duenndarm": "Intestin grêle", "dickdarm": "Gros intestin", "ausgang": "Sortie", "luftroehre": "Trachée",
+           "lunge": "Poumons", "herz": "Cœur", "gehirn": "Cerveau", "leber": "Foie", "nieren": "Reins"},
+    "pl": {"aussen": "Na zewnątrz", "mund": "Usta", "speiseroehre": "Przełyk", "magen": "Żołądek",
+           "duenndarm": "Jelito cienkie", "dickdarm": "Jelito grube", "ausgang": "Wyjście", "luftroehre": "Tchawica",
+           "lunge": "Płuca", "herz": "Serce", "gehirn": "Mózg", "leber": "Wątroba", "nieren": "Nerki"},
+}
 
 FIG_W, FIG_H = 600, 700
 FIG_LEFT, FIG_TOP = 240, 400  # Lage der Figur in der 1080x1920-Szene
@@ -171,8 +183,9 @@ def figure(sid: str, scene: dict, duration: float, start: float) -> tuple[str, l
     parts.append(f'<div id="{p}-ring" class="ring" style="transform: translate({tx}px, {ty}px)"></div>')
     anims.append(f'tl.fromTo("#{p}-ring", {{x: {tx}, y: {ty}, scale: 0.3, opacity: 0}}, '
                  f'{{x: {tx}, y: {ty}, scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)"}}, {_f(t)});')
-    lx = tx + 90 if tx < 330 else tx - 90 - 30 * len(LABELS[organ])
-    parts.append(f'<div id="{p}-lab" class="label">{html.escape(LABELS[organ])}</div>')
+    label = LABEL_SETS.get(scene.get("lang"), LABELS)[organ]
+    lx = tx + 90 if tx < 330 else tx - 90 - 30 * len(label)
+    parts.append(f'<div id="{p}-lab" class="label">{html.escape(label)}</div>')
     anims.append(f'tl.fromTo("#{p}-lab", {{x: {lx}, y: {ty - 34}, opacity: 0, scale: 0.7}}, '
                  f'{{x: {lx}, y: {ty - 34}, opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}}, {_f(t + 0.15)});')
     zoom_start = t + 0.2

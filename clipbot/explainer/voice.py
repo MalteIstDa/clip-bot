@@ -72,7 +72,8 @@ def _duration(path: Path) -> float:
         raise VoiceError(f"Tonspur unlesbar: {path}") from exc
 
 
-def elevenlabs(text: str, out: Path, voice_id: str, model_id: str) -> tuple[list[float], list[float]]:
+def elevenlabs(text: str, out: Path, voice_id: str, model_id: str,
+               language_code: str = "de") -> tuple[list[float], list[float]]:
     import requests
     key = os.environ.get("ELEVENLABS_API_KEY")
     if not key:
@@ -82,7 +83,7 @@ def elevenlabs(text: str, out: Path, voice_id: str, model_id: str) -> tuple[list
             f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps",
             params={"output_format": "mp3_44100_128"},
             headers={"xi-api-key": key, "Content-Type": "application/json"},
-            json={"text": text, "model_id": model_id, "language_code": "de"},
+            json={"text": text, "model_id": model_id, **({"language_code": language_code} if language_code else {})},
             timeout=180,
         )
     except requests.RequestException as exc:
@@ -121,13 +122,14 @@ def silent(text: str, out: Path, seconds_per_word: float = 0.36) -> tuple[list[f
     return starts, ends
 
 
-def speak(settings: dict, scenes: list[dict], out_dir: Path) -> dict:
+def speak(settings: dict, scenes: list[dict], out_dir: Path, language_code: str = "de") -> dict:
     """Erzeugt assets/voice.mp3. Gibt {"audio", "duration", "words", "scenes": [(start, end)]} zurueck."""
     out_dir.mkdir(parents=True, exist_ok=True)
     audio = out_dir / "voice.mp3"
     text, ranges = full_text(scenes)
     if settings["voice_backend"] == "elevenlabs":
-        starts, ends = elevenlabs(text, audio, settings["elevenlabs_voice_id"], settings["elevenlabs_model"])
+        starts, ends = elevenlabs(text, audio, settings["elevenlabs_voice_id"], settings["elevenlabs_model"],
+                                  language_code)
     else:
         starts, ends = silent(text, audio)
     words = words_from_alignment(text, starts, ends)

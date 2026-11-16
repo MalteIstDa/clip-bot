@@ -6,7 +6,7 @@ import logging
 import re
 import time
 
-from clipbot import ai
+from clipbot import ai, lang
 from clipbot.explainer import compose, script as scripting, voice
 from clipbot.state import State
 
@@ -18,7 +18,8 @@ LOCAL_NAME = "ohne-kanal"
 
 
 def local_channel() -> dict:
-    return {"name": LOCAL_NAME, "kind": "explainer", "credit": "", "upload": {}, "local": True}
+    return {"name": LOCAL_NAME, "kind": "explainer", "credit": "", "accounts": [], "creators": [],
+            "language": "de", "local": True}
 
 
 def slug(text: str) -> str:
@@ -51,17 +52,20 @@ def create(settings: dict, channel: dict, state: State, topic: str, hook: str = 
     project = settings["work_dir"] / name / "projects" / f"{video_id}-{slug(topic)}"
 
     log.info("[%s] Erklaervideo: Skript zu '%s' ...", name, topic)
-    sc = scripting.write(settings, topic, hook)
+    language = lang.of_channel(channel)
+    sc = scripting.write(settings, topic, hook, language)
     log.info("[%s] Faktencheck ...", name)
     check = scripting.fact_check(settings, sc)
     if check["verdict"] == "falsch":
         log.info("[%s] Faktencheck fand Fehler, Skript wird korrigiert ...", name)
-        sc = scripting.revise(settings, sc, check)
+        sc = scripting.revise(settings, sc, check, language)
         check = scripting.fact_check(settings, sc)
     log.info("[%s] %s (%d Woerter)", name, check["summary"], scripting.word_count(sc))
+    for scene in sc["scenes"]:
+        scene["lang"] = language["code"]  # Beschriftungen der Zeichnungen in der Sprache des Videos
 
     log.info("[%s] Stimme (%s) ...", name, settings["voice_backend"])
-    spoken = voice.speak(settings, sc["scenes"], project / "assets")
+    spoken = voice.speak(settings, sc["scenes"], project / "assets", language["code"])
     log.info("[%s] Animation bauen und mit hyperframes rendern (%.0f s Video, das dauert einige Minuten) ...",
              name, spoken["duration"])
     compose.build_project(project, sc, spoken)
@@ -79,8 +83,8 @@ def create(settings: dict, channel: dict, state: State, topic: str, hook: str = 
     state.mark_video(video_id, name, sc["title"], "done")
     state.add_clip(video_id, video_id, name, out, texts["youtube"]["title"], texts["tiktok"]["caption"],
                    0, spoken["duration"], texts, sc["scenes"][0]["headline"], reason,
-                   "wartet" if settings["require_approval"] else "freigegeben", transcript)
+                   "wartet" if settings["require_approval"] else "freigegeben", transcript, kind="explainer")
     log.info("[%s] Erklaervideo fertig: %s (wartet unter 'Freigabe')", name, sc["title"])
-    if not channel.get("upload"):
+    if not channel.get("accounts"):
         log.info("[%s] Kein Konto hinterlegt, das Video wird nicht hochgeladen. Gespeichert unter: %s", name, out)
     return video_id
