@@ -1,6 +1,6 @@
 # ClipBot
 
-ClipBot holt die neuesten Videos deiner Quellkanäle, findet die spannendsten Stellen, schneidet daraus 60–120 Sekunden lange Clips im Hochformat mit Untertiteln und lädt sie auf YouTube, TikTok und Instagram hoch.
+ClipBot behält deine Lieblings-YouTuber und -Streamer im Blick, erinnert dich, wenn jemand live geht oder ein Video hochlädt, schneidet aus neuen Videos und Streams automatisch Clips im Hochformat mit Untertiteln, baut daraus tägliche oder wöchentliche Best-ofs und lädt alles zu festen Uhrzeiten auf deine YouTube- und TikTok-Konten (auf Wunsch auch Instagram).
 
 ## Dashboard
 
@@ -10,20 +10,93 @@ ClipBot holt die neuesten Videos deiner Quellkanäle, findet die spannendsten St
 
 Alternativ öffnet `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) das Dashboard im Browser unter `http://127.0.0.1:8765`. Es läuft nur auf deinem PC und ist von außen nicht erreichbar. Das Programmfenster muss dabei offen bleiben.
 
-- **Übersicht:** Läufe starten (nur Clips erzeugen, offene Clips hochladen oder beides), ein einzelnes Video per Adresse clippen, Protokoll mitlesen.
-- **Clips:** alle Clips nach Quellvideo sortiert. Ein Klick öffnet den Clip zum Ansehen, Titel und Beschreibung ändern, einzeln je Plattform hochladen oder löschen.
-- **Kanäle:** Kanäle auf YouTube suchen (nach Name oder nach den meistgesehenen Videos der letzten 7 Tage zu einem Thema), mit einem Klick als Quellkanal anlegen, bearbeiten und Upload-Konten verbinden.
-- **Einstellungen:** Clip-Länge, Bildaufbau, Untertitel, Spracherkennung und Upload-Regeln.
+- **Übersicht:** Automatik ein- und ausschalten, sehen, was als Nächstes ansteht, Neuigkeiten und Protokoll mitlesen, Läufe von Hand starten.
+- **Freigabe:** neue Clips, Best-ofs und Erklärvideos prüfen, Texte ändern, freigeben oder verwerfen.
+- **Clips:** alle Videos nach Quelle sortiert, mit dem Upload-Stand je Konto.
+- **Erklärvideos:** eigene animierte Videos aus einem Thema bauen.
+- **Watchlist:** YouTuber und Streamer hinzufügen (auch viele auf einmal), Reminder und Auto-Clip je Creator schalten.
+- **Konten:** Upload-Konten anlegen, verbinden und ihnen Upload-Zeiten geben.
+- **Kanäle:** Creator mit Konten verknüpfen, Sprache und Best-of festlegen.
+- **Einstellungen:** Automatik und Zeitplan, Creator-Tag, Best-of, Benachrichtigungen, Clip-Länge, Bild, Untertitel und KI.
 
-Für Läufe ohne Oberfläche (z. B. über die Windows-Aufgabenplanung alle 6 Stunden) gibt es `auto.bat`. Solange in den Einstellungen „Zeitgesteuerte Läufe über auto.bat laden nichts hoch“ aktiv ist, erzeugt `auto.bat` nur Clips.
+Das Dashboard ist dunkel gestaltet, mit einem animierten Sternenhimmel samt Galaxie. Bremst das einen älteren Rechner, schaltest du die Bewegung unten links mit „Sterne anhalten“ ab.
+
+## So hängt alles zusammen
+
+- Ein **Creator** ist ein YouTuber oder Streamer auf deiner Watchlist.
+- Ein **Konto** ist einer deiner Accounts auf YouTube oder TikTok, auf den hochgeladen wird.
+- Ein **Kanal** verknüpft beides: aus welchen Creatorn Videos entstehen, in welcher Sprache die Texte sind und auf welche Konten sie gehen. Ein Kanal kann beliebig viele Creator und Konten haben, und ein Creator oder Konto kann zu mehreren Kanälen gehören.
+
+Beispiel: Der Kanal `streamer_de` clippt Gtasty und Papaplatte auf Deutsch und lädt auf ein YouTube- und ein TikTok-Konto hoch. Der Kanal `streams_us` clippt drei amerikanische Streamer auf Englisch und verteilt die Clips abwechselnd auf zwei TikTok-Konten.
+
+Eine `config.yaml` aus einer älteren Version wird beim Start automatisch umgestellt: Aus jedem alten Kanal werden ein Creator, die Konten und ein Kanal. Beim ersten Speichern legt ClipBot die Sicherung `config.yaml.vor-konten.bak` an.
+
+## Watchlist und Reminder
+
+Unter **Watchlist** trägst du Adressen ein, eine je Zeile, zum Beispiel `https://www.youtube.com/@Gtasty` oder `https://www.twitch.tv/papaplatte`. Ein YouTube-Name wie `@N3on` genügt auch. Über die Suche rechts findest du Kanäle auf YouTube.
+
+ClipBot prüft die Liste alle 5 Minuten (einstellbar) und meldet sich,
+
+- wenn jemand **live geht**,
+- wenn jemand ein **Video hochlädt**,
+- wenn die **Aufzeichnung eines Streams** fertig ist.
+
+Die Reminder erscheinen im Dashboard (Glocke oben rechts und „Neuigkeiten“), als Mitteilung des Betriebssystems und auf Wunsch auf dem Handy:
+
+- **Handy (ntfy):** die kostenlose App „ntfy“ installieren, ein Thema mit einem schwer zu erratenden Namen abonnieren (z. B. `clipbot-max-7f3k`) und denselben Namen unter Einstellungen → Benachrichtigungen eintragen. Wer den Namen kennt, kann mitlesen, deshalb keinen einfachen Namen nehmen.
+- **Discord:** im gewünschten Discord-Kanal einen Webhook anlegen und die Adresse in `.env` als `DISCORD_WEBHOOK_URL=...` eintragen.
+
+Reminder kommen nur, solange ClipBot läuft. Beim ersten Durchgang merkt sich ClipBot, was es schon gibt; gemeldet wird erst Neues. Geclippt wird von YouTube und Twitch. Bei Kick und anderen Seiten gibt es nur den Live-Reminder. Videos unter 150 Sekunden (Shorts) werden übersprungen.
+
+## Automatik
+
+Die Automatik schaltest du oben rechts oder unter „Übersicht“ ein. Dann erledigt ClipBot der Reihe nach, was fällig ist:
+
+1. **Hochladen nach Zeitplan:** je Konto und Uhrzeit ein freigegebenes Video (siehe unten).
+2. **Automatisch clippen:** neue Videos und fertige Stream-Aufzeichnungen aller Creator mit „Auto-Clip“, für jeden Kanal, zu dem der Creator gehört. Bei Livestreams wartet ClipBot, bis die Aufzeichnung verfügbar ist.
+3. **Best-ofs bauen:** täglich oder wöchentlich für die Kanäle, bei denen das eingestellt ist.
+
+Es läuft immer nur eine Aufgabe gleichzeitig. War die Automatik länger aus, clippt sie nichts nach, was schon mehr als drei Tage wartet. Neue Videos warten weiterhin unter **Freigabe**, bis du sie freigibst (abschaltbar unter Einstellungen → Automatik und Zeitplan). Solange dort der **Probemodus** an ist, clippt die Automatik, lädt aber nichts hoch. Der Rechner muss an sein und ClipBot laufen.
+
+### Upload-Zeiten
+
+Unter Einstellungen → Automatik und Zeitplan trägst du die Uhrzeiten ein, z. B. `12:00, 17:30, 20:00`. Zu jeder Uhrzeit lädt jedes Konto **ein** freigegebenes Video hoch, das älteste zuerst. Einzelne Konten können unter „Konten“ eigene Zeiten bekommen. War der Rechner zur Uhrzeit aus, holt ClipBot den Upload bis zu 60 Minuten später nach (einstellbar). „Freigeben und sofort hochladen“ und „Offene Clips hochladen“ laden unabhängig vom Zeitplan sofort hoch.
+
+### Mehrere Konten
+
+Lege unter **Konten** jeden deiner Accounts einmal an, verbinde ihn und ordne ihn einem oder mehreren Kanälen zu. Hat ein Kanal mehrere Konten derselben Plattform, wählst du beim Kanal:
+
+- **Jedes Konto bekommt jeden Clip**, oder
+- **Clips abwechselnd verteilen:** jeder Clip geht nur auf eines der Konten, damit nicht überall dasselbe steht.
+
+Eine Google-App und eine TikTok-App reichen für alle deine Konten. Beim Verbinden meldest du dich jeweils mit dem passenden Account an.
+
+## Creator-Tag oben im Video
+
+Oben im Clip steht eine Zeile, die den Creator nennt, z. B. „Gtastys unglaublicher Stunt“. Mit KI schreibt ClipBot eine passende Zeile mit dem Namen; ohne KI steht dort der Name des Creators. Den Namen änderst du in der Watchlist über „Bearbeiten“. Unter Einstellungen → Creator-Tag legst du fest, wie lange die Zeile stehen bleibt (0 = der ganze Clip), oder schaltest sie ab.
+
+## Best-ofs
+
+Beim Clippen merkt sich ClipBot aus jedem Video die stärksten kurzen Momente (je 8 bis 22 Sekunden). Ist bei einem Kanal „Best-of“ auf täglich oder wöchentlich gestellt, setzt ClipBot daraus ein Video von 1 bis 2 Minuten zusammen: Momente verschiedener Creator hintereinander, über jedem steht der Name. Der stärkste Moment kommt zuerst. Mit KI wählt und betitelt die KI die Momente, ohne KI zählen Lautstärke und „Most replayed“.
+
+Das Best-of entsteht ab der eingestellten Uhrzeit (Standard 18:00, wöchentlich am Sonntag) und wartet dann unter **Freigabe**. Mit „Best-of bauen“ unter „Übersicht“ oder beim Kanal startest du es sofort. Jeder Moment wird je Kanal nur einmal verwendet. Ein Kanal kann auch nur Best-ofs erzeugen: dann beim Kanal „Einzelne Clips aus jedem Video erzeugen“ abwählen.
+
+## Sprachen
+
+Jeder Kanal hat eine Sprache: Deutsch, Englisch (US), Französisch oder Polnisch. In dieser Sprache entstehen Titel, Captions, Hashtags, der Creator-Tag, die Credit-Zeile und die Texte der Best-ofs, bei Erklärvideo-Kanälen auch Skript und Stimme. Die Untertitel folgen dem, was im Video gesprochen wird; lass dafür unter Einstellungen → Spracherkennung die Sprache leer (automatisch), wenn du Creator in mehreren Sprachen clippst. Das Dashboard selbst bleibt deutsch.
+
+Für Läufe ohne Oberfläche gibt es weiterhin `auto.bat` (siehe „Ohne Dashboard“). Mit der Automatik im Dashboard brauchst du das nicht mehr.
 
 ## Einmalige Einrichtung
 
 1. **Python 3.10+** und **ffmpeg** installieren (unter Windows erledigt das `ClipBot.bat` beim ersten Start, von Hand: `winget install Python.Python.3.12` und `winget install Gyan.FFmpeg`).
 2. `ClipBot.bat` (Windows) bzw. `ClipBot.app` (Mac) starten. Beim ersten Mal werden die Pakete installiert, danach öffnet sich das Dashboard.
-3. Unter „Kanäle“ den Quellkanal anlegen und unter „Übersicht“ auf „Clips erzeugen“ klicken. Dabei wird nichts hochgeladen.
-4. Clips unter „Clips“ ansehen, bei Bedarf die Einstellungen anpassen.
-5. Für Uploads die Entwickler-Apps einrichten (siehe unten) und die Konten unter „Kanäle“ verbinden. Für YouTube genügt die Datei `client_secret.json` im ClipBot-Ordner; für TikTok und Instagram `.env.example` → `.env` kopieren und die Zugangsdaten eintragen.
+3. Unter „Watchlist“ Creator hinzufügen und unter „Kanäle“ einen Kanal anlegen, der sie verknüpft.
+4. Unter „Übersicht“ auf „Clips erzeugen“ klicken. Dabei wird nichts hochgeladen. Die Clips unter „Freigabe“ ansehen und bei Bedarf die Einstellungen anpassen.
+5. Für Uploads die Entwickler-Apps einrichten (siehe unten), die Konten unter „Konten“ anlegen und verbinden und dem Kanal zuordnen.
+6. Upload-Zeiten eintragen, den Probemodus ausschalten und die Automatik einschalten.
+
+Zum Schritt 5: Für YouTube genügt die Datei `client_secret.json` im ClipBot-Ordner; für TikTok und Instagram `.env.example` → `.env` kopieren und die Zugangsdaten eintragen.
 
 Passwörter gehören **nicht** in die Konfiguration. Du meldest dich einmal im Browser direkt bei Google bzw. TikTok an; der Bot speichert nur die Zugriffstoken im Ordner `tokens/`.
 
@@ -31,27 +104,29 @@ Passwörter gehören **nicht** in die Konfiguration. Du meldest dich einmal im B
 
 - In der Google Cloud Console ein Projekt anlegen, „YouTube Data API v3“ aktivieren, OAuth-Client vom Typ „Desktop-App“ erstellen, JSON als `client_secret.json` in den Projektordner legen.
 - Solange die Google-App im Status „Test“ ist, dein eigenes Google-Konto im OAuth-Zustimmungsbildschirm als Testnutzer eintragen.
-- Im Dashboard unter „Kanäle“ auf „Verbinden“ klicken und im Browser mit dem passenden Kanal anmelden.
+- Im Dashboard unter „Konten“ ein YouTube-Konto hinzufügen, auf „Verbinden“ klicken und im Browser mit dem passenden Kanal anmelden. Für jedes weitere Konto genauso, die Google-App bleibt dieselbe.
 - **Wichtig:** Uploads aus ungeprüften API-Projekten sperrt YouTube auf „privat“. Öffentlich wird es erst nach dem Compliance-Audit des Projekts (Formular „YouTube API Services – Audit and Quota Extension“).
 
 ### TikTok
 
 - Auf developers.tiktok.com eine App anlegen, „Login Kit“ und „Content Posting API“ mit „Direct Post“ hinzufügen, Scope `video.publish` beantragen, Redirect-URI eintragen.
 - `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REDIRECT_URI` in `.env` eintragen.
-- Im Dashboard unter „Kanäle“ auf „Verbinden“ klicken, bei TikTok zustimmen und die Adresse der Zielseite einfügen.
+- Im Dashboard unter „Konten“ ein TikTok-Konto hinzufügen, auf „Verbinden“ klicken, bei TikTok mit dem passenden Account zustimmen und die Adresse der Zielseite einfügen.
 - **Wichtig:** Solange die App nicht von TikTok auditiert ist, landen alle Posts nur privat („Nur ich“), das Konto muss beim Posten auf privat stehen und es sind maximal 5 Konten pro 24 Stunden möglich.
 
 ### Instagram
 
 - Das Konto muss ein Business- oder Creator-Konto sein und mit einer Facebook-Seite verknüpft sein.
 - Auf developers.facebook.com eine App anlegen, Berechtigungen `instagram_basic` und `instagram_content_publish` hinzufügen, langlebigen Token erzeugen (60 Tage gültig, danach erneuern).
-- Token in `.env` eintragen, Instagram-User-ID und Namen der Token-Variable im Dashboard beim Kanal eintragen, dann „Token prüfen“.
+- Token in `.env` eintragen, Instagram-User-ID und Namen der Token-Variable im Dashboard beim Konto eintragen, dann „Token prüfen“.
 - Limit: 100 per API veröffentlichte Posts pro 24 Stunden und Konto.
 
 ## Wenn etwas nicht geht
 
 - **Windows blockiert `ClipBot.bat` (Smart App Control):** Rechtsklick auf die heruntergeladene ZIP-Datei → Eigenschaften → unten „Zulassen“ ankreuzen → OK, dann neu entpacken.
-- **Es entstehen keine Clips:** Das Protokoll unter „Übersicht“ nennt den Grund. Übersprungen werden Videos unter 150 Sekunden, Livestreams und Videos über der Höchstlänge aus den Einstellungen. Endet ein Lauf mit „Mit Fehlern beendet“, steht die Ursache in der roten Zeile darüber.
+- **Es entstehen keine Clips:** Das Protokoll unter „Übersicht“ nennt den Grund. Übersprungen werden Videos unter 150 Sekunden, laufende Livestreams (geclippt wird die Aufzeichnung) und Videos über der Höchstlänge aus den Einstellungen (Standard 300 Minuten).
+- **Die Automatik lädt nichts hoch:** Es müssen Upload-Zeiten eingetragen, der Probemodus aus, das Konto verbunden und ein Video freigegeben sein. Unter „Konten“ steht je Konto, wann der nächste Upload ansteht.
+- **Kein Reminder:** ClipBot muss laufen. In der Watchlist zeigt eine gelbe Zeile, wenn die letzte Prüfung eines Creators fehlgeschlagen ist. Endet ein Lauf mit „Mit Fehlern beendet“, steht die Ursache in der roten Zeile darüber.
 - **Clips erscheinen erst, wenn sie fertig gerendert sind.** Das dauert je nach PC einige Minuten pro Clip; beim ersten Lauf wird zusätzlich das Sprachmodell geladen.
 
 ## Ohne Dashboard
@@ -59,7 +134,7 @@ Passwörter gehören **nicht** in die Konfiguration. Du meldest dich einmal im B
 | Befehl | Wirkung |
 | --- | --- |
 | `auto.bat` | kompletter Lauf für alle Kanäle |
-| `auto.bat --channel n3on` | nur ein Kanal |
+| `auto.bat --channel streamer_de` | nur ein Kanal |
 | `auto.bat --dry-run` | Clips erzeugen, nichts hochladen |
 | `auto.bat --upload-only` | nur bereits fertige Clips hochladen |
 
@@ -82,27 +157,27 @@ Mit **KI testen** prüfst du nach dem Speichern, ob die Verbindung klappt.
 Ist unter „KI für Texte“ Claude oder Ollama gewählt, macht der Bot pro Video Folgendes:
 
 1. Er sucht mehr mögliche Stellen (Einstellung „so viele Stellen je Video bewerten“, Standard 6) und lässt die KI sie nach Viral-Potenzial bewerten. Die besten werden geschnitten. Den Grund schreibt er ins Protokoll.
-2. Die KI schreibt Titel, Captions und Hashtags **je Plattform** (YouTube, TikTok, Instagram). Die Caption enthält immer den Credit aus den Kanal-Einstellungen.
-3. In den ersten Sekunden steht oben eine Hook-Zeile im Bild (abschaltbar unter „Untertitel“).
+2. Die KI schreibt Titel, Captions und Hashtags **je Plattform** in der Sprache des Kanals. Die Caption enthält immer den Credit (den Namen des Creators).
+3. Oben im Bild steht eine Zeile, die neugierig macht und den Creator nennt (siehe „Creator-Tag oben im Video“).
 
 Änderst du Titel oder Beschreibung eines Clips im Dashboard, gilt deine Fassung für alle Plattformen.
 
 ## Freigabe vor dem Hochladen
 
-Neue Clips landen unter **Freigabe** im Dashboard. Dort siehst du Video, Hook-Zeile, die Begründung der KI und die Texte je Plattform (umschalten über YouTube / TikTok / Instagram) und kannst sie ändern.
+Neue Clips, Best-ofs und Erklärvideos landen unter **Freigabe** im Dashboard. Dort siehst du Video, die Zeile oben im Bild, die Begründung der KI und die Texte je Plattform (umschalten über die Plattformen, auf die der Kanal hochlädt) und kannst sie ändern.
 
-- **Freigeben:** Der Clip wird beim nächsten Upload-Lauf hochgeladen (Knopf „Offene Clips hochladen“ oder `auto.bat`).
-- **Freigeben und hochladen:** sofort hochladen.
+- **Freigeben:** Die Automatik lädt das Video zur nächsten Upload-Zeit hoch. Ohne Automatik geht es mit „Offene Clips hochladen“.
+- **Freigeben und sofort hochladen:** lädt gleich hoch, ohne auf die Upload-Zeit zu warten.
 - **Neu texten (KI):** Titel, Captions und Hashtags neu schreiben lassen.
 - **Verwerfen:** Der Clip bleibt unter „Clips“, wird aber nie hochgeladen.
 
-Willst du ohne Prüfung posten, setze `require_approval: false` in der `config.yaml`.
+Willst du ohne Prüfung posten, schalte unter Einstellungen → Automatik und Zeitplan „Neue Videos erst nach deiner Freigabe hochladen“ aus.
 
 ## Erklärvideos (KI, animiert)
 
-ClipBot kann eigene deutsche Erklärvideos bauen, z. B. „Was passiert, wenn du Plastik verschluckst?“.
+ClipBot kann eigene Erklärvideos bauen, z. B. „Was passiert, wenn du Plastik verschluckst?“. Die Sprache richtet sich nach dem Kanal (Deutsch, Englisch, Französisch oder Polnisch).
 
-1. Unter **Kanäle** einen Kanal mit der Art **„Eigene Erklärvideos“** anlegen (keine Quelladresse nötig) und die Konten verbinden.
+1. Unter **Kanäle** einen Kanal mit der Art **„Eigene Erklärvideos“** anlegen und ihm Konten zuordnen.
 2. Unter **Einstellungen** eine KI wählen (Claude oder Ollama) und bei „Erklärvideos“ die Stimme einstellen.
    - **ElevenLabs:** `ELEVENLABS_API_KEY` in `.env` eintragen (elevenlabs.io → Profil → API Keys). Die Voice-ID findest du in deiner Stimmen-Bibliothek.
    - **Stumm:** kostenlose Vorschau ohne Sprecher, um Aussehen und Ablauf zu prüfen.

@@ -3,109 +3,189 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>ClipBot</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23A68BFF'/><stop offset='1' stop-color='%23FF72C6'/></linearGradient></defs><rect width='100' height='100' rx='28' fill='url(%23g)'/><path d='M38 28v44a4 4 0 0 0 6 3.4l36-22a4 4 0 0 0 0-6.8l-36-22A4 4 0 0 0 38 28z' fill='white'/></svg>">
 <style>
 :root {
-  --bg: #F5F4FB; --surface: #FFFFFF; --ink: #17132B; --muted: #6B6785; --line: #E4E1F2;
-  --violet: #6C4DF6; --pink: #EC3F8C; --teal: #0CA79A; --amber: #E8930C; --blue: #2F7FF2;
-  --green: #15A765; --red: #E5394A;
-  --yt: #E5362D; --tt: #0FB3C4; --ig: #C4279B;
-  --frame: #0D0B18; --on-color: #FFFFFF;
-  --shadow: 0 1px 2px rgba(23, 19, 43, 0.05), 0 10px 28px -14px rgba(23, 19, 43, 0.22);
-  --font: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
-}
-:root[data-theme="dark"] {
-  --bg: #0F0D1A; --surface: #1A1730; --ink: #F1EFFB; --muted: #A49FC2; --line: #2D2950;
-  --violet: #8E76FF; --pink: #FF6BAA; --teal: #2DD4C4; --amber: #FFB84A; --blue: #6AA8FF;
-  --green: #3DD68C; --red: #FF6B78;
-  --yt: #FF5A52; --tt: #35D6E6; --ig: #F062C8;
-  --frame: #050409; --on-color: #100D20;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -16px rgba(0, 0, 0, 0.7);
+  --bg: #04030B; --ink: #F3F1FF; --muted: #ABA6D2; --faint: #7F7AA9;
+  --line: rgba(166, 152, 255, 0.17); --line-strong: rgba(186, 174, 255, 0.36);
+  --surface: rgba(16, 13, 40, 0.54); --surface-solid: #100D27; --raised: rgba(38, 33, 82, 0.55); --field: rgba(6, 5, 20, 0.62);
+  --violet: #A68BFF; --pink: #FF72C6; --cyan: #5FE4FF; --teal: #3FE7C6; --amber: #FFC766; --blue: #74ACFF;
+  --green: #52E5A1; --red: #FF6F81;
+  --yt: #FF5F57; --tt: #45E6F2; --ig: #F36BCB; --twitch: #B48CFF; --kick: #7CF36B; --other: #ABA6D2;
+  --frame: #020108; --on-color: #0A0720;
+  --shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass: blur(14px) saturate(160%);
+  --font: "Inter", "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", -apple-system, system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.45; font-size: 16px; }
+html { background: var(--bg); color-scheme: dark; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.45; font-size: 16px;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.02em; }
 h2 { font-size: 1.625rem; }
 h3 { font-size: 1.125rem; }
 p { margin: 0; }
-a { color: var(--violet); }
+a { color: var(--cyan); text-underline-offset: 3px; }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+::selection { background: rgba(166, 139, 255, 0.45); }
 .muted { color: var(--muted); }
 .num { font-variant-numeric: tabular-nums; }
+* { scrollbar-width: thin; scrollbar-color: rgba(166, 152, 255, 0.35) transparent; }
+
+/* Weltall: Nebel (CSS), Sterne und Galaxie (Canvas in Geraetepixeln, dadurch scharf) */
+.space { position: fixed; inset: 0; z-index: 0; pointer-events: none; background:
+  radial-gradient(1100px 760px at 84% -6%, rgba(126, 87, 255, 0.36), transparent 64%),
+  radial-gradient(900px 700px at 4% 106%, rgba(255, 82, 180, 0.20), transparent 62%),
+  radial-gradient(1000px 640px at 52% 58%, rgba(44, 112, 255, 0.11), transparent 66%),
+  radial-gradient(720px 520px at 16% 10%, rgba(40, 220, 255, 0.10), transparent 62%),
+  linear-gradient(156deg, transparent 36%, rgba(150, 130, 255, 0.07) 50%, transparent 64%),
+  linear-gradient(180deg, #080619 0%, #04030B 56%, #070420 100%); }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.vignette { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 52%, rgba(0, 0, 0, 0.5) 100%); }
 
 /* Aufbau: Seitenleiste + Inhalt */
-.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
-.side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 6px;
-  padding: 22px 14px 16px; background: var(--surface); border-right: 1px solid var(--line); }
-.brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 20px; }
-.brand .logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--violet), var(--pink)); color: #fff; }
-.brand h1 { font-size: 1.375rem; }
-.side nav { display: flex; flex-direction: column; gap: 4px; }
-.side nav button { --c: var(--violet); display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0;
-  border-radius: 12px; background: none; cursor: pointer; font-weight: 600; color: var(--muted); text-align: left; }
-.side nav button .ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
-  background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); flex: none; }
-.side nav button:hover { color: var(--ink); }
-.side nav button[aria-current="page"] { background: color-mix(in srgb, var(--c) 11%, transparent); color: var(--ink); }
-.side nav button[aria-current="page"] .ico { background: var(--c); color: var(--on-color); }
-.side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-.tally { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; font-size: 0.875rem;
-  background: color-mix(in srgb, var(--green) 12%, transparent); overflow-wrap: anywhere; }
-.tally .lamp { flex: none; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--green); }
-.tally.running { background: color-mix(in srgb, var(--pink) 14%, transparent); }
-.tally.running .lamp { background: var(--pink); animation: pulse 1.2s ease-in-out infinite; }
+.app { position: relative; z-index: 1; display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 6px; padding: 22px 14px 16px;
+  background: linear-gradient(180deg, rgba(16, 13, 40, 0.72), rgba(8, 6, 22, 0.78)); border-right: 1px solid var(--line);
+  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 20px; }
+.brand .logo { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--violet), var(--pink)); box-shadow: 0 0 26px -4px rgba(190, 120, 255, 0.85); }
+.brand h1 { font-size: 1.4rem; background: linear-gradient(90deg, #fff, #CFC3FF 55%, #FFB7E3); -webkit-background-clip: text;
+  background-clip: text; color: transparent; }
+.side nav { display: flex; flex-direction: column; gap: 3px; }
+.side nav button { --c: var(--violet); position: relative; display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid transparent;
+  border-radius: 13px; background: none; cursor: pointer; font-weight: 600; color: var(--muted); text-align: left;
+  transition: background 0.18s, color 0.18s, border-color 0.18s; }
+.side nav button .ico { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex: none;
+  background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); transition: box-shadow 0.18s, background 0.18s; }
+.side nav button:hover { color: var(--ink); background: rgba(255, 255, 255, 0.04); }
+.side nav button[aria-current="page"] { color: var(--ink); border-color: color-mix(in srgb, var(--c) 34%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 20%, transparent), color-mix(in srgb, var(--c) 4%, transparent)); }
+.side nav button[aria-current="page"] .ico { background: var(--c); color: var(--on-color); box-shadow: 0 0 18px -2px var(--c); }
+.side nav .badge { margin-left: auto; min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--c);
+  color: var(--on-color); font-size: 0.75rem; font-weight: 800; text-align: center; }
+.side .foot { margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.tally { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border-radius: 13px; font-size: 0.875rem;
+  background: color-mix(in srgb, var(--green) 10%, transparent); border: 1px solid color-mix(in srgb, var(--green) 26%, transparent); overflow-wrap: anywhere; }
+.tally .lamp { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+.tally.running { background: color-mix(in srgb, var(--pink) 12%, transparent); border-color: color-mix(in srgb, var(--pink) 32%, transparent); }
+.tally.running .lamp { background: var(--pink); box-shadow: 0 0 10px var(--pink); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
-@media (prefers-reduced-motion: reduce) { .tally.running .lamp { animation: none; } }
-main { padding: 30px 34px 60px; max-width: 1320px; width: 100%; }
+main { padding: 0 34px 70px; max-width: 1380px; width: 100%; }
 main > section[hidden] { display: none; }
-.pagehead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 22px; }
-.pagehead h2 { margin-right: auto; }
+main > section { animation: rise 0.28s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: var(--shadow); }
+/* Kopfzeile */
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; margin: 0 -34px 22px; padding: 16px 34px;
+  background: linear-gradient(180deg, rgba(6, 5, 18, 0.82), rgba(6, 5, 18, 0.5) 70%, transparent); }
+.topbar h2 { margin-right: auto; font-size: 1.75rem; }
+.pill { --c: var(--violet); display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  background: color-mix(in srgb, var(--c) 12%, rgba(10, 8, 28, 0.6)); color: var(--ink); font-weight: 650; font-size: 0.875rem; cursor: pointer; white-space: nowrap; }
+.pill:hover { border-color: var(--c); }
+.pill .lamp { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.pill.live { --c: var(--red); }
+.pill.live .lamp { animation: pulse 1.1s ease-in-out infinite; }
+.pill.off { --c: var(--faint); color: var(--muted); }
+.pill.off .lamp { box-shadow: none; }
+.bell { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: rgba(10, 8, 28, 0.6);
+  display: grid; place-items: center; cursor: pointer; color: var(--ink); }
+.bell:hover { border-color: var(--line-strong); }
+.bell b { position: absolute; top: -4px; right: -4px; min-width: 19px; padding: 1px 5px; border-radius: 999px; background: var(--pink); color: var(--on-color);
+  font-size: 0.6875rem; font-weight: 800; text-align: center; box-shadow: 0 0 12px var(--pink); }
+.pagehead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+.pagehead .lead { margin-right: auto; max-width: 78ch; color: var(--muted); }
+
+.panel { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px; box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
+.panel.glow::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--violet) 80%, transparent), transparent 38%, transparent 62%, color-mix(in srgb, var(--pink) 70%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 .stack > * + * { margin-top: 16px; }
+.stack.tight > * + * { margin-top: 10px; }
 
 /* Bedienelemente */
-.btn { --c: var(--ink); border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 16px;
-  cursor: pointer; font-weight: 650; }
-.btn:hover:not(:disabled) { border-color: var(--c); }
-.btn.fill { background: var(--c); border-color: var(--c); color: var(--on-color); }
-.btn.fill:hover:not(:disabled) { filter: brightness(1.08); }
+.btn { --c: var(--ink); border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 9px 16px;
+  cursor: pointer; font-weight: 650; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.08s; }
+.btn:hover:not(:disabled) { border-color: var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.fill { border-color: transparent; color: var(--on-color);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 82%, #fff), var(--c)); box-shadow: 0 8px 26px -12px var(--c); }
+.btn.fill:hover:not(:disabled) { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c)); box-shadow: 0 8px 30px -8px var(--c); }
 .btn.violet { --c: var(--violet); } .btn.teal { --c: var(--teal); } .btn.pink { --c: var(--pink); } .btn.blue { --c: var(--blue); }
-.btn.danger { --c: var(--red); color: var(--red); }
+.btn.cyan { --c: var(--cyan); } .btn.green { --c: var(--green); } .btn.amber { --c: var(--amber); }
+.btn.danger { --c: var(--red); color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .btn.small { padding: 6px 12px; font-size: 0.875rem; border-radius: 10px; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.row .push, .dlg footer .push { margin-left: auto; }
 label.field { display: block; }
 label.field > span { display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 5px; }
 input[type=text], input[type=url], input[type=search], input[type=number], select, textarea {
-  width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+  width: 100%; padding: 10px 12px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, box-shadow 0.15s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--violet); box-shadow: 0 0 0 3px rgba(166, 139, 255, 0.22); }
+input::placeholder, textarea::placeholder { color: var(--faint); }
+select option { background: var(--surface-solid); color: var(--ink); }
 textarea { resize: vertical; min-height: 110px; }
 label.check { display: flex; gap: 9px; align-items: flex-start; cursor: pointer; }
 label.check input { margin-top: 4px; accent-color: var(--violet); }
-.seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+.seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
 .seg button { border: 0; background: none; padding: 7px 13px; border-radius: 9px; cursor: pointer; font-weight: 600; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--teal); color: var(--on-color); }
+.switch { position: relative; width: 46px; height: 26px; flex: none; border-radius: 999px; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.06); cursor: pointer; padding: 0; transition: background 0.18s, border-color 0.18s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform 0.18s, background 0.18s; }
+.switch[aria-checked="true"] { background: color-mix(in srgb, var(--green) 30%, transparent); border-color: var(--green); box-shadow: 0 0 16px -4px var(--green); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--green); }
+.picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; max-height: 190px; overflow-y: auto; padding: 12px;
+  background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
+.picker:empty::after { content: attr(data-empty); color: var(--faint); }
+.chip { --c: var(--violet); display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 650;
+  background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 26%, transparent); white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: var(--c); box-shadow: 0 0 10px -1px var(--c); }
+.state-ok { color: var(--green); font-weight: 650; }
+.state-bad { color: var(--red); font-weight: 650; }
+.state-warn { color: var(--amber); font-weight: 650; }
 
 /* Uebersicht */
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
-.stat { --c: var(--violet); border-radius: 18px; padding: 16px 18px; background: color-mix(in srgb, var(--c) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); }
-.stat b { display: block; font-size: 2rem; line-height: 1.1; letter-spacing: -0.03em; color: var(--c); font-variant-numeric: tabular-nums; }
-.stat span { font-size: 0.9375rem; }
+.stat { --c: var(--violet); position: relative; overflow: hidden; border-radius: 20px; padding: 16px 18px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--c) 20%, rgba(14, 12, 36, 0.58)), rgba(14, 12, 36, 0.5));
+  border: 1px solid color-mix(in srgb, var(--c) 32%, transparent); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
+.stat::after { content: ""; position: absolute; right: -30px; top: -30px; width: 110px; height: 110px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%); }
+.stat b { display: block; font-size: 2.125rem; line-height: 1.1; letter-spacing: -0.03em; color: var(--c); font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 26px color-mix(in srgb, var(--c) 55%, transparent); }
+.stat span { font-size: 0.9375rem; color: var(--ink); }
 .overview { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
 .todo { list-style: none; margin: 0; padding: 0; }
 .todo li { padding: 9px 0 9px 22px; border-top: 1px solid var(--line); position: relative; }
-.todo li::before { content: ""; position: absolute; left: 2px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
-.log { height: 520px; overflow-y: auto; font-size: 0.875rem; background: var(--bg); border: 1px solid var(--line);
-  border-radius: 12px; padding: 10px 12px; }
-.log div { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 3px 0; overflow-wrap: anywhere; }
-.log time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.todo li::before { content: ""; position: absolute; left: 2px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 16px; margin: 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.log { height: 360px; overflow-y: auto; font-size: 0.8125rem; background: var(--field); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 12px; font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; }
+.log div { display: grid; grid-template-columns: 70px 1fr; gap: 8px; padding: 3px 0; overflow-wrap: anywhere; }
+.log time { color: var(--faint); font-variant-numeric: tabular-nums; }
 .log .ERROR span { color: var(--red); font-weight: 600; }
 .log .is-start span { color: var(--violet); font-weight: 600; }
 .log .is-done span { color: var(--green); font-weight: 600; }
+.feed { display: flex; flex-direction: column; }
+.note { --c: var(--violet); display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.note:first-child { border-top: 0; }
+.note .ico { grid-row: span 2; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+.note strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note small { grid-column: 2; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note time { grid-row: 1 / span 2; grid-column: 3; color: var(--faint); font-size: 0.8125rem; white-space: nowrap; }
+.note.unread strong::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 8px var(--pink); vertical-align: middle; }
+.note.live { --c: var(--red); } .note.video { --c: var(--cyan); } .note.clips { --c: var(--green); } .note.bestof { --c: var(--amber); }
+.note.upload { --c: var(--teal); } .note.error { --c: var(--red); }
 
 /* Clips nach Quellvideo */
 .source { margin-top: 24px; }
@@ -113,46 +193,45 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .source header h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source header span.count { flex: none; color: var(--muted); font-size: 0.875rem; }
 .tag { --c: var(--violet); flex: none; padding: 3px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 650;
-  background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+  background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); }
 .strip { display: flex; gap: 18px; overflow-x: auto; padding: 14px 3px 12px; }
 .clip { flex: none; width: 176px; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
-.clip .frame { display: block; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.clip .frame { position: relative; display: block; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s; }
 .clip .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.clip:hover .frame { outline: 3px solid var(--pink); outline-offset: 2px; }
+.clip:hover .frame { transform: translateY(-3px); border-color: var(--pink); box-shadow: 0 18px 44px -18px rgba(255, 114, 198, 0.7); }
+.clip .frame .kind { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 800;
+  background: var(--amber); color: var(--on-color); }
 .clip .title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   margin-top: 10px; font-weight: 650; font-size: 0.9375rem; line-height: 1.3; min-height: 2.6em; }
 .clip .tc { display: block; margin-top: 3px; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.lamps { display: flex; gap: 5px; margin-top: 8px; }
-.lamps i { --c: var(--muted); font-style: normal; font-weight: 700; font-size: 0.6875rem; line-height: 1; padding: 5px 7px;
-  border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); color: var(--c); }
+.lamps { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.lamps i { --c: var(--muted); font-style: normal; font-weight: 700; font-size: 0.6875rem; line-height: 1; padding: 5px 7px; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--c) 50%, transparent); color: var(--c); }
 .lamps i.yt { --c: var(--yt); } .lamps i.tt { --c: var(--tt); } .lamps i.ig { --c: var(--ig); }
 .lamps i.ok { background: var(--c); border-color: var(--c); color: var(--on-color); }
 .lamps i.bad { background: var(--red); border-color: var(--red); color: var(--on-color); }
-.lamps i.off { border-style: dashed; opacity: 0.4; }
-.empty { padding: 44px 0; max-width: 48ch; }
+.empty { padding: 44px 0; max-width: 56ch; }
 .empty h3 { margin-bottom: 8px; }
 
 /* Freigabe */
-.side nav .badge { margin-left: auto; min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--green);
-  color: var(--on-color); font-size: 0.75rem; font-weight: 700; text-align: center; }
 .review-card { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 22px; margin-bottom: 20px; }
-.review-card video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; display: block; }
-.review-card .hook { display: inline-block; padding: 4px 10px; border-radius: 8px; background: var(--ink); color: var(--bg);
-  font-weight: 700; font-size: 0.875rem; }
+.review-card video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; display: block; border: 1px solid var(--line); }
+.review-card .hook { display: inline-block; padding: 4px 10px; border-radius: 8px; background: #fff; color: #0A0720; font-weight: 800; font-size: 0.875rem; }
 .review-card .why { color: var(--muted); font-size: 0.9375rem; }
 .ptabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .ptabs button { --c: var(--muted); border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); background: none;
   border-radius: 999px; padding: 5px 12px; font-weight: 650; cursor: pointer; color: var(--c); }
-.ptabs button[aria-pressed="true"] { background: var(--c); color: var(--on-color); border-color: var(--c); }
+.ptabs button[aria-pressed="true"] { background: var(--c); color: var(--on-color); border-color: var(--c); box-shadow: 0 0 18px -6px var(--c); }
 .ptabs button.yt { --c: var(--yt); } .ptabs button.tt { --c: var(--tt); } .ptabs button.ig { --c: var(--ig); }
 .review-state { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
 .review-state.wartet { background: color-mix(in srgb, var(--amber) 22%, transparent); color: var(--amber); }
 .review-state.verworfen { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
-@media (max-width: 760px) { .review-card { grid-template-columns: 1fr; } .review-card video { max-width: 260px; } }
 
 /* Erklaervideos */
 .explain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; align-items: start; }
-.idea { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.idea { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--field); }
 .idea strong { font-size: 1rem; line-height: 1.3; }
 .idea .hook { color: var(--ink); font-style: italic; }
 .idea .btn { justify-self: start; margin-top: 4px; }
@@ -160,59 +239,98 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .trend a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .trend small { color: var(--muted); grid-column: 1; }
 .trend .num { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; color: var(--muted); }
-@media (max-width: 960px) { .explain { grid-template-columns: 1fr; } }
 
-/* Kanaele und Suche */
+/* Watchlist, Konten, Kanaele */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.card { --c: var(--violet); position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 18px; border: 1px solid var(--line);
+  background: var(--surface); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); box-shadow: var(--shadow); transition: border-color 0.16s; }
+.card:hover { border-color: var(--line-strong); }
+.card.is-live { border-color: color-mix(in srgb, var(--red) 60%, transparent); box-shadow: 0 0 34px -14px var(--red), var(--shadow); }
+.card .head { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; }
+.card .head strong { font-size: 1.0625rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .head small { grid-column: 2; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .head .avatar { grid-row: span 2; }
+.card .head .side-tag { grid-row: 1 / span 2; grid-column: 3; }
+.card .line { font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .line a { color: var(--ink); }
+.card .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 4px; }
+.avatar { --c: var(--violet); width: 46px; height: 46px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 78%, #fff), var(--c)); color: var(--on-color); font-weight: 800; font-size: 1.1875rem; }
+.avatar.small { width: 40px; height: 40px; font-size: 1.0625rem; }
+.livebadge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--red); color: #fff; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; box-shadow: 0 0 18px -2px var(--red); }
+.livebadge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse 1.1s ease-in-out infinite; }
+.toggle { --c: var(--green); display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-strong); background: none;
+  color: var(--muted); font-size: 0.8125rem; font-weight: 650; cursor: pointer; }
+.toggle[aria-pressed="true"] { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+.toggle::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+.toggle[aria-pressed="true"]::before { opacity: 1; box-shadow: 0 0 8px currentColor; }
 .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .result { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px;
-  border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
-.result .btn { grid-column: 2; justify-self: start; margin-top: 6px; }
+  border: 1px solid var(--line); border-radius: 14px; background: var(--field); }
+.result .btn, .result .state-ok { grid-column: 2; justify-self: start; margin-top: 6px; }
 .result strong, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result small { color: var(--muted); }
-.avatar { --c: var(--violet); width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
-  background: var(--c); color: var(--on-color); font-weight: 700; font-size: 1.25rem; grid-row: span 3; }
-.avatar.small { width: 40px; height: 40px; font-size: 1.0625rem; grid-row: auto; }
-.channel { margin-top: 16px; }
-.channel .head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
-.channel .head a { color: var(--muted); overflow-wrap: anywhere; }
-.channel .head .row { margin-left: auto; }
-.accounts { width: 100%; border-collapse: collapse; margin-top: 14px; }
-.accounts td { padding: 10px 0; border-top: 1px solid var(--line); vertical-align: middle; }
-.accounts td:first-child { width: 132px; font-weight: 650; }
-.accounts td:last-child { text-align: right; }
-.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: var(--c); }
-.state-ok { color: var(--green); font-weight: 650; }
-.state-bad { color: var(--red); font-weight: 650; }
+.result .avatar { width: 52px; height: 52px; grid-row: span 3; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-bottom: 20px; }
 
 /* Einstellungen */
-.settings fieldset { --c: var(--violet); border: 1px solid var(--line); border-radius: 18px; background: var(--surface);
-  margin: 0 0 16px; padding: 18px 22px 22px; box-shadow: var(--shadow); }
+.settings fieldset { --c: var(--violet); border: 1px solid var(--line); border-radius: 20px; background: var(--surface);
+  margin: 0 0 16px; padding: 18px 22px 22px; box-shadow: var(--shadow); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
 .settings legend { float: left; width: 100%; padding: 0; margin-bottom: 14px; font-weight: 700; font-size: 1.1875rem; letter-spacing: -0.02em; }
-.settings legend::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 4px; background: var(--c); margin-right: 10px; }
+.settings legend::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--c); margin-right: 10px; box-shadow: 0 0 12px var(--c); }
 .settings .grid { clear: both; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px 18px; align-items: end; }
 .settings .grid .check { padding-bottom: 10px; }
+.settings .hint { clear: both; margin-top: 12px; color: var(--muted); font-size: 0.9375rem; }
 
 /* Dialoge */
-dialog { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: var(--ink);
-  padding: 0; width: min(940px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.5); }
-dialog::backdrop { background: rgba(15, 13, 26, 0.62); }
-dialog.narrow { width: min(580px, calc(100vw - 32px)); }
+dialog { border: 1px solid var(--line-strong); border-radius: 24px; background: linear-gradient(180deg, #17133A, #0D0A24); color: var(--ink);
+  padding: 0; width: min(940px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 0 40px 120px -20px #000, 0 0 80px -30px rgba(166, 139, 255, 0.6); }
+dialog::backdrop { background: rgba(3, 2, 10, 0.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+dialog.narrow { width: min(620px, calc(100vw - 32px)); }
 .dlg { padding: 26px; }
 .editor { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; }
-.editor video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; }
+.editor video { width: 100%; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; border: 1px solid var(--line); }
 .platforms { width: 100%; border-collapse: collapse; }
 .platforms td { padding: 10px 0; border-top: 1px solid var(--line); vertical-align: middle; }
-.platforms td:first-child { width: 124px; font-weight: 650; }
+.platforms td:first-child { width: 170px; font-weight: 650; }
 .platforms td:last-child { text-align: right; width: 1%; white-space: nowrap; }
 .platforms small { display: block; color: var(--muted); overflow-wrap: anywhere; font-weight: 400; }
 .dlg footer { display: flex; gap: 10px; margin-top: 22px; }
-.dlg footer .push, .row .push { margin-left: auto; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
-#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
-  padding: 12px 18px; border-radius: 14px; max-width: min(560px, 90vw); display: none; z-index: 20; box-shadow: var(--shadow); }
-#toast.show { display: block; }
+/* Meldungen */
+#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #fff; color: #0A0720; font-weight: 600;
+  padding: 12px 18px; border-radius: 14px; max-width: min(560px, 90vw); display: none; z-index: 30; box-shadow: 0 20px 50px -20px #000; }
+#toast.show { display: block; animation: rise 0.2s ease-out; }
 #toast.error { background: var(--red); color: #fff; }
+#pops { position: fixed; right: 22px; top: 76px; z-index: 25; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 44px)); pointer-events: none; }
+.pop { --c: var(--violet); pointer-events: auto; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; padding: 13px 15px; border-radius: 16px;
+  background: linear-gradient(180deg, #1B1745, #110E2D); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 20px 50px -18px #000, 0 0 30px -12px var(--c);
+  animation: slide 0.3s ease-out; text-decoration: none; color: var(--ink); }
+.pop .ico { grid-row: span 2; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); }
+.pop small { grid-column: 2; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop.live { --c: var(--red); } .pop.video { --c: var(--cyan); } .pop.clips { --c: var(--green); } .pop.bestof { --c: var(--amber); } .pop.error { --c: var(--red); }
+@keyframes slide { from { opacity: 0; transform: translateX(24px); } }
 
+/* Feinschliff */
+a.note, a.pop { text-decoration: none; color: inherit; }
+a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
+.stack > .facts { margin-top: 16px; }
+.card .facts { font-size: 0.9375rem; gap: 5px 14px; }
+.card .foot .btn.small { padding: 6px 10px; font-size: 0.8125rem; }
+.card small { font-size: 0.8125rem; }
+.card .head small a, .card .line a { text-decoration-color: var(--line-strong); }
+.card .makes { color: var(--muted); font-size: 0.9375rem; }
+.picker small { font-size: 0.8125rem; }
+.timesnote { margin-bottom: 14px; color: var(--muted); text-shadow: 0 1px 8px var(--bg); }
+.pagehead .lead { text-shadow: 0 1px 10px var(--bg), 0 0 2px var(--bg); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media (max-width: 1080px) {
+  .overview, .explain, .split { grid-template-columns: 1fr; }
+}
 @media (max-width: 920px) {
   .app { grid-template-columns: 1fr; }
   .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 14px;
@@ -220,17 +338,24 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   .brand { padding: 0 8px 0 4px; }
   .side nav { flex-direction: row; overflow-x: auto; order: 3; width: 100%; }
   .side nav button { white-space: nowrap; }
-  .side .foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; }
+  .side .foot { margin: 0 0 0 auto; padding: 0; flex-direction: row; align-items: center; }
   .tally { padding: 8px 10px; max-width: 46vw; }
-  main { padding: 18px 16px 50px; }
+  main { padding: 0 16px 50px; }
+  .topbar { margin: 0 -16px 16px; padding: 12px 16px; flex-wrap: wrap; }
+  .topbar h2 { font-size: 1.375rem; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .overview, .editor { grid-template-columns: 1fr; }
-  .editor video { max-width: 240px; }
-  .log { height: 300px; }
+  .editor, .review-card, .two { grid-template-columns: 1fr; }
+  .editor video, .review-card video { max-width: 240px; }
+  .log { height: 280px; }
+  .cards { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
+<div class="space" aria-hidden="true"></div>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
 <div class="app">
 <aside class="side">
   <div class="brand">
@@ -242,62 +367,82 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     <button data-view="review" style="--c:var(--green)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Freigabe<span class="badge" id="reviewBadge" hidden></span></button>
     <button data-view="clips" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor"/></svg></span>Clips</button>
     <button data-view="explainer" style="--c:var(--blue)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>Erklärvideos</button>
-    <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.2-5.5 6.5-5.5s5.9 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></span>Kanäle</button>
-    <button data-view="settings" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
+    <button data-view="watchlist" style="--c:var(--cyan)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></span>Watchlist<span class="badge" id="liveBadge" style="--c:var(--red)" hidden></span></button>
+    <button data-view="accounts" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg></span>Konten</button>
+    <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="12" r="2.6"/><path d="M8.4 7.2l7.2 3.6M8.4 16.8l7.2-3.6"/></svg></span>Kanäle</button>
+    <button data-view="settings" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
   </nav>
   <div class="foot">
     <div class="tally" id="tally"><span class="lamp"></span><span id="tallyText">Bereit</span></div>
-    <button class="btn small" id="themeToggle">Dunkles Design</button>
+    <button class="btn small" id="skyToggle">Sterne anhalten</button>
     <button class="btn small danger" id="quitApp">ClipBot beenden</button>
   </div>
 </aside>
 
 <main>
+  <header class="topbar">
+    <h2 id="pageTitle">Übersicht</h2>
+    <button class="pill live" id="livePill" hidden><span class="lamp"></span><span id="livePillText"></span></button>
+    <button class="pill off" id="autoPill" title="Automatik ein- oder ausschalten"><span class="lamp"></span><span id="autoPillText">Automatik aus</span></button>
+    <button class="bell" id="bell" aria-label="Neuigkeiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0"/></svg><b id="bellCount" hidden></b></button>
+  </header>
+
   <section id="view-overview">
     <div class="stats" id="stats"></div>
     <div class="overview">
       <div class="stack">
+        <div class="panel glow stack">
+          <div class="row"><h3>Automatik</h3><button class="switch push" id="autoSwitch" role="switch" aria-checked="false" aria-label="Automatik"></button></div>
+          <p class="muted">Prüft die Watchlist, clippt neue Videos und beendete Streams, baut Best-ofs und lädt freigegebene Clips zu deinen Uhrzeiten hoch. Reminder kommen auch, wenn die Automatik aus ist.</p>
+          <dl class="facts" id="autoFacts"></dl>
+          <p class="state-warn" id="autoWarn" hidden></p>
+        </div>
         <div class="panel stack">
-          <h3>Lauf starten</h3>
+          <h3>Lauf von Hand starten</h3>
           <label class="field"><span>Kanal</span><select id="runChannel"></select></label>
           <div class="row">
             <button class="btn fill violet" data-run="make">Clips erzeugen</button>
             <button class="btn fill teal" data-run="upload">Offene Clips hochladen</button>
             <button class="btn fill pink" data-run="both">Erzeugen und hochladen</button>
+            <button class="btn amber" id="runBestof">Best-of bauen</button>
           </div>
-          <p class="muted">„Clips erzeugen“ lädt nichts hoch. Du kannst jeden Clip erst ansehen, den Text ändern und dann einzeln hochladen.</p>
+          <p class="muted">„Clips erzeugen“ lädt nichts hoch. „Offene Clips hochladen“ lädt sofort hoch, ohne auf die Upload-Zeiten zu warten.</p>
         </div>
         <div class="panel stack">
           <h3>Einzelnes Video clippen</h3>
           <label class="field"><span>Adresse des Videos</span><input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=…"></label>
           <div class="row"><button class="btn" id="runVideo">Dieses Video clippen</button>
-            <span class="muted">Wähle oben den Kanal, zu dem das Video gehört.</span></div>
+            <span class="muted">Wähle oben den Kanal, für den geclippt wird.</span></div>
         </div>
         <div class="panel stack" id="todoPanel" hidden>
           <h3>Noch einzurichten</h3>
           <ul class="todo" id="todo"></ul>
         </div>
       </div>
-      <div class="panel stack">
-        <h3>Protokoll</h3>
-        <div class="log" id="log" tabindex="0" aria-label="Protokoll"></div>
+      <div class="stack">
+        <div class="panel stack">
+          <div class="row"><h3>Neuigkeiten</h3><button class="btn small push" id="feedAll">Alle ansehen</button></div>
+          <div class="feed" id="feed"></div>
+        </div>
+        <div class="panel stack">
+          <h3>Protokoll</h3>
+          <div class="log" id="log" tabindex="0" aria-label="Protokoll"></div>
+        </div>
       </div>
     </div>
   </section>
 
   <section id="view-review" hidden>
     <div class="pagehead">
-      <h2>Freigabe</h2>
+      <p class="lead">Neue Clips, Best-ofs und Erklärvideos warten hier, bis du sie freigibst. Nur freigegebene Videos werden hochgeladen.</p>
       <select id="reviewChannel" style="width:auto" aria-label="Kanal"></select>
     </div>
-    <p class="muted" style="margin:-10px 0 18px">Neue Clips warten hier, bis du sie freigibst. Erst freigegebene Clips werden hochgeladen.</p>
     <div id="reviewList"></div>
   </section>
 
   <section id="view-clips" hidden>
     <div class="pagehead">
-      <h2>Clips</h2>
-      <label class="check"><input type="checkbox" id="onlyOpen"> Nur Clips, die noch nicht überall hochgeladen sind</label>
+      <label class="check lead"><input type="checkbox" id="onlyOpen"> Nur Clips, die noch nicht auf allen Konten hochgeladen sind</label>
       <select id="clipChannel" style="width:auto" aria-label="Kanal"></select>
     </div>
     <div id="sheet"></div>
@@ -305,13 +450,12 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
 
   <section id="view-explainer" hidden>
     <div class="pagehead">
-      <h2>Erklärvideos</h2>
+      <p class="lead">Die KI schreibt ein Skript, prüft es auf Fakten, ElevenLabs spricht es ein und hyperframes animiert es. Das fertige Video wartet danach unter „Freigabe“. Die Sprache richtet sich nach dem Kanal.</p>
       <select id="explainChannel" style="width:auto" aria-label="Kanal"></select>
     </div>
-    <p class="muted" style="margin:-10px 0 18px">Die KI schreibt ein Skript, prüft es auf Fakten, ElevenLabs spricht es ein und hyperframes animiert es. Das fertige Video wartet danach unter „Freigabe“.</p>
     <div class="panel stack" id="explainNoChannel" hidden style="margin-bottom:20px">
       <h3>Noch kein Erklärvideo-Kanal</h3>
-      <p class="muted">Du kannst trotzdem sofort Videos erstellen. Sie werden nur auf deinem Rechner gespeichert und warten unter „Freigabe“, hochgeladen wird nichts. Zum Hochladen lege später einen Kanal mit der Art „Eigene Erklärvideos“ an und verbinde dort deine Konten.</p>
+      <p class="muted">Du kannst trotzdem sofort Videos erstellen. Sie werden nur auf deinem Rechner gespeichert und warten unter „Freigabe“, hochgeladen wird nichts. Zum Hochladen lege später einen Kanal mit der Art „Eigene Erklärvideos“ an und ordne ihm Konten zu.</p>
       <div class="row"><button class="btn teal" id="explainAddChannel">Erklärvideo-Kanal anlegen</button></div>
     </div>
     <div class="explain">
@@ -334,38 +478,74 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     </div>
   </section>
 
-  <section id="view-channels" hidden>
+  <section id="view-watchlist" hidden>
     <div class="pagehead">
-      <h2>Kanäle</h2>
-      <button class="btn fill teal" id="addChannel">Kanal von Hand anlegen</button>
+      <p class="lead">Alle YouTuber und Streamer, die du im Blick behalten willst. Du bekommst einen Reminder, sobald jemand live geht oder ein Video hochlädt. Mit „Auto-Clip“ werden neue Videos und beendete Streams automatisch geclippt.</p>
+      <span class="muted num" id="watchInfo"></span>
+      <button class="btn cyan" id="watchCheck">Jetzt prüfen</button>
     </div>
-    <form class="panel stack" id="searchForm">
-      <div class="row">
-        <h3 style="margin-right:auto">Kanal auf YouTube suchen</h3>
-        <div class="seg" role="group" aria-label="Art der Suche">
-          <button type="button" data-mode="channels" aria-pressed="true">Nach Name</button>
-          <button type="button" data-mode="trending" aria-pressed="false">Diese Woche meistgesehen</button>
+    <div class="split">
+      <form class="panel stack" id="creatorAddForm">
+        <h3>Creator hinzufügen</h3>
+        <label class="field"><span>Adressen oder YouTube-Namen, eine je Zeile (YouTube, Twitch, Kick)</span>
+          <textarea name="urls" rows="4" style="min-height:96px" placeholder="https://www.youtube.com/@Gtasty&#10;https://www.twitch.tv/papaplatte&#10;@N3on"></textarea></label>
+        <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Clips entstehen für diese Kanäle (frei lassen = nur Reminder)</span>
+          <div class="picker" id="creatorAddChannels" data-empty="Noch kein Clip-Kanal angelegt. Das geht unter „Kanäle“."></div></div>
+        <div class="row">
+          <label class="check"><input type="checkbox" name="notify" checked> Reminder</label>
+          <label class="check"><input type="checkbox" name="auto_clip" checked> Auto-Clip</label>
+          <button class="btn fill cyan push" type="submit">Auf die Watchlist</button>
         </div>
-      </div>
-      <div class="row">
-        <input type="search" id="searchQuery" style="flex:1; min-width:200px" placeholder="Name eines Kanals, z. B. N3on" aria-label="Suchbegriff">
-        <button class="btn fill teal" id="searchBtn">Suchen</button>
-      </div>
-      <p class="muted" id="searchHint">Sucht Kanäle, deren Name zum Begriff passt.</p>
-      <div class="results" id="searchResults"></div>
-    </form>
-    <div class="panel stack" id="appNote" style="margin-top:16px" hidden>
+      </form>
+      <form class="panel stack" id="searchForm">
+        <div class="row">
+          <h3 style="margin-right:auto">Auf YouTube suchen</h3>
+          <div class="seg" role="group" aria-label="Art der Suche">
+            <button type="button" data-mode="channels" aria-pressed="true">Nach Name</button>
+            <button type="button" data-mode="trending" aria-pressed="false">Diese Woche meistgesehen</button>
+          </div>
+        </div>
+        <div class="row">
+          <input type="search" id="searchQuery" style="flex:1; min-width:200px" placeholder="Name eines Kanals, z. B. N3on" aria-label="Suchbegriff">
+          <button class="btn fill teal" id="searchBtn">Suchen</button>
+        </div>
+        <p class="muted" id="searchHint">Sucht Kanäle, deren Name zum Begriff passt.</p>
+        <div class="results" id="searchResults"></div>
+      </form>
+    </div>
+    <div class="row" style="margin-bottom:14px">
+      <input type="search" id="watchFilter" style="max-width:320px" placeholder="Watchlist durchsuchen" aria-label="Watchlist durchsuchen">
+      <label class="check"><input type="checkbox" id="watchOnlyLive"> Nur live</label>
+    </div>
+    <div class="cards" id="creatorList"></div>
+  </section>
+
+  <section id="view-accounts" hidden>
+    <div class="pagehead">
+      <p class="lead">Deine Upload-Konten auf YouTube und TikTok. Jedes Konto wird einmal verbunden und dann einem oder mehreren Kanälen zugeordnet. Hochgeladen wird zu den Upload-Zeiten: je Konto und Uhrzeit ein freigegebener Clip.</p>
+      <button class="btn fill amber" id="addAccount">Konto hinzufügen</button>
+    </div>
+    <div class="panel stack" id="appNote" style="margin-bottom:16px" hidden>
       <h3>Vor dem Verbinden</h3>
       <p class="muted">Jede Plattform verlangt eine eigene, kostenlose Entwickler-App, über die ClipBot hochladen darf. Die genauen Schritte stehen in der README.</p>
       <ul class="todo" id="appNoteList"></ul>
     </div>
-    <div id="channelList"></div>
+    <p class="timesnote" id="timesNote"></p>
+    <div class="cards" id="accountList"></div>
+  </section>
+
+  <section id="view-channels" hidden>
+    <div class="pagehead">
+      <p class="lead">Ein Kanal legt fest, aus welchen Creatorn Videos entstehen, in welcher Sprache die Texte sind und auf welche Konten sie gehen. Du kannst beliebig viele Creator und Konten verknüpfen.</p>
+      <button class="btn fill teal" id="addChannel">Kanal anlegen</button>
+    </div>
+    <div class="cards" id="channelList"></div>
   </section>
 
   <section id="view-settings" hidden>
     <form class="settings" id="settingsForm">
       <div class="pagehead">
-        <h2>Einstellungen</h2>
+        <p class="lead">Gilt für alle Kanäle.</p>
         <button class="btn" type="button" id="aiTest">KI testen</button>
         <button class="btn fill violet" type="submit">Einstellungen speichern</button>
       </div>
@@ -381,7 +561,7 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
     <div class="stack">
       <label class="field"><span>Titel (<span id="titleCount" class="num">0</span> von 100 Zeichen)</span>
         <input type="text" id="clipTitle" maxlength="100"></label>
-      <label class="field"><span>Beschreibung für TikTok, Instagram und YouTube</span>
+      <label class="field"><span>Beschreibung für alle Plattformen</span>
         <textarea id="clipCaption" maxlength="2200"></textarea></label>
       <div class="row"><button class="btn" id="clipSave">Texte speichern</button>
         <span class="muted num" id="clipMeta"></span></div>
@@ -394,29 +574,76 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   </footer>
 </div></dialog>
 
-<dialog id="channelDialog" class="narrow"><form class="dlg stack" id="channelForm">
+<dialog id="channelDialog"><form class="dlg stack" id="channelForm">
   <h2 id="channelDialogTitle">Kanal anlegen</h2>
-  <label class="field"><span>Kurzname (nur Buchstaben, Ziffern, - und _)</span><input type="text" name="name" required pattern="[A-Za-z0-9_\-]{1,40}"></label>
-  <label class="field"><span>Art</span><select name="kind">
-    <option value="clips">Clips aus einem YouTube-Kanal</option>
-    <option value="explainer">Eigene Erklärvideos</option></select></label>
-  <label class="field" id="sourceField"><span>Adresse des Quellkanals auf YouTube</span><input type="url" name="source_url" required placeholder="https://www.youtube.com/@…"></label>
-  <label class="field"><span>Titel-Vorlage</span><input type="text" name="title_template"></label>
-  <label class="field"><span>Beschreibungs-Vorlage</span><textarea name="caption_template"></textarea></label>
-  <p class="muted">Platzhalter: {hook} sind die ersten gesprochenen Worte des Clips, {video_title} der Titel des Quellvideos, {channel} der Kurzname.</p>
-  <label class="field"><span>Tags für YouTube, durch Komma getrennt</span><input type="text" name="tags"></label>
-  <label class="field"><span>Credit (steht in jeder Caption, z. B. der Name des Streamers)</span><input type="text" name="credit"></label>
-  <label class="field"><span>Sprache der KI-Texte</span><input type="text" name="caption_language" placeholder="Englisch"></label>
-  <div class="stack">
-    <label class="check"><input type="checkbox" name="youtube"> Auf YouTube hochladen</label>
-    <label class="check"><input type="checkbox" name="tiktok"> Auf TikTok hochladen</label>
-    <label class="check"><input type="checkbox" name="instagram"> Auf Instagram hochladen</label>
-    <label class="field"><span>Instagram-User-ID</span><input type="text" name="ig_user_id" inputmode="numeric"></label>
-    <label class="field"><span>Name der Token-Variable in der Datei .env</span><input type="text" name="ig_token_env" placeholder="IG_TOKEN_N3ON"></label>
+  <div class="two">
+    <label class="field"><span>Kurzname (nur Buchstaben, Ziffern, - und _)</span><input type="text" name="name" required pattern="[A-Za-z0-9_\-]{1,40}"></label>
+    <label class="field"><span>Art</span><select name="kind">
+      <option value="clips">Clips aus Videos und Streams</option>
+      <option value="explainer">Eigene Erklärvideos</option></select></label>
+    <label class="field"><span>Sprache der Texte</span><select name="language"></select></label>
+    <label class="field"><span>Auf mehreren Konten derselben Plattform</span><select name="distribute">
+      <option value="alle">Jedes Konto bekommt jeden Clip</option>
+      <option value="abwechselnd">Clips abwechselnd verteilen</option></select></label>
   </div>
+  <div id="clipOptions" class="stack">
+    <div class="two">
+      <label class="check" style="align-self:center"><input type="checkbox" name="clips"> Einzelne Clips aus jedem Video erzeugen</label>
+      <label class="field"><span>Best-of aus mehreren Creatorn (1 bis 2 Minuten)</span><select name="bestof">
+        <option value="off">Kein Best-of</option>
+        <option value="daily">Jeden Tag</option>
+        <option value="weekly">Jede Woche</option></select></label>
+    </div>
+    <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Creator, aus deren Videos geclippt wird</span>
+      <div class="picker" id="channelCreators" data-empty="Die Watchlist ist noch leer. Füge dort zuerst Creator hinzu."></div></div>
+  </div>
+  <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Konten, auf die hochgeladen wird</span>
+    <div class="picker" id="channelAccounts" data-empty="Noch kein Konto angelegt. Das geht unter „Konten“."></div></div>
+  <details>
+    <summary class="muted" style="cursor:pointer">Vorlagen, Tags und Credit</summary>
+    <div class="stack" style="margin-top:14px">
+      <label class="field"><span>Titel-Vorlage (ohne KI)</span><input type="text" name="title_template"></label>
+      <label class="field"><span>Beschreibungs-Vorlage (ohne KI)</span><textarea name="caption_template"></textarea></label>
+      <p class="muted">Platzhalter: {hook} sind die ersten gesprochenen Worte des Clips, {video_title} der Titel des Quellvideos, {channel} der Kurzname.</p>
+      <label class="field"><span>Tags, durch Komma getrennt</span><input type="text" name="tags"></label>
+      <label class="field"><span>Credit (nur wenn er vom Namen des Creators abweichen soll)</span><input type="text" name="credit"></label>
+    </div>
+  </details>
   <footer>
     <button class="btn" type="button" id="channelCancel">Abbrechen</button>
     <button class="btn fill teal push" type="submit">Kanal speichern</button>
+  </footer>
+</form></dialog>
+
+<dialog id="accountDialog" class="narrow"><form class="dlg stack" id="accountForm">
+  <h2 id="accountDialogTitle">Konto hinzufügen</h2>
+  <div class="two">
+    <label class="field"><span>Plattform</span><select name="platform">
+      <option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option></select></label>
+    <label class="field"><span>Name des Kontos (frei wählbar)</span><input type="text" name="label" required maxlength="60" placeholder="DailyN3ONClipZ"></label>
+  </div>
+  <label class="field"><span>Eigene Upload-Zeiten (frei lassen = allgemeine Zeiten aus den Einstellungen)</span><input type="text" name="times" placeholder="12:00, 17:30, 20:00"></label>
+  <div class="two" id="igFields" hidden>
+    <label class="field"><span>Instagram-User-ID</span><input type="text" name="ig_user_id" inputmode="numeric"></label>
+    <label class="field"><span>Name der Token-Variable in .env</span><input type="text" name="ig_token_env" placeholder="IG_TOKEN_N3ON"></label>
+  </div>
+  <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Lädt Videos dieser Kanäle hoch</span>
+    <div class="picker" id="accountChannels" data-empty="Noch kein Kanal angelegt. Du kannst das Konto später zuordnen."></div></div>
+  <footer>
+    <button class="btn" type="button" id="accountCancel">Abbrechen</button>
+    <button class="btn fill amber push" type="submit">Konto speichern</button>
+  </footer>
+</form></dialog>
+
+<dialog id="creatorDialog" class="narrow"><form class="dlg stack" id="creatorForm">
+  <h2 id="creatorDialogTitle">Creator bearbeiten</h2>
+  <label class="field"><span>Anzeigename (steht oben im Clip, z. B. „Gtastys unglaublicher Stunt“)</span><input type="text" name="name" required maxlength="60"></label>
+  <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Clips entstehen für diese Kanäle</span>
+    <div class="picker" id="creatorChannels" data-empty="Noch kein Clip-Kanal angelegt."></div></div>
+  <footer>
+    <button class="btn danger" type="button" id="creatorRemove">Von der Watchlist entfernen</button>
+    <button class="btn push" type="button" id="creatorCancel">Abbrechen</button>
+    <button class="btn fill cyan" type="submit">Speichern</button>
   </footer>
 </form></dialog>
 
@@ -431,33 +658,302 @@ dialog.narrow { width: min(580px, calc(100vw - 32px)); }
   </footer>
 </form></dialog>
 
-<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="feedDialog" class="narrow"><div class="dlg stack">
+  <div class="row"><h2>Neuigkeiten</h2><button class="btn small push" id="feedClose">Schließen</button></div>
+  <div class="feed" id="feedFull"></div>
+</div></dialog>
 
+<div id="pops" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <script>
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+/* ---------- Sternenhimmel: Canvas in Geraetepixeln (scharf auf jedem Bildschirm) ---------- */
+const sky = (() => {
+  const canvas = $("#sky"), ctx = canvas.getContext("2d");
+  const TAU = Math.PI * 2, TILT = -0.42, FLAT = 0.40;  // Neigung der Galaxie
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  let W = 0, H = 0, dpr = 1, deep = null, drift = null, galaxy = null, glow = null;
+  let stars = [], meteors = [], nextMeteor = 4, frame = 0, last = 0, t = 0;
+  let mouse = { x: 0, y: 0 }, ease = { x: 0, y: 0 };
+  let budget = 8.4e6, pause = 31, cost = 0, samples = 0;  // passt sich an langsame Rechner an
+  let pref = null;  // "move" | "still"; ohne Wahl gilt die Systemeinstellung "Bewegung reduzieren"
+  try { pref = localStorage.getItem("clipbot-sky"); } catch (e) {}
+  const wants = () => pref === "move" || (pref !== "still" && !reduce.matches);
+
+  // Fester Zufall: der Himmel sieht bei jedem Start gleich aus.
+  let seed = 20261116;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let x = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; };
+  const gauss = () => (rnd() + rnd() + rnd() + rnd() - 2) / 1.16;
+  const TINTS = [[255, 255, 255], [255, 255, 255], [214, 226, 255], [186, 205, 255], [255, 236, 208], [255, 214, 180], [224, 204, 255], [170, 236, 255]];
+  const layer = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+
+  function buildGlow() {  // weicher Lichtfleck fuer helle Sterne
+    const size = Math.round(64 * dpr), c = layer(size, size), g = c.getContext("2d"), r = size / 2;
+    const grad = g.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0, "rgba(255,255,255,1)"); grad.addColorStop(0.08, "rgba(255,255,255,0.75)");
+    grad.addColorStop(0.24, "rgba(255,255,255,0.16)"); grad.addColorStop(0.55, "rgba(255,255,255,0.04)"); grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad; g.fillRect(0, 0, size, size);
+    return c;
+  }
+
+  function buildDeep() {  // steht still: Band der Milchstrasse mit Staub und sehr vielen feinen Sternen
+    const c = layer(W, H), g = c.getContext("2d");
+    const ang = -0.46, cx = W * 0.44, cy = H * 0.60, len = Math.hypot(W, H) * 0.62, cos = Math.cos(ang), sin = Math.sin(ang);
+    g.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 46; i++) {  // leuchtende Wolken entlang des Bandes
+      const along = (rnd() * 2 - 1) * len, across = gauss() * H * 0.075;
+      const x = cx + cos * along - sin * across, y = cy + sin * along + cos * across, r = (0.10 + rnd() * 0.16) * H;
+      const tint = [[150, 120, 255], [110, 150, 255], [255, 120, 210], [90, 210, 255]][i % 4], a = 0.028 + rnd() * 0.03;
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, `rgba(${tint},${a})`); grad.addColorStop(1, `rgba(${tint},0)`);
+      g.fillStyle = grad; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const count = Math.round(W * H / (dpr * dpr) / 520);
+    for (let i = 0; i < count; i++) {  // Sternenstaub im Band
+      const along = (rnd() * 2 - 1) * len, across = gauss() * H * 0.085;
+      const x = cx + cos * along - sin * across, y = cy + sin * along + cos * across;
+      const tint = TINTS[Math.floor(rnd() * TINTS.length)], s = rnd() < 0.86 ? 1 : 2;
+      g.fillStyle = `rgba(${tint},${0.16 + rnd() * 0.5})`;
+      g.fillRect(Math.round(x), Math.round(y), s, s);
+    }
+    g.globalCompositeOperation = "destination-out";
+    for (let i = 0; i < 22; i++) {  // dunkle Staubbahnen
+      const along = (rnd() * 2 - 1) * len * 0.9, across = gauss() * H * 0.022;
+      const x = cx + cos * along - sin * across, y = cy + sin * along + cos * across, r = (0.03 + rnd() * 0.06) * H;
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, "rgba(0,0,0,0.5)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grad; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    return c;
+  }
+
+  function buildDrift() {  // zieht langsam: gleichmaessig verteilte, feine Sterne (nahtlos kachelbar)
+    const c = layer(W, H), g = c.getContext("2d");
+    const count = Math.round(W * H / (dpr * dpr) / 900);
+    for (let i = 0; i < count; i++) {
+      const x = 2 + Math.floor(rnd() * (W - 4)), y = 2 + Math.floor(rnd() * (H - 4));
+      const tint = TINTS[Math.floor(rnd() * TINTS.length)], big = rnd() < 0.2;
+      g.fillStyle = `rgba(${tint},${0.25 + rnd() * 0.6})`;
+      if (dpr >= 1.5 || !big) g.fillRect(x, y, big ? 2 : 1, big ? 2 : 1);
+      else { g.beginPath(); g.arc(x, y, 0.9, 0, TAU); g.fill(); }
+    }
+    return c;
+  }
+
+  function buildGalaxy(size) {  // Spiralgalaxie von oben: Leuchten als Bild, Sterne einzeln (bleiben gekippt rund und scharf)
+    const c = layer(size, size), g = c.getContext("2d"), R = size / 2;
+    g.translate(R, R);
+    let grad = g.createRadialGradient(0, 0, 0, 0, 0, R);
+    grad.addColorStop(0, "rgba(255,238,214,0.50)"); grad.addColorStop(0.10, "rgba(214,170,255,0.20)");
+    grad.addColorStop(0.34, "rgba(120,130,255,0.075)"); grad.addColorStop(0.72, "rgba(80,110,255,0.022)"); grad.addColorStop(1, "rgba(60,90,255,0)");
+    g.fillStyle = grad; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill();
+    g.globalCompositeOperation = "lighter";
+    const ARMS = 2, TURNS = 1.28;
+    const armPoint = (arm, u, widen = 1) => {  // u: 0 = Kern, 1 = aeusserer Rand; gibt Radius (0..1) und Winkel
+      const theta = u * TURNS * TAU + arm * TAU / ARMS + gauss() * 0.07 * widen;
+      return [0.085 + 0.86 * u + gauss() * (0.012 + 0.085 * u) * widen, theta];
+    };
+    for (let arm = 0; arm < ARMS; arm++) for (let i = 0; i < 170; i++) {  // Leuchten der Arme
+      const u = Math.pow(rnd(), 0.8), [d, theta] = armPoint(arm, u, 0.5), x = Math.cos(theta) * d * R, y = Math.sin(theta) * d * R;
+      const r = (0.035 + 0.075 * u + rnd() * 0.03) * R;
+      const tint = d < 0.3 ? [255, 214, 190] : rnd() < 0.3 ? [255, 130, 214] : rnd() < 0.5 ? [150, 130, 255] : [110, 160, 255];
+      const a = (0.052 - 0.030 * u) * (0.6 + rnd() * 0.8);
+      grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, `rgba(${tint},${a})`); grad.addColorStop(1, `rgba(${tint},0)`);
+      g.fillStyle = grad; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.globalCompositeOperation = "destination-out";
+    for (let arm = 0; arm < ARMS; arm++) for (let i = 0; i < 70; i++) {  // Staub an der Innenseite der Arme
+      const u = 0.08 + rnd() * 0.75, theta = u * TURNS * TAU + arm * TAU / ARMS - 0.34, r = (0.085 + 0.86 * u) * R, b = (0.016 + 0.03 * u) * R;
+      const x = Math.cos(theta) * r, y = Math.sin(theta) * r;
+      grad = g.createRadialGradient(x, y, 0, x, y, b);
+      grad.addColorStop(0, "rgba(0,0,0,0.30)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grad; g.fillRect(x - b, y - b, b * 2, b * 2);
+    }
+    g.globalCompositeOperation = "lighter";
+    grad = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.2);  // heller Kern
+    grad.addColorStop(0, "rgba(255,252,244,1)"); grad.addColorStop(0.16, "rgba(255,236,204,0.86)");
+    grad.addColorStop(0.42, "rgba(255,204,170,0.30)"); grad.addColorStop(0.75, "rgba(232,160,255,0.07)"); grad.addColorStop(1, "rgba(200,150,255,0)");
+    g.fillStyle = grad; g.beginPath(); g.arc(0, 0, R * 0.2, 0, TAU); g.fill();
+
+    // Sterne: nach Farbe und Helligkeit gebuendelt, damit jeder Stapel in einem Zug gezeichnet wird
+    const COLORS = [[255, 236, 206], [255, 255, 255], [200, 186, 255], [154, 194, 255], [255, 138, 212], [120, 226, 255]];
+    const LEVELS = [0.26, 0.46, 0.7, 0.96];
+    const stacks = COLORS.flatMap(tint => LEVELS.map(a => ({ style: `rgba(${tint},${a})`, d: [], th: [], sz: [] })));
+    const put = (d, theta, color, alpha, sz) => {
+      if (d <= 0.01 || d > 1) return;
+      const stack = stacks[color * LEVELS.length + Math.min(LEVELS.length - 1, Math.floor(alpha * LEVELS.length))];
+      stack.d.push(d * R); stack.th.push(theta); stack.sz.push(sz);
+    };
+    const density = Math.min(1.6, Math.max(0.75, size / (760 * dpr)));  // grosse Fenster bekommen mehr Sterne
+    for (let i = 0; i < 7600 * density; i++) {  // Sterne der Arme
+      const u = Math.pow(rnd(), 0.7), [d, theta] = armPoint(i % ARMS, u, rnd() < 0.22 ? 2.5 : 1);
+      const color = d < 0.2 ? 0 : rnd() < 0.06 ? 4 : rnd() < 0.36 ? 2 : rnd() < 0.5 ? 3 : rnd() < 0.12 ? 5 : 1;
+      const big = rnd() < 0.05;
+      put(d, theta, color, Math.min(0.99, (1.02 - 0.66 * d) * (0.3 + rnd() * 0.7) + (big ? 0.25 : 0)), (big ? 1.5 + rnd() * 1.0 : 0.7 + rnd() * 0.65) * dpr);
+    }
+    for (let i = 0; i < 2600 * density; i++) {  // Scheibe und Hof
+      const d = Math.abs(gauss()) * 0.4;
+      put(d, rnd() * TAU, d < 0.18 ? 0 : rnd() < 0.5 ? 1 : 2, 0.12 + rnd() * 0.5, (0.6 + rnd() * 0.55) * dpr);
+    }
+    return { glow: c, stacks, size };
+  }
+
+  function build() {
+    const w = window.innerWidth, h = window.innerHeight;
+    dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, Math.sqrt(budget / (w * h))));  // bis 4K in voller Schaerfe
+    W = canvas.width = Math.round(w * dpr); H = canvas.height = Math.round(h * dpr);
+    seed = 20261116;
+    glow = buildGlow(); deep = buildDeep(); drift = buildDrift();
+    galaxy = buildGalaxy(Math.round(Math.min(1500, Math.max(520, Math.min(w * 0.62, h * 1.05)) * dpr)));
+    stars = [];
+    const count = Math.round(w * h / 5200);
+    for (let i = 0; i < count; i++) {
+      const bright = rnd() < 0.085;
+      stars.push({ x: rnd() * W, y: rnd() * H, r: (bright ? 1.15 + rnd() * 0.9 : 0.5 + rnd() * 0.65) * dpr, bright,
+        tint: TINTS[Math.floor(rnd() * TINTS.length)], base: bright ? 0.82 + rnd() * 0.18 : 0.42 + rnd() * 0.5,
+        amp: 0.14 + rnd() * 0.42, speed: 0.5 + rnd() * 1.9, phase: rnd() * TAU, depth: 0.35 + rnd() * 0.65 });
+    }
+    draw();
+  }
+
+  function draw() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    ease.x += (mouse.x - ease.x) * 0.05; ease.y += (mouse.y - ease.y) * 0.05;
+    const px = ease.x * dpr, py = ease.y * dpr;
+
+    ctx.drawImage(deep, Math.round(px * 3), Math.round(py * 3));
+    const shift = (t * 1.6 * dpr) % W, dx = Math.round(px * 6 - shift), dy = Math.round(py * 6);
+    ctx.drawImage(drift, dx, dy); ctx.drawImage(drift, dx + W, dy);
+
+    // Spiralgalaxie: gekippt, dreht sich in gut fuenf Minuten einmal
+    const gx = W * 0.80 + px * 10, gy = H * 0.27 + py * 10, spin = t * 0.02;
+    ctx.save();
+    ctx.translate(gx, gy); ctx.rotate(TILT); ctx.scale(1, FLAT); ctx.rotate(spin);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(galaxy.glow, -galaxy.size / 2, -galaxy.size / 2);
+    ctx.restore();
+    ctx.globalCompositeOperation = "lighter";
+    const ct = Math.cos(TILT), st = Math.sin(TILT);
+    for (const stack of galaxy.stacks) {
+      const { d, th, sz } = stack;
+      ctx.fillStyle = stack.style;
+      ctx.beginPath();
+      for (let i = 0; i < d.length; i++) {
+        const a = th[i] + spin, x = Math.cos(a) * d[i], y = Math.sin(a) * d[i] * FLAT;
+        const X = gx + x * ct - y * st, Y = gy + x * st + y * ct, r = sz[i];
+        if (r < 2.2) ctx.rect(X - r / 2, Y - r / 2, r, r);
+        else { ctx.moveTo(X + r / 2, Y); ctx.arc(X, Y, r / 2, 0, TAU); }
+      }
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = "lighter";
+    for (const s of stars) {
+      let x = (s.x - t * 3.2 * dpr * s.depth + px * 16 * s.depth) % W; if (x < 0) x += W;
+      const y = s.y + py * 16 * s.depth;
+      const a = Math.max(0.05, Math.min(1, s.base + Math.sin(t * s.speed + s.phase) * s.amp));
+      ctx.globalAlpha = a;
+      if (s.bright) {
+        const g = s.r * 9;
+        ctx.drawImage(glow, x - g, y - g, g * 2, g * 2);
+        ctx.fillStyle = `rgb(${s.tint})`;
+        ctx.beginPath(); ctx.arc(x, y, s.r, 0, TAU); ctx.fill();
+        const len = s.r * (5 + 3.5 * a), thin = Math.max(1, Math.round(dpr * 0.5));  // feine Strahlen
+        ctx.globalAlpha = a * 0.5;
+        ctx.fillRect(x - len, y - thin / 2, len * 2, thin); ctx.fillRect(x - thin / 2, y - len, thin, len * 2);
+      } else {
+        ctx.fillStyle = `rgb(${s.tint})`;
+        ctx.beginPath(); ctx.arc(x, y, s.r, 0, TAU); ctx.fill();
+      }
+    }
+
+    for (const m of meteors) {  // Sternschnuppen
+      const k = m.age / m.life, head = Math.min(1, k * 1.5), fade = k < 0.7 ? 1 : (1 - k) / 0.3;
+      const x = m.x + m.vx * head * m.len, y = m.y + m.vy * head * m.len, tail = m.len * 0.42 * Math.min(1, k * 4);
+      const grad = ctx.createLinearGradient(x, y, x - m.vx * tail, y - m.vy * tail);
+      grad.addColorStop(0, `rgba(255,255,255,${0.95 * fade})`); grad.addColorStop(0.25, `rgba(190,205,255,${0.5 * fade})`); grad.addColorStop(1, "rgba(150,170,255,0)");
+      ctx.globalAlpha = 1; ctx.strokeStyle = grad; ctx.lineWidth = 1.5 * dpr; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - m.vx * tail, y - m.vy * tail); ctx.stroke();
+      ctx.globalAlpha = fade; ctx.drawImage(glow, x - 9 * dpr, y - 9 * dpr, 18 * dpr, 18 * dpr);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop(now) {
+    frame = requestAnimationFrame(loop);
+    if (now - last < pause) return;  // etwa 30 Bilder je Sekunde reichen und schonen den Rechner
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; t += dt;
+    nextMeteor -= dt;
+    if (nextMeteor <= 0) {
+      const dir = 0.55 + Math.random() * 0.5, left = Math.random() < 0.5;
+      meteors.push({ x: (0.15 + Math.random() * 0.7) * W, y: Math.random() * 0.42 * H, vx: Math.cos(dir) * (left ? -1 : 1), vy: Math.sin(dir),
+        len: (260 + Math.random() * 300) * dpr, age: 0, life: 0.75 + Math.random() * 0.5 });
+      nextMeteor = 5 + Math.random() * 7;
+    }
+    meteors = meteors.filter(m => (m.age += dt) < m.life);
+    const began = performance.now();
+    draw();
+    cost += performance.now() - began;
+    if (++samples === 40) {  // zu langsam? Erst weniger Bildpunkte, dann die halbe Bildrate
+      if (cost / samples > 22) {
+        if (budget > 2.4e6) { budget = Math.max(2.3e6, budget * 0.5); build(); }
+        else pause = 64;
+      }
+      cost = samples = 0;
+    }
+  }
+  function sync() {
+    cancelAnimationFrame(frame); frame = 0;
+    $("#skyToggle").textContent = wants() ? "Sterne anhalten" : "Sterne animieren";
+    if (wants() && !document.hidden) { last = performance.now(); frame = requestAnimationFrame(loop); }
+    else { meteors = []; draw(); }
+  }
+  let resizeTimer;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { build(); sync(); }, 180); });
+  window.addEventListener("pointermove", e => { mouse.x = e.clientX / window.innerWidth - 0.5; mouse.y = e.clientY / window.innerHeight - 0.5; }, { passive: true });
+  document.addEventListener("visibilitychange", sync);
+  reduce.addEventListener?.("change", sync);
+  build(); sync();
+  return {
+    toggle() {
+      pref = wants() ? "still" : "move";
+      try { localStorage.setItem("clipbot-sky", pref); } catch (e) {}
+      sync();
+    },
+  };
+})();
+
+/* ---------- Grundlagen ---------- */
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const PLATFORMS = { youtube: ["YouTube", "YT", "yt"], tiktok: ["TikTok", "TT", "tt"], instagram: ["Instagram", "IG", "ig"] };
-const COLORS = ["violet", "pink", "teal", "amber", "blue", "green"];
+const UP = { youtube: ["YouTube", "YT", "yt"], tiktok: ["TikTok", "TT", "tt"], instagram: ["Instagram", "IG", "ig"] };
+const SRC = { youtube: ["YouTube", "yt"], twitch: ["Twitch", "twitch"], kick: ["Kick", "kick"], other: ["Andere Seite", "other"] };
+const TITLES = { overview: "Übersicht", review: "Freigabe", clips: "Clips", explainer: "Erklärvideos", watchlist: "Watchlist",
+  accounts: "Konten", channels: "Kanäle", settings: "Einstellungen" };
+const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+const COLORS = ["violet", "pink", "teal", "amber", "blue", "green", "cyan"];
 const colorOf = name => `var(--${COLORS[[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]})`;
 const compact = n => new Intl.NumberFormat("de-DE", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const svg = d => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICONS = {
+  live: svg(`<circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M7.2 7.2a6.8 6.8 0 0 0 0 9.6M16.8 7.2a6.8 6.8 0 0 1 0 9.6M4.2 4.4a10.8 10.8 0 0 0 0 15.2M19.8 4.4a10.8 10.8 0 0 1 0 15.2"/>`),
+  video: svg(`<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4.2-2.5z" fill="currentColor"/>`),
+  clips: svg(`<circle cx="6.5" cy="7" r="2.6"/><circle cx="6.5" cy="17" r="2.6"/><path d="M8.6 8.6L20 18M8.6 15.4L20 6"/>`),
+  bestof: svg(`<path d="M12 3.4l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>`),
+  upload: svg(`<path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>`),
+  error: svg(`<path d="M12 7.5v5.5M12 16.6v.2"/><circle cx="12" cy="12" r="9"/>`),
+};
 
-let data = null, view = "overview", openClipId = null, tiktokChannel = null, searchMode = "channels", searchResults = null;
+let data = null, view = "overview", openClipId = null, tiktokAccount = null, searchMode = "channels", searchResults = null;
+let editAccountId = null, editCreatorId = null, lastNoteId = null, stopped = false;
 const lastSig = {};
-
-/* ---------- Design: hell oder dunkel ---------- */
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  $("#themeToggle").textContent = theme === "dark" ? "Helles Design" : "Dunkles Design";
-}
-let theme = null;
-try { theme = localStorage.getItem("clipbot-theme"); } catch (e) {}
-applyTheme(theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
-$("#themeToggle").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(next);
-  try { localStorage.setItem("clipbot-theme", next); } catch (e) {}
-});
 
 async function api(path, payload) {
   const res = await fetch(path, payload === undefined ? {} : {
@@ -483,31 +979,115 @@ function changed(key, value) {
 const timecode = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
 const when = ts => new Date(ts * 1000).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-const channelOf = name => data.channels.find(c => c.name === name);
-const isLocal = name => name === data.local_channel && !channelOf(name);
-
-function platformState(clip, platform) {
-  const account = channelOf(clip.channel)?.accounts?.[platform];
-  if (!account || !account.enabled) return "off";
-  const up = clip.uploads[platform];
-  return up?.status === "ok" ? "ok" : up?.status === "failed" ? "bad" : "open";
+function ago(ts) {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 50) return "gerade eben";
+  if (s < 3300) return `vor ${Math.round(s / 60)} Min.`;
+  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
+  if (s < 86400 * 14) return `vor ${plural(Math.round(s / 86400), "Tag", "Tagen")}`;
+  return new Date(ts * 1000).toLocaleDateString("de-DE", { dateStyle: "short" });
 }
-const isOpen = clip => Object.keys(PLATFORMS).some(p => ["open", "bad"].includes(platformState(clip, p)));
+function clock(ts) {  // kommende Uhrzeit: "heute 17:30", "morgen 12:00"
+  const d = new Date(ts * 1000), now = new Date(), time = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  const days = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+  return (days === 0 ? "heute " : days === 1 ? "morgen " : d.toLocaleDateString("de-DE", { weekday: "short" }) + " ") + time;
+}
+const channelOf = name => data.channels.find(c => c.name === name);
+const accountOf = id => data.accounts.find(a => a.id === id);
+const creatorOf = id => data.creators.find(c => c.id === id);
+const isLocal = name => name === data.local_channel && !channelOf(name);
+const clipChannels = () => data.channels.filter(c => (c.kind || "clips") === "clips");
+const accountsFor = clip => (channelOf(clip.channel)?.accounts || []).map(accountOf).filter(Boolean);
+const upState = (clip, account) => { const up = clip.uploads[account.id]; return up?.status === "ok" ? "ok" : up?.status === "failed" ? "bad" : "open"; };
+function isOpen(clip) {  // fehlt noch ein Upload? Bei "abwechselnd" genuegt ein Konto je Plattform.
+  const accounts = accountsFor(clip);
+  if (channelOf(clip.channel)?.distribute !== "abwechselnd") return accounts.some(a => upState(clip, a) !== "ok");
+  return [...new Set(accounts.map(a => a.platform))].some(p => !accounts.some(a => a.platform === p && upState(clip, a) === "ok"));
+}
+const kindLabel = clip => clip.kind === "bestof" ? "Best-of" : clip.kind === "explainer" ? "Erklärvideo" : "";
+const platformChip = (platform, text) => `<span class="chip" style="--c:var(--${(UP[platform] || SRC[platform] || SRC.other).at(-1)})">${esc(text)}</span>`;
+function fillPicker(el, items, checked) {  // items: [{value, label, hint}]
+  el.innerHTML = items.map(i => `<label class="check"><input type="checkbox" value="${esc(i.value)}" ${checked.includes(i.value) ? "checked" : ""}>
+    <span>${esc(i.label)}${i.hint ? ` <small class="muted">${esc(i.hint)}</small>` : ""}</span></label>`).join("");
+}
+const picked = el => $$("input:checked", el).map(i => i.value);
 
 /* ---------- Navigation ---------- */
 function show(name) {
   view = name;
   $$("main > section").forEach(s => (s.hidden = s.id !== "view-" + name));
   $$(".side nav button").forEach(b => b.dataset.view === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $("#pageTitle").textContent = TITLES[name];
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   if (name === "settings" && data) renderSettings();
+  window.scrollTo(0, 0);
   render();
 }
 $$(".side nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+$("#skyToggle").addEventListener("click", () => sky.toggle());
+
+/* ---------- Kopfzeile: live, Automatik, Neuigkeiten ---------- */
+function noteHtml(n) {
+  const inner = `<span class="ico">${ICONS[n.kind] || ICONS.video}</span><strong title="${esc(n.title)}">${esc(n.title)}</strong>
+    <time>${ago(n.ts)}</time><small title="${esc(n.text)}">${esc(n.text)}</small>`;
+  const cls = `note ${esc(n.kind)}${n.read ? "" : " unread"}`;
+  return n.url ? `<a class="${cls}" href="${esc(n.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="${cls}">${inner}</div>`;
+}
+function renderTop() {
+  const live = data.creators.filter(c => c.live);
+  $("#livePill").hidden = !live.length;
+  $("#livePillText").textContent = live.length === 1 ? `${live[0].name} ist live` : `${live.length} live`;
+  $("#liveBadge").hidden = !live.length; $("#liveBadge").textContent = live.length;
+  const on = data.auto.enabled;
+  $("#autoPill").classList.toggle("off", !on);
+  $("#autoPill").style.setProperty("--c", on ? "var(--green)" : "");
+  $("#autoPillText").textContent = on ? "Automatik an" : "Automatik aus";
+  $("#autoSwitch").setAttribute("aria-checked", String(on));
+  $("#bellCount").hidden = !data.unread; $("#bellCount").textContent = data.unread > 99 ? "99+" : data.unread;
+  const waiting = data.clips.filter(c => c.review === "wartet").length;
+  $("#reviewBadge").hidden = !waiting; $("#reviewBadge").textContent = waiting;
+  $("#tally").classList.toggle("running", data.job.running);
+  $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
+
+  // Neue Meldungen kurz oben rechts einblenden
+  const newest = data.notifications[0]?.id || 0;
+  if (lastNoteId === null) lastNoteId = newest;
+  else if (newest > lastNoteId) {
+    for (const n of data.notifications.filter(n => n.id > lastNoteId).reverse().slice(-4)) {
+      const el = document.createElement(n.url ? "a" : "div");
+      el.className = "pop " + n.kind;
+      if (n.url) { el.href = n.url; el.target = "_blank"; el.rel = "noopener"; }
+      el.innerHTML = `<span class="ico">${ICONS[n.kind] || ICONS.video}</span><strong>${esc(n.title)}</strong><small>${esc(n.text)}</small>`;
+      $("#pops").append(el);
+      setTimeout(() => el.remove(), 9000);
+    }
+    lastNoteId = newest;
+  }
+  if ($("#feedDialog").open && changed("feedFull", data.notifications)) fillFeed();
+}
+function fillFeed() {
+  $("#feedFull").innerHTML = data.notifications.length ? data.notifications.map(noteHtml).join("")
+    : `<p class="muted">Noch nichts passiert. Reminder erscheinen hier, sobald jemand von deiner Watchlist live geht oder ein Video hochlädt.</p>`;
+}
+function openFeed() {
+  lastSig.feedFull = null; changed("feedFull", data.notifications); fillFeed();
+  $("#feedDialog").showModal();
+  if (data.unread) api("/api/notifications/read", {}).then(refresh).catch(() => {});
+}
+$("#bell").addEventListener("click", openFeed);
+$("#feedAll").addEventListener("click", openFeed);
+$("#feedClose").addEventListener("click", () => $("#feedDialog").close());
+$("#livePill").addEventListener("click", () => { $("#watchOnlyLive").checked = true; show("watchlist"); });
+function switchAuto() {
+  const on = !data.auto.enabled;
+  act(() => api("/api/autopilot", { on }), on ? "Automatik eingeschaltet" : "Automatik ausgeschaltet");
+}
+$("#autoPill").addEventListener("click", switchAuto);
+$("#autoSwitch").addEventListener("click", switchAuto);
 
 /* ---------- Uebersicht ---------- */
-function fillChannelSelect(el, allLabel) {
-  const names = data.channels.map(c => c.name);
+function fillChannelSelect(el, allLabel, channels = data.channels) {
+  const names = channels.map(c => c.name);
   if (!changed(el.id, names)) return;
   const keep = el.value;
   el.innerHTML = `<option value="">${allLabel}</option>` + names.map(n => `<option>${esc(n)}</option>`).join("");
@@ -515,27 +1095,52 @@ function fillChannelSelect(el, allLabel) {
 }
 function renderOverview() {
   fillChannelSelect($("#runChannel"), "Alle Kanäle");
-  const open = data.clips.filter(isOpen).length, total = data.clips.length;
+  const s = data.settings, total = data.clips.length, waiting = data.clips.filter(c => c.review === "wartet").length;
   const uploads = data.clips.reduce((n, c) => n + Object.values(c.uploads).filter(u => u.status === "ok").length, 0);
-  const done = data.videos.filter(v => v.status === "done").length;
-  const stats = [["violet", total, total === 1 ? "Clip erzeugt" : "Clips erzeugt"], ["amber", open, "noch nicht überall hochgeladen"],
-    ["green", uploads, uploads === 1 ? "Upload erledigt" : "Uploads erledigt"], ["blue", done, done === 1 ? "Video verarbeitet" : "Videos verarbeitet"]];
+  const live = data.creators.filter(c => c.live).length;
+  const stats = [["violet", total, total === 1 ? "Clip erzeugt" : "Clips erzeugt"], ["amber", waiting, waiting === 1 ? "wartet auf Freigabe" : "warten auf Freigabe"],
+    ["green", uploads, uploads === 1 ? "Upload erledigt" : "Uploads erledigt"],
+    ["cyan", data.creators.length, "Creator auf der Watchlist" + (live ? `, ${live} live` : "")]];
   if (changed("stats", stats)) $("#stats").innerHTML = stats.map(([c, n, label]) =>
     `<div class="stat" style="--c:var(--${c})"><b>${n}</b><span>${label}</span></div>`).join("");
 
+  // Automatik: was als Naechstes ansteht
+  const timed = data.accounts.filter(a => a.next_slot);
+  const next = timed.filter(a => a.connected && a.queue).sort((a, b) => a.next_slot - b.next_slot)[0];
+  const bestofs = clipChannels().filter(c => c.bestof && c.bestof !== "off");
+  const moments = Object.values(data.auto.moments).reduce((a, b) => a + b, 0);
+  const facts = [
+    ["Watchlist", !data.creators.length ? "Noch leer" : data.auto.watching ? `${plural(data.creators.length, "Creator", "Creator")}, wird gerade geprüft`
+      : `${plural(data.creators.length, "Creator", "Creator")}, ${data.auto.last_watch ? "zuletzt geprüft " + ago(data.auto.last_watch) : "erste Prüfung läuft gleich"}`],
+    ["Wartet aufs Clippen", data.auto.queued ? plural(data.auto.queued, "Video", "Videos") : "Nichts"],
+    ["Nächster Upload", next ? `${clock(next.next_slot)} auf ${next.label}` : !timed.length ? "Keine Upload-Zeiten eingestellt"
+      : `${clock(Math.min(...timed.map(a => a.next_slot)))}, im Moment ist nichts freigegeben`],
+    ["Best-of", bestofs.length ? bestofs.map(c => `${c.name} ${c.bestof === "weekly" ? "jeden " + WEEKDAYS[s.bestof_weekday] : "täglich"} ab ${s.bestof_time}`).join(", ")
+      + ` (${plural(moments, "Moment", "Momente")} gesammelt)` : "Für keinen Kanal eingeschaltet"],
+  ];
+  if (changed("autoFacts", facts)) $("#autoFacts").innerHTML = facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  const warn = !data.auto.enabled ? "" : data.auto.dry_run ? "Der Probemodus ist an: Die Automatik clippt, lädt aber nichts hoch. Ausschalten unter „Einstellungen“ bei „Automatik und Zeitplan“."
+    : !timed.length ? "Es sind keine Upload-Zeiten eingestellt, deshalb lädt die Automatik nichts hoch. Trage sie unter „Einstellungen“ ein." : "";
+  $("#autoWarn").hidden = !warn; $("#autoWarn").textContent = warn;
+
   const todo = [];
   if (!data.setup.ffmpeg) todo.push("ffmpeg ist nicht installiert. Installiere es und starte ClipBot neu.");
-  const waiting = data.clips.filter(c => c.review === "wartet").length;
-  if (waiting) todo.push(`${waiting} ${waiting === 1 ? "Clip wartet" : "Clips warten"} unter „Freigabe“ auf dich.`);
-  if (!data.channels.length) todo.push("Unter „Kanäle“ ist noch kein Quellkanal angelegt. Dort kannst du ihn auf YouTube suchen.");
-  for (const ch of data.channels) for (const [p, [label]] of Object.entries(PLATFORMS)) {
-    const a = ch.accounts[p];
-    if (a.enabled && !a.connected) todo.push(`${ch.name}: ${label} ist noch nicht verbunden. Das geht unter „Kanäle“.`);
+  if (waiting) todo.push(`${waiting} ${waiting === 1 ? "Video wartet" : "Videos warten"} unter „Freigabe“ auf dich.`);
+  if (!data.creators.length) todo.push("Die Watchlist ist leer. Füge unter „Watchlist“ YouTuber und Streamer hinzu.");
+  if (!data.accounts.length) todo.push("Unter „Konten“ ist noch kein Upload-Konto angelegt.");
+  for (const a of data.accounts) if (!a.connected) todo.push(`Das Konto ${a.label} (${UP[a.platform][0]}) ist noch nicht verbunden. Das geht unter „Konten“.`);
+  if (!data.channels.length) todo.push("Unter „Kanäle“ ist noch kein Kanal angelegt. Ein Kanal verknüpft Creator mit Upload-Konten.");
+  for (const ch of data.channels) {
+    if (!(ch.accounts || []).length) todo.push(`Der Kanal ${ch.name} hat noch kein Konto zum Hochladen.`);
+    if ((ch.kind || "clips") === "clips" && !(ch.creators || []).length) todo.push(`Der Kanal ${ch.name} hat noch keinen Creator, aus dem geclippt wird.`);
   }
   if (changed("todo", todo)) {
     $("#todoPanel").hidden = !todo.length;
     $("#todo").innerHTML = todo.map(t => `<li>${esc(t)}</li>`).join("");
   }
+  if (changed("feed", data.notifications.slice(0, 7))) $("#feed").innerHTML = data.notifications.length
+    ? data.notifications.slice(0, 7).map(noteHtml).join("")
+    : `<p class="muted">Noch nichts passiert. Reminder erscheinen hier, sobald jemand von deiner Watchlist live geht oder ein Video hochlädt.</p>`;
   if (changed("log", data.log.length + (data.log.at(-1)?.t || "") + (data.log.at(-1)?.msg || ""))) {
     const el = $("#log"), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     el.innerHTML = data.log.length
@@ -543,46 +1148,61 @@ function renderOverview() {
       : `<p class="muted">Hier erscheint, was ClipBot gerade tut.</p>`;
     if (atBottom) el.scrollTop = el.scrollHeight;
   }
-  $$("[data-run], #runVideo").forEach(b => (b.disabled = data.job.running || !data.channels.length));
+  $$("[data-run], #runVideo, #runBestof").forEach(b => (b.disabled = data.job.running || !data.channels.length));
 }
 $$("[data-run]").forEach(b => b.addEventListener("click", () =>
   act(() => api("/api/run", { mode: b.dataset.run, channel: $("#runChannel").value || null }), "Gestartet: " + b.textContent)));
+const pickedClipChannel = () => $("#runChannel").value || (clipChannels().length === 1 ? clipChannels()[0].name : "");
 $("#runVideo").addEventListener("click", () => {
-  const channel = $("#runChannel").value || (data.channels.length === 1 ? data.channels[0].name : "");
-  if (!channel) return toast("Wähle oben den Kanal, zu dem das Video gehört.", true);
+  const channel = pickedClipChannel();
+  if (!channel) return toast("Wähle oben den Kanal, für den geclippt wird.", true);
   act(() => api("/api/run", { mode: "video", channel, url: $("#videoUrl").value }), "Gestartet: Dieses Video clippen");
+});
+const startBestof = channel => act(() => api("/api/run", { mode: "bestof", channel }),
+  "Das Best-of wird gebaut. Es erscheint danach unter „Freigabe“.");
+$("#runBestof").addEventListener("click", () => {
+  const channel = pickedClipChannel();
+  if (!channel) return toast("Wähle oben den Kanal, für den das Best-of gebaut wird.", true);
+  startBestof(channel);
 });
 
 /* ---------- Clips ---------- */
 function lamps(clip) {
-  return Object.entries(PLATFORMS).map(([p, [label, short, cls]]) => {
-    const st = platformState(clip, p);
-    const text = { ok: "hochgeladen", bad: "fehlgeschlagen", open: "noch nicht hochgeladen", off: "nicht eingerichtet" }[st];
-    return `<i class="${cls} ${st}" title="${label}: ${text}">${short}${st === "ok" ? " ✓" : st === "bad" ? " !" : ""}</i>`;
+  const accounts = accountsFor(clip);
+  return accounts.map(a => {
+    const [label, short, cls] = UP[a.platform], st = upState(clip, a);
+    const several = accounts.filter(x => x.platform === a.platform).length > 1;
+    const text = { ok: "hochgeladen", bad: "fehlgeschlagen", open: "noch nicht hochgeladen" }[st];
+    return `<i class="${cls} ${st}" title="${esc(a.label)} (${label}): ${text}">${several ? esc(a.label) : short}${st === "ok" ? " ✓" : st === "bad" ? " !" : ""}</i>`;
   }).join("");
 }
 function renderClips() {
   fillChannelSelect($("#clipChannel"), "Alle Kanäle");
   const channel = $("#clipChannel").value, onlyOpen = $("#onlyOpen").checked;
   const clips = data.clips.filter(c => (!channel || c.channel === channel) && (!onlyOpen || isOpen(c)));
-  if (!changed("sheet", [clips, data.channels.map(c => c.accounts), channel, onlyOpen])) return;
+  if (!changed("sheet", [clips, data.channels.map(c => [c.accounts, c.distribute]), data.accounts.map(a => a.label), channel, onlyOpen])) return;
   if (!clips.length) {
     $("#sheet").innerHTML = data.clips.length
       ? `<div class="empty"><h3>Kein Clip passt zum Filter</h3><p class="muted">Ändere die Auswahl oben rechts.</p></div>`
-      : `<div class="empty"><h3>Noch keine Clips</h3><p class="muted">Starte unter „Übersicht“ einen Lauf mit „Clips erzeugen“. Die fertigen Clips erscheinen hier, sortiert nach Quellvideo.</p></div>`;
+      : `<div class="empty"><h3>Noch keine Clips</h3><p class="muted">Setze Creator auf die Watchlist und schalte die Automatik ein, oder starte unter „Übersicht“ einen Lauf von Hand. Die fertigen Clips erscheinen hier, sortiert nach Quellvideo.</p></div>`;
     return;
   }
   const groups = new Map();
-  for (const c of clips) (groups.get(c.video_id) || groups.set(c.video_id, []).get(c.video_id)).push(c);
-  $("#sheet").innerHTML = [...groups].map(([videoId, list]) => {
-    const video = data.videos.find(v => v.video_id === videoId);
-    list.sort((a, b) => a.start - b.start);
-    return `<div class="source"><header><span class="tag" style="--c:${colorOf(list[0].channel)}">${esc(list[0].channel)}</span>
-      <h3>${esc(video?.title || videoId)}</h3><span class="count">${list.length} ${list.length === 1 ? "Clip" : "Clips"}</span></header>
+  for (const c of clips) {
+    const key = c.kind === "bestof" ? "bestof:" + c.channel : c.kind === "explainer" ? "explainer:" + c.channel : c.video_id;
+    (groups.get(key) || groups.set(key, []).get(key)).push(c);
+  }
+  $("#sheet").innerHTML = [...groups].map(([key, list]) => {
+    const first = list[0], video = data.videos.find(v => v.video_id === first.video_id);
+    const title = first.kind === "bestof" ? "Best-ofs" : first.kind === "explainer" ? "Erklärvideos" : video?.title || first.video_id;
+    if (first.kind === "clip") list.sort((a, b) => a.start - b.start);
+    return `<div class="source"><header><span class="tag" style="--c:${colorOf(first.channel)}">${esc(first.channel)}</span>
+      ${first.kind === "clip" && first.creator ? `<span class="tag" style="--c:var(--cyan)">${esc(first.creator)}</span>` : ""}
+      <h3 title="${esc(title)}">${esc(title)}</h3><span class="count">${plural(list.length, "Video", "Videos")}</span></header>
       <div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
-        <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}</span>
+        <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}${kindLabel(c) ? `<span class="kind">${kindLabel(c)}</span>` : ""}</span>
         <span class="title">${esc(c.title)}</span>
-        <span class="tc">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
+        <span class="tc">${c.kind === "clip" ? `${timecode(c.start)} bis ${timecode(c.end)}, ` : ""}${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
         <span class="lamps">${lamps(c)}</span></button>`).join("")}</div></div>`;
   }).join("");
 }
@@ -598,29 +1218,32 @@ function openClip(id) {
   $("#clipVideo").poster = clip.exists ? "/thumb/" + encodeURIComponent(id) : "";
   $("#clipTitle").value = clip.title; $("#clipCaption").value = clip.caption;
   $("#titleCount").textContent = clip.title.length;
-  $("#clipMeta").textContent = `${timecode(clip.start)} bis ${timecode(clip.end)}, erzeugt am ${when(clip.ts)}`;
+  $("#clipMeta").textContent = (clip.kind === "clip" ? `${timecode(clip.start)} bis ${timecode(clip.end)}, ` : `${Math.round(clip.end - clip.start)} s, `) + `erzeugt am ${when(clip.ts)}`;
   renderClipPlatforms();
   $("#clipDialog").showModal();
 }
 function renderClipPlatforms() {
   const clip = data.clips.find(c => c.clip_id === openClipId);
   if (!clip) return;
-  const accounts = channelOf(clip.channel)?.accounts || {};
-  if (!changed("clipPlatforms", [clip.uploads, accounts, data.job.running, clip.exists])) return;
-  $("#clipPlatforms").innerHTML = Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
-    const account = accounts[p] || {}, up = clip.uploads[p];
+  const accounts = accountsFor(clip);
+  if (!changed("clipPlatforms", [clip.uploads, accounts.map(a => [a.id, a.label, a.connected]), data.job.running, clip.exists])) return;
+  if (!accounts.length) {
+    $("#clipPlatforms").innerHTML = `<tr><td colspan="3" class="muted">${isLocal(clip.channel)
+      ? "Ohne Kanal erstellt, das Video liegt nur auf deinem Rechner." : "Diesem Kanal ist noch kein Konto zugeordnet. Das geht unter „Kanäle“."}</td></tr>`;
+    return;
+  }
+  $("#clipPlatforms").innerHTML = accounts.map(a => {
+    const [label, , cls] = UP[a.platform], up = clip.uploads[a.id];
     let text, state = "muted", button = "";
-    if (isLocal(clip.channel)) text = "Ohne Kanal erstellt, nur lokal gespeichert";
-    else if (!account.enabled) text = "Für diesen Kanal nicht eingerichtet";
-    else if (up?.status === "ok") {
+    if (up?.status === "ok") {
       state = "state-ok"; text = "Hochgeladen am " + when(up.ts);
-      if (p === "youtube" && up.remote_id) text += ` <small><a href="https://youtu.be/${esc(up.remote_id)}" target="_blank" rel="noopener">Auf YouTube ansehen</a></small>`;
+      if (a.platform === "youtube" && up.remote_id) text += ` <small><a href="https://youtu.be/${esc(up.remote_id)}" target="_blank" rel="noopener">Auf YouTube ansehen</a></small>`;
     } else {
-      text = !account.connected ? "Konto nicht verbunden"
+      text = !a.connected ? "Konto nicht verbunden"
         : up?.status === "failed" ? `<span class="state-bad">Fehlgeschlagen</span><small>${esc(up.error)}</small>` : "Noch nicht hochgeladen";
-      button = `<button class="btn small fill" style="--c:var(--${cls})" data-upload="${p}" ${!account.connected || data.job.running || !clip.exists ? "disabled" : ""}>Auf ${label} hochladen</button>`;
+      button = `<button class="btn small fill" style="--c:var(--${cls})" data-upload="${esc(a.id)}" ${!a.connected || data.job.running || !clip.exists ? "disabled" : ""}>Jetzt hochladen</button>`;
     }
-    return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${label}</td><td class="${state}">${text}</td><td>${button}</td></tr>`;
+    return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${esc(a.label)}<small>${label}</small></td><td class="${state}">${text}</td><td>${button}</td></tr>`;
   }).join("");
 }
 const saveClipTexts = () => api("/api/clips/" + encodeURIComponent(openClipId), { title: $("#clipTitle").value, caption: $("#clipCaption").value });
@@ -628,254 +1251,34 @@ $("#clipTitle").addEventListener("input", e => ($("#titleCount").textContent = e
 $("#clipSave").addEventListener("click", () => act(saveClipTexts, "Texte gespeichert"));
 $("#clipPlatforms").addEventListener("click", e => {
   const b = e.target.closest("[data-upload]"); if (!b) return;
-  act(async () => { await saveClipTexts(); await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { platform: b.dataset.upload }); },
+  act(async () => { await saveClipTexts(); await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { account: b.dataset.upload }); },
     "Upload gestartet. Den Fortschritt siehst du im Protokoll.");
 });
 $("#clipDelete").addEventListener("click", () => {
-  if (!confirm("Diesen Clip samt Videodatei löschen? Bereits hochgeladene Beiträge bleiben auf den Plattformen.")) return;
-  act(async () => { await api(`/api/clips/${encodeURIComponent(openClipId)}/delete`, {}); $("#clipDialog").close(); }, "Clip gelöscht");
+  if (!confirm("Dieses Video samt Datei löschen? Bereits hochgeladene Beiträge bleiben auf den Plattformen.")) return;
+  act(async () => { await api(`/api/clips/${encodeURIComponent(openClipId)}/delete`, {}); $("#clipDialog").close(); }, "Gelöscht");
 });
 $("#clipClose").addEventListener("click", () => $("#clipDialog").close());
 $("#clipDialog").addEventListener("close", () => { const v = $("#clipVideo"); v.pause(); v.removeAttribute("src"); v.removeAttribute("poster"); openClipId = null; });
-
-/* ---------- Kanalsuche ---------- */
-const HINTS = {
-  channels: ["Name eines Kanals, z. B. N3on", "Sucht Kanäle, deren Name zum Begriff passt."],
-  trending: ["Thema, z. B. irl stream oder gaming highlights", "Zeigt die Kanäle, deren Videos zu diesem Thema in den letzten 7 Tagen die meisten Aufrufe hatten."],
-};
-$$(".seg button").forEach(b => b.addEventListener("click", () => {
-  searchMode = b.dataset.mode;
-  $$(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-  $("#searchQuery").placeholder = HINTS[searchMode][0]; $("#searchHint").textContent = HINTS[searchMode][1];
-}));
-function renderSearch() {
-  const box = $("#searchResults");
-  if (searchResults === null) return (box.innerHTML = "");
-  if (!searchResults.length) return (box.innerHTML = `<p class="muted">Nichts gefunden. Versuche einen anderen Begriff.</p>`);
-  const known = new Set(data.channels.map(c => (c.source_url || "").replace(/\/+$/, "").toLowerCase()));
-  box.innerHTML = searchResults.map((r, i) => {
-    const meta = [r.handle, r.subscribers ? compact(r.subscribers) + " Abonnenten" : ""].filter(Boolean).join(", ");
-    const week = r.views ? `${compact(r.views)} Aufrufe mit ${r.videos} ${r.videos === 1 ? "Video" : "Videos"} diese Woche` : "";
-    const exists = known.has(r.url.replace(/\/+$/, "").toLowerCase());
-    return `<div class="result">
-      ${r.thumbnail ? `<img class="avatar" alt="" referrerpolicy="no-referrer" data-name="${esc(r.name)}" src="${esc(r.thumbnail)}">` : `<span class="avatar" style="--c:${colorOf(r.name)}">${esc(r.name[0] || "?")}</span>`}
-      <strong title="${esc(r.name)}">${esc(r.name)}</strong>
-      <small>${esc(week || meta || r.url)}</small>
-      ${r.top_video ? `<small title="${esc(r.top_video.title)}">Meistgesehen: ${esc(r.top_video.title)}</small>` : week && meta ? `<small>${esc(meta)}</small>` : ""}
-      ${exists ? `<span class="state-ok" style="grid-column:2">Bereits angelegt</span>`
-        : `<button type="button" class="btn small fill teal" data-add="${i}">Als Kanal anlegen</button>`}
-    </div>`;
-  }).join("");
-}
-$("#searchForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const query = $("#searchQuery").value.trim();
-  if (!query) return;
-  $("#searchBtn").disabled = true;
-  $("#searchResults").innerHTML = `<p class="muted">Suche auf YouTube läuft, das dauert einige Sekunden.</p>`;
-  try { searchResults = (await api("/api/search", { query, mode: searchMode })).results; renderSearch(); }
-  catch (err) { searchResults = null; $("#searchResults").innerHTML = `<p class="state-bad">${esc(err.message)}</p>`; }
-  finally { $("#searchBtn").disabled = false; }
-});
-$("#searchResults").addEventListener("click", e => {
-  const b = e.target.closest("[data-add]"); if (!b) return;
-  const r = searchResults[Number(b.dataset.add)];
-  const slug = (r.handle || r.name).replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
-  openChannelForm(null, { name: slug, source_url: r.url, display: r.name });
-});
-
-// Laedt ein Kanalbild nicht, erscheint stattdessen der Anfangsbuchstabe.
-document.addEventListener("error", e => {
-  const img = e.target;
-  if (!(img instanceof HTMLImageElement) || !img.classList.contains("avatar")) return;
-  const span = document.createElement("span");
-  span.className = "avatar"; span.style.setProperty("--c", colorOf(img.dataset.name)); span.textContent = (img.dataset.name || "?")[0];
-  img.replaceWith(span);
-}, true);
-
-/* ---------- Kanaele ---------- */
-function renderChannels() {
-  if (changed("searchKnown", data.channels.map(c => c.source_url))) renderSearch();
-  const waiting = p => data.channels.some(c => c.accounts[p].enabled && !c.accounts[p].connected);
-  const notes = [];
-  if (waiting("youtube") && !data.setup.youtube_app) notes.push("YouTube: Im ClipBot-Ordner fehlt die Datei client_secret.json. Du bekommst sie in der Google Cloud Console: Projekt anlegen, „YouTube Data API v3“ aktivieren, OAuth-Client vom Typ „Desktop-App“ erstellen, JSON herunterladen und so benennen.");
-  if (waiting("tiktok") && !data.setup.tiktok_app) notes.push("TikTok: Es fehlen die Zugangsdaten deiner App von developers.tiktok.com. Kopiere .env.example nach .env und trage TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET und TIKTOK_REDIRECT_URI ein.");
-  if (waiting("instagram")) notes.push("Instagram: Trage beim Kanal die Instagram-User-ID und den Namen der Token-Variable ein und hinterlege den Token in der Datei .env.");
-  if (changed("appNote", notes)) {
-    $("#appNote").hidden = !notes.length;
-    $("#appNoteList").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
-  }
-  if (!changed("channels", [data.channels, data.setup])) return;
-  $("#channelList").innerHTML = data.channels.length ? data.channels.map(ch => `
-    <div class="panel channel">
-      <div class="head"><span class="avatar small" style="--c:${colorOf(ch.name)}">${esc(ch.name[0].toUpperCase())}</span>
-        <h3>${esc(ch.name)}</h3>
-        ${ch.kind === "explainer" ? `<span class="muted">Eigene Erklärvideos</span>` : `<a href="${esc(ch.source_url)}" target="_blank" rel="noopener">${esc(ch.source_url)}</a>`}
-        <div class="row"><button class="btn small" data-edit="${esc(ch.name)}">Bearbeiten</button>
-          <button class="btn small danger" data-remove="${esc(ch.name)}">Kanal entfernen</button></div></div>
-      <table class="accounts">${Object.entries(PLATFORMS).map(([p, [label, , cls]]) => {
-        const a = ch.accounts[p];
-        const status = !a.enabled ? `<span class="muted">Nicht eingerichtet</span>`
-          : a.connected ? `<span class="state-ok">Verbunden</span>`
-          : `<span class="state-bad">${p === "instagram" ? "User-ID oder Token fehlt" : data.setup[p + "_app"] ? "Nicht verbunden" : "Eigene App fehlt noch (siehe oben)"}</span>`;
-        const action = !a.enabled ? "" : p === "instagram"
-          ? `<button class="btn small" data-connect="instagram" data-channel="${esc(ch.name)}">Token prüfen</button>`
-          : `<button class="btn small" data-connect="${p}" data-channel="${esc(ch.name)}">${a.connected ? "Neu verbinden" : "Verbinden"}</button>`;
-        return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${label}</td><td>${status}</td><td>${action}</td></tr>`;
-      }).join("")}</table>
-    </div>`).join("")
-    : `<div class="empty"><h3>Noch kein Kanal</h3><p class="muted">Suche oben den YouTube-Kanal, dessen Videos geclippt werden sollen, und lege ihn mit einem Klick an.</p></div>`;
-}
-function openChannelForm(ch, prefill) {
-  const f = $("#channelForm");
-  $("#channelDialogTitle").textContent = ch ? `Kanal ${ch.name} bearbeiten` : prefill ? `${prefill.display} anlegen` : "Kanal anlegen";
-  f.dataset.isNew = ch ? "" : "1";
-  f.name.value = ch?.name || prefill?.name || ""; f.name.readOnly = !!ch;
-  f.source_url.value = ch?.source_url || prefill?.source_url || "";
-  f.kind.value = ch?.kind || prefill?.kind || "clips"; syncKind();
-  f.title_template.value = ch?.title_template ?? "{hook} #shorts";
-  f.caption_template.value = ch?.caption_template ?? "{hook}\n\nClip aus: {video_title}";
-  f.tags.value = (ch?.tags || []).join(", ");
-  f.credit.value = ch?.credit || "";
-  f.caption_language.value = ch?.caption_language || (f.kind.value === "explainer" ? "Deutsch" : "Englisch");
-  for (const p of Object.keys(PLATFORMS)) f[p].checked = ch ? !!ch.upload[p] : true;
-  f.ig_user_id.value = ch?.upload?.instagram?.ig_user_id || "";
-  f.ig_token_env.value = ch?.upload?.instagram?.token_env || "";
-  $("#channelDialog").showModal();
-}
-function syncKind() {
-  const f = $("#channelForm"), explainer = f.kind.value === "explainer";
-  $("#sourceField").hidden = explainer; f.source_url.required = !explainer;
-}
-$("#channelForm").kind.addEventListener("change", syncKind);
-$("#addChannel").addEventListener("click", () => openChannelForm(null));
-$("#channelCancel").addEventListener("click", () => $("#channelDialog").close());
-$("#channelForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const f = e.target;
-  act(async () => {
-    await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, kind: f.kind.value, source_url: f.source_url.value,
-      title_template: f.title_template.value, caption_template: f.caption_template.value, tags: f.tags.value,
-      credit: f.credit.value, caption_language: f.caption_language.value,
-      platforms: { youtube: f.youtube.checked, tiktok: f.tiktok.checked, instagram: f.instagram.checked },
-      ig_user_id: f.ig_user_id.value, ig_token_env: f.ig_token_env.value });
-    $("#channelDialog").close();
-  }, "Kanal gespeichert");
-});
-$("#channelList").addEventListener("click", e => {
-  const t = e.target.closest("button"); if (!t) return;
-  const name = t.dataset.edit || t.dataset.remove || t.dataset.channel;
-  if (t.dataset.edit) openChannelForm(channelOf(name));
-  else if (t.dataset.remove) {
-    if (confirm(`Kanal ${name} entfernen? Fertige Clips und verbundene Konten bleiben auf der Festplatte erhalten.`))
-      act(() => api(`/api/channels/${encodeURIComponent(name)}/delete`, {}), "Kanal entfernt");
-  } else if (t.dataset.connect === "youtube")
-    act(() => api("/api/connect/youtube", { channel: name }), "Die Google-Anmeldung öffnet sich im Browser. Wähle dort den passenden Kanal.");
-  else if (t.dataset.connect === "instagram")
-    act(async () => { const r = await api("/api/connect/instagram", { channel: name }); toast(`Token gültig für @${r.username}`); });
-  else if (t.dataset.connect === "tiktok")
-    act(async () => {
-      const r = await api("/api/connect/tiktok/start", { channel: name });
-      tiktokChannel = name; $("#tiktokLink").href = r.url; $("#tiktokForm").redirected.value = "";
-      window.open(r.url, "_blank", "noopener"); $("#tiktokDialog").showModal();
-    });
-});
-$("#tiktokCancel").addEventListener("click", () => $("#tiktokDialog").close());
-$("#tiktokForm").addEventListener("submit", e => {
-  e.preventDefault();
-  act(async () => {
-    await api("/api/connect/tiktok/finish", { channel: tiktokChannel, redirected: e.target.redirected.value });
-    $("#tiktokDialog").close();
-  }, "TikTok verbunden");
-});
-
-/* ---------- Einstellungen ---------- */
-const SETTINGS = [
-  ["Clips", "violet", [
-    ["videos_per_run", "Neueste Videos je Lauf prüfen", "number"],
-    ["clips_per_video", "Clips je Video", "number"],
-    ["clip_min_seconds", "Mindestlänge in Sekunden", "number"],
-    ["clip_max_seconds", "Höchstlänge in Sekunden", "number"],
-    ["ai_candidates", "Mit KI: so viele Stellen je Video bewerten", "number"],
-    ["skip_start_seconds", "Sekunden am Anfang überspringen", "number"],
-    ["skip_end_seconds", "Sekunden am Ende überspringen", "number"],
-    ["max_video_minutes", "Videos überspringen ab (Minuten)", "number"],
-    ["max_height", "Höchste Auflösung beim Download", "select", { 720: "720p", 1080: "1080p", 1440: "1440p", 2160: "2160p" }],
-    ["keep_source_videos", "Quellvideos nach dem Schneiden behalten", "check"]]],
-  ["Bild", "pink", [
-    ["layout", "Bildaufbau", "select", { blur: "Video mittig, Hintergrund unscharf", crop: "Bildfüllender Ausschnitt" }],
-    ["zoom", "Vergrößerung des Videos (1 = ganzes Bild)", "number", 0.05]]],
-  ["Untertitel", "amber", [
-    ["subtitle_font", "Schriftart", "text"],
-    ["subtitle_size", "Schriftgröße", "number"],
-    ["subtitle_margin_bottom", "Abstand vom unteren Rand", "number"],
-    ["subtitle_words_per_line", "Wörter pro Einblendung", "number"],
-    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"],
-    ["hook_overlay", "Hook-Zeile am Anfang einblenden (mit KI)", "check"]]],
-  ["Spracherkennung", "blue", [
-    ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
-    ["language", "Sprache (leer = automatisch, sonst z. B. en)", "text"]]],
-  ["KI für Texte", "violet", [
-    ["ai_backend", "KI", "select", { off: "Aus (Vorlagen wie bisher)", claude: "Claude (API-Schlüssel in .env)", ollama: "Ollama (lokal, kostenlos)" }],
-    ["ai_claude_model", "Claude-Modell", "text"],
-    ["ai_effort", "Claude-Aufwand", "select", { low: "Niedrig (günstig)", medium: "Mittel", high: "Hoch (gründlich)" }],
-    ["ai_ollama_model", "Ollama-Modell", "text"],
-    ["ai_ollama_url", "Ollama-Adresse", "text"]]],
-  ["Erklärvideos", "blue", [
-    ["voice_backend", "Stimme", "select", { elevenlabs: "ElevenLabs (API-Schlüssel in .env)", stumm: "Stumm (kostenlose Vorschau)" }],
-    ["elevenlabs_voice_id", "ElevenLabs-Stimme (Voice-ID)", "text"],
-    ["elevenlabs_model", "ElevenLabs-Modell", "text"],
-    ["explainer_min_seconds", "Mindestlänge in Sekunden (über 60 für Vergütung)", "number"],
-    ["explainer_max_seconds", "Höchstlänge in Sekunden", "number"],
-    ["explainer_queries", "Suchbegriffe für Trends, durch Komma getrennt", "text"],
-    ["explainer_themes", "Themenfelder deines Kanals", "text"],
-    ["hyperframes_cmd", "Befehl für hyperframes", "text"]]],
-  ["Hochladen", "teal", [
-    ["privacy", "Sichtbarkeit", "select", { public: "Öffentlich", unlisted: "Nicht gelistet (nur YouTube)", private: "Privat" }],
-    ["max_uploads_per_run", "Höchstens Uploads je Lauf und Plattform", "number"],
-    ["youtube_category_id", "YouTube-Kategorie (24 Unterhaltung, 20 Gaming)", "text"],
-    ["instagram_api_version", "Version der Instagram-Schnittstelle", "text"],
-    ["dry_run", "Zeitgesteuerte Läufe über auto.bat laden nichts hoch", "check"]]],
-];
-function renderSettings() {
-  const s = data.settings;
-  $("#settingsFields").innerHTML = SETTINGS.map(([legend, color, fields]) => `<fieldset style="--c:var(--${color})"><legend>${legend}</legend><div class="grid">${
-    fields.map(([key, label, type, extra]) => type === "check"
-      ? `<label class="check"><input type="checkbox" name="${key}" ${s[key] ? "checked" : ""}> ${label}</label>`
-      : type === "select"
-      ? `<label class="field"><span>${label}</span><select name="${key}">${Object.entries(extra).map(([v, l]) =>
-          `<option value="${esc(v)}" ${String(s[key]) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`
-      : `<label class="field"><span>${label}</span><input type="${type}" name="${key}" value="${esc(s[key] ?? "")}" ${type === "number" ? `min="0" step="${extra || 1}"` : ""}></label>`
-    ).join("")}</div></fieldset>`).join("");
-}
-$("#aiTest").addEventListener("click", async () => {
-  toast("KI wird gefragt …");
-  try { const r = await api("/api/ai/test", {}); toast("KI antwortet: " + r.message); }
-  catch (err) { toast(err.message, true); }
-});
-$("#settingsForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const payload = {};
-  for (const [, , fields] of SETTINGS) for (const [key, , type] of fields) {
-    const el = e.target.elements[key];
-    payload[key] = type === "check" ? el.checked : type === "number" ? Number(el.value) : el.value;
-  }
-  payload.max_height = Number(payload.max_height);
-  act(() => api("/api/settings", payload), "Einstellungen gespeichert");
-});
 
 /* ---------- Freigabe ---------- */
 const reviewTab = {};      // clip_id -> gewaehlte Plattform
 const reviewDraft = {};    // clip_id -> {plattform: {title, caption}} (ungespeicherte Aenderungen)
 function clipTexts(clip) {
   const base = {};
-  for (const p of Object.keys(PLATFORMS)) base[p] = { title: clip.texts?.[p]?.title || clip.title, caption: clip.texts?.[p]?.caption || clip.caption };
+  for (const p of Object.keys(UP)) base[p] = { title: clip.texts?.[p]?.title || clip.title, caption: clip.texts?.[p]?.caption || clip.caption };
   return { ...base, ...(reviewDraft[clip.clip_id] || {}) };
 }
+function reviewPlatforms(clip) {  // nur Plattformen, auf die der Kanal hochlaedt
+  const own = Object.keys(UP).filter(p => accountsFor(clip).some(a => a.platform === p));
+  return own.length ? own : ["tiktok", "youtube"];
+}
 function reviewEditor(clip) {
-  const p = reviewTab[clip.clip_id] || "tiktok", t = clipTexts(clip)[p];
-  const tabs = Object.entries(PLATFORMS).map(([key, [label, , cls]]) =>
-    `<button type="button" class="${cls}" data-ptab="${key}" aria-pressed="${key === p}">${label}</button>`).join("");
+  const platforms = reviewPlatforms(clip);
+  const p = platforms.includes(reviewTab[clip.clip_id]) ? reviewTab[clip.clip_id] : platforms.includes("tiktok") ? "tiktok" : platforms[0];
+  reviewTab[clip.clip_id] = p;
+  const t = clipTexts(clip)[p];
+  const tabs = platforms.map(key => `<button type="button" class="${UP[key][2]}" data-ptab="${key}" aria-pressed="${key === p}">${UP[key][0]}</button>`).join("");
   return `<div class="ptabs">${tabs}</div>
     <label class="field"><span>Titel (<span class="num">${t.title.length}</span> von 100 Zeichen${p === "youtube" ? "" : ", nur YouTube zeigt ihn"})</span>
       <input type="text" maxlength="100" data-field="title" value="${esc(t.title)}"></label>
@@ -886,34 +1289,38 @@ function renderReview() {
   fillChannelSelect($("#reviewChannel"), "Alle Kanäle");
   const channel = $("#reviewChannel").value;
   const list = data.clips.filter(c => c.review === "wartet" && (!channel || c.channel === channel));
-  // Nicht neu zeichnen, solange jemand tippt oder ein Video läuft.
+  // Nicht neu zeichnen, solange jemand tippt oder ein Video laeuft.
   if (document.activeElement?.closest?.("#reviewList") || [...$$("#reviewList video")].some(v => !v.paused)) return;
-  if (!changed("review", [list.map(c => [c.clip_id, c.title, c.caption, c.texts, c.exists]), channel, data.job.running, reviewTab])) return;
+  if (!changed("review", [list.map(c => [c.clip_id, c.title, c.caption, c.texts, c.exists, accountsFor(c).map(a => [a.id, a.connected])]), channel, data.job.running, reviewTab])) return;
   if (!list.length) {
-    $("#reviewList").innerHTML = `<div class="empty"><h3>Nichts zu prüfen</h3><p class="muted">Neue Clips erscheinen hier, sobald ein Lauf sie erzeugt hat.</p></div>`;
+    $("#reviewList").innerHTML = `<div class="empty"><h3>Nichts zu prüfen</h3><p class="muted">Neue Clips und Best-ofs erscheinen hier, sobald sie fertig sind.</p></div>`;
     return;
   }
-  $("#reviewList").innerHTML = list.map(c => `<article class="panel review-card" data-review="${esc(c.clip_id)}">
+  $("#reviewList").innerHTML = list.map(c => {
+    const ready = accountsFor(c).some(a => a.connected);
+    return `<article class="panel review-card" data-review="${esc(c.clip_id)}">
     <video controls playsinline preload="none" ${c.exists ? `src="/media/${encodeURIComponent(c.clip_id)}" poster="/thumb/${encodeURIComponent(c.clip_id)}"` : ""}></video>
     <div class="stack">
-      <div class="row"><span class="tag" style="--c:${colorOf(c.channel)}">${esc(c.channel)}</span>
-        <span class="muted num">${timecode(c.start)} bis ${timecode(c.end)}, ${Math.round(c.end - c.start)} s</span></div>
-      ${c.hook ? `<div><span class="muted">Hook im Video:</span> <span class="hook">${esc(c.hook)}</span></div>` : ""}
+      <div class="row"><span class="tag" style="--c:${colorOf(c.channel)}">${esc(isLocal(c.channel) ? "Ohne Kanal" : c.channel)}</span>
+        ${kindLabel(c) ? `<span class="tag" style="--c:var(--amber)">${kindLabel(c)}</span>` : ""}
+        ${c.creator ? `<span class="tag" style="--c:var(--cyan)">${esc(c.creator)}</span>` : ""}
+        <span class="muted num">${c.kind === "clip" ? `${timecode(c.start)} bis ${timecode(c.end)}, ` : ""}${Math.round(c.end - c.start)} s</span></div>
+      ${c.hook ? `<div><span class="muted">Zeile oben im Video:</span> <span class="hook">${esc(c.hook)}</span></div>` : ""}
       ${c.reason ? `<p class="why">KI: ${esc(c.reason)}</p>` : ""}
       <div class="stack editor-box">${reviewEditor(c)}</div>
       <div class="row">
-        <button class="btn fill" style="--c:var(--green)" data-act="approve">Freigeben</button>
-        ${isLocal(c.channel) ? "" : `<button class="btn fill teal" data-act="approve-upload" ${data.job.running ? "disabled" : ""}>Freigeben und hochladen</button>`}
+        <button class="btn fill green" data-act="approve">Freigeben</button>
+        ${isLocal(c.channel) ? "" : `<button class="btn fill teal" data-act="approve-upload" ${data.job.running || !ready ? "disabled" : ""} title="${ready ? "Lädt sofort hoch, ohne auf die Upload-Zeiten zu warten" : "Dem Kanal fehlt ein verbundenes Konto"}">Freigeben und sofort hochladen</button>`}
         ${data.settings.ai_backend !== "off" ? `<button class="btn" data-act="retext">Neu texten (KI)</button>` : ""}
         <button class="btn danger push" data-act="reject">Verwerfen</button>
       </div>
-    </div></article>`).join("");
+    </div></article>`; }).join("");
 }
 $("#reviewChannel").addEventListener("change", () => { lastSig.review = null; renderReview(); });
 $("#reviewList").addEventListener("input", e => {
   const card = e.target.closest("[data-review]"), field = e.target.dataset.field;
   if (!card || !field) return;
-  const id = card.dataset.review, p = reviewTab[id] || "tiktok";
+  const id = card.dataset.review, p = reviewTab[id];
   const clip = data.clips.find(c => c.clip_id === id);
   reviewDraft[id] = reviewDraft[id] || {};
   reviewDraft[id][p] = { ...clipTexts(clip)[p], [field]: e.target.value };
@@ -934,7 +1341,9 @@ $("#reviewList").addEventListener("click", e => {
     if (reviewDraft[id]) { await api(url + "/texts", { platforms: clipTexts(clip) }); delete reviewDraft[id]; }
   };
   const done = () => { lastSig.review = null; document.activeElement?.blur?.(); };
-  if (b.dataset.act === "approve") act(async () => { await saveDraft(); await api(url + "/review", { action: "approve" }); done(); }, "Freigegeben");
+  const timed = accountsFor(clip).some(a => a.next_slot);
+  if (b.dataset.act === "approve") act(async () => { await saveDraft(); await api(url + "/review", { action: "approve" }); done(); },
+    timed && data.auto.enabled ? "Freigegeben. Die Automatik lädt das Video zur nächsten Upload-Zeit hoch." : "Freigegeben");
   if (b.dataset.act === "approve-upload") act(async () => {
     await saveDraft(); await api(url + "/review", { action: "approve" });
     await api("/api/run", { mode: "upload", channel: clip.channel }); done();
@@ -944,7 +1353,7 @@ $("#reviewList").addEventListener("click", e => {
     act(async () => { delete reviewDraft[id]; await api(url + "/retext", {}); done(); }, "Neue Texte da");
   }
   if (b.dataset.act === "reject") act(async () => { delete reviewDraft[id]; await api(url + "/review", { action: "reject" }); done(); },
-    "Verworfen. Der Clip bleibt unter „Clips“ und wird nicht hochgeladen.");
+    "Verworfen. Das Video bleibt unter „Clips“ und wird nicht hochgeladen.");
 });
 
 /* ---------- Erklaervideos ---------- */
@@ -983,7 +1392,8 @@ $("#trendForm").addEventListener("submit", async e => {
   e.preventDefault();
   $("#trendBtn").disabled = true;
   $("#trendResults").innerHTML = `<p class="muted">Suche auf YouTube läuft und die KI denkt sich Themen aus, das dauert bis zu einer Minute.</p>`;
-  try { trendData = await api("/api/explainer/trends", { query: $("#trendQuery").value.trim() }); renderTrends(); }
+  const language = channelOf($("#explainChannel").value)?.language || "de";
+  try { trendData = await api("/api/explainer/trends", { query: $("#trendQuery").value.trim(), language }); renderTrends(); }
   catch (err) { $("#trendResults").innerHTML = `<p class="state-bad">${esc(err.message)}</p>`; }
   finally { $("#trendBtn").disabled = false; }
 });
@@ -1002,36 +1412,444 @@ $("#explainForm").addEventListener("submit", e => {
   }, channel ? "Erklärvideo wird erstellt. Den Fortschritt siehst du im Protokoll unter „Übersicht“."
     : "Erklärvideo wird ohne Kanal erstellt und nur lokal gespeichert. Fortschritt im Protokoll unter „Übersicht“.");
 });
-$("#explainAddChannel").addEventListener("click", () => openChannelForm(null, { name: "wissen", kind: "explainer", display: "Erklärvideo-Kanal" }));
+$("#explainAddChannel").addEventListener("click", () => openChannelForm(null, { name: "wissen", kind: "explainer" }));
+
+/* ---------- Watchlist ---------- */
+const sameUrl = u => String(u || "").replace(/\/+$/, "").toLowerCase();
+const avatar = (name, color, cls = "") => `<span class="avatar ${cls}" style="--c:${color || colorOf(name)}">${esc((name || "?")[0].toUpperCase())}</span>`;
+function creatorStatus(c) {  // die wichtigste Zeile der Karte
+  if (c.live) return `<a href="${esc(c.live_url || c.url)}" target="_blank" rel="noopener" title="${esc(c.live_title)}">${esc(c.live_title || "Stream läuft")}</a>`;
+  const vids = data.videos.filter(v => v.creator === c.id);
+  const one = st => vids.find(v => v.status === st);
+  const queued = vids.filter(v => v.status === "queued").length;
+  if (queued) return `<span class="state-warn">${plural(queued, "Video wartet", "Videos warten")} aufs Clippen</span>`;
+  if (one("processing")) return `<span class="muted">Stream vorbei, YouTube verarbeitet die Aufzeichnung</span>`;
+  if (one("upcoming")) return `<span class="muted">Stream angekündigt:</span> ${esc(one("upcoming").title)}`;
+  if (c.last_title) return `<span class="muted">Neuestes Video${c.last_ts ? " " + ago(c.last_ts) : ""}:</span> <a href="${esc(c.last_url || c.url)}" target="_blank" rel="noopener" title="${esc(c.last_title)}">${esc(c.last_title)}</a>`;
+  return `<span class="muted">${c.last_check ? "Noch nichts Neues" : "Wird gleich zum ersten Mal geprüft"}</span>`;
+}
+function renderWatchlist() {
+  const names = clipChannels().map(c => c.name);
+  if (changed("addPicker", names)) {
+    const keep = picked($("#creatorAddChannels"));
+    fillPicker($("#creatorAddChannels"), names.map(n => ({ value: n, label: n })), keep.length || names.length !== 1 ? keep : names);
+  }
+  $("#watchInfo").textContent = !data.creators.length ? "" : data.auto.watching ? "Prüfung läuft …"
+    : data.auto.last_watch ? `Geprüft ${ago(data.auto.last_watch)}` : "";
+  if (changed("searchKnown", data.creators.map(c => c.url))) renderSearch();
+
+  const filter = $("#watchFilter").value.trim().toLowerCase(), onlyLive = $("#watchOnlyLive").checked;
+  const list = data.creators.filter(c => (!onlyLive || c.live) && (!filter || (c.name + " " + c.url).toLowerCase().includes(filter)))
+    .sort((a, b) => (b.live - a.live) || ((b.last_ts || 0) - (a.last_ts || 0)) || a.name.localeCompare(b.name));
+  const waitingSig = data.videos.filter(v => ["queued", "processing", "upcoming"].includes(v.status)).map(v => [v.video_id, v.status]);
+  if (!changed("creators", [list, waitingSig, data.auto.moments, Math.floor(Date.now() / 60000)])) return;
+  if (!list.length) {
+    $("#creatorList").innerHTML = data.creators.length
+      ? `<div class="empty"><h3>${onlyLive && !filter ? "Gerade ist niemand live" : "Kein Creator passt zum Filter"}</h3><p class="muted">Ändere die Auswahl über der Liste.</p></div>`
+      : `<div class="empty"><h3>Die Watchlist ist leer</h3><p class="muted">Füge oben Adressen ein oder suche rechts auf YouTube. Du kannst viele Creator auf einmal eintragen, eine Adresse je Zeile.</p></div>`;
+    return;
+  }
+  $("#creatorList").innerHTML = list.map(c => {
+    const [label, cls] = SRC[c.platform] || SRC.other, moments = data.auto.moments[c.id] || 0;
+    const clipsNote = c.platform === "youtube" || c.platform === "twitch" ? "" : "Bei dieser Seite gibt es nur den Live-Reminder, geclippt wird von YouTube und Twitch.";
+    return `<div class="card ${c.live ? "is-live" : ""}" data-creator="${esc(c.id)}">
+      <div class="head">${avatar(c.name, `var(--${cls})`)}
+        <strong title="${esc(c.name)}">${esc(c.name)}</strong>
+        <span class="side-tag">${c.live ? `<span class="livebadge">LIVE</span>` : platformChip(c.platform, label)}</span>
+        <small><a href="${esc(c.url)}" target="_blank" rel="noopener" class="muted">${esc(c.url.replace(/^https:\/\/(www\.)?/, ""))}</a></small></div>
+      <div class="line">${creatorStatus(c)}</div>
+      <div class="chips">${c.channels.length ? c.channels.map(n => `<span class="chip" style="--c:${colorOf(n)}">${esc(n)}</span>`).join("") : `<span class="chip" style="--c:var(--faint)">Nur Reminder, kein Kanal</span>`}
+        ${moments ? `<span class="chip" style="--c:var(--amber)">${plural(moments, "Best-of-Moment", "Best-of-Momente")}</span>` : ""}</div>
+      ${c.error ? `<small class="state-warn" title="${esc(c.error)}">Letzte Prüfung fehlgeschlagen. ClipBot versucht es weiter.</small>` : ""}
+      ${clipsNote ? `<small class="muted">${clipsNote}</small>` : ""}
+      <div class="foot">
+        <button class="toggle" data-toggle="notify" aria-pressed="${c.notify}" title="Reminder, wenn ${esc(c.name)} live geht oder ein Video hochlädt">Reminder</button>
+        <button class="toggle" data-toggle="auto_clip" aria-pressed="${c.auto_clip}" style="--c:var(--cyan)" title="Neue Videos und beendete Streams automatisch clippen">Auto-Clip</button>
+        <button class="btn small push" data-edit>Bearbeiten</button>
+      </div></div>`;
+  }).join("");
+}
+$("#watchFilter").addEventListener("input", renderWatchlist);
+$("#watchOnlyLive").addEventListener("change", renderWatchlist);
+$("#watchCheck").addEventListener("click", () => act(() => api("/api/watch/check", {}), "Die Watchlist wird jetzt geprüft."));
+$("#creatorAddForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  act(async () => {
+    const r = await api("/api/creators", { urls: f.urls.value, channels: picked($("#creatorAddChannels")), notify: f.notify.checked, auto_clip: f.auto_clip.checked });
+    f.urls.value = "";
+    toast(`${plural(r.added, "Creator", "Creator")} hinzugefügt` + (r.skipped ? `, ${r.skipped} ${r.skipped === 1 ? "war" : "waren"} schon auf der Liste` : "") + ".");
+  });
+});
+$("#creatorList").addEventListener("click", e => {
+  const card = e.target.closest("[data-creator]"); if (!card) return;
+  const c = creatorOf(card.dataset.creator); if (!c) return;
+  const toggle = e.target.closest("[data-toggle]");
+  if (toggle) return act(() => api(`/api/creators/${encodeURIComponent(c.id)}`, { [toggle.dataset.toggle]: toggle.getAttribute("aria-pressed") !== "true" }));
+  if (e.target.closest("[data-edit]")) {
+    editCreatorId = c.id;
+    const f = $("#creatorForm");
+    $("#creatorDialogTitle").textContent = `${c.name} bearbeiten`;
+    f.name.value = c.name;
+    fillPicker($("#creatorChannels"), clipChannels().map(ch => ({ value: ch.name, label: ch.name })), c.channels);
+    $("#creatorDialog").showModal();
+  }
+});
+$("#creatorCancel").addEventListener("click", () => $("#creatorDialog").close());
+$("#creatorForm").addEventListener("submit", e => {
+  e.preventDefault();
+  act(async () => {
+    await api(`/api/creators/${encodeURIComponent(editCreatorId)}`, { name: e.target.name.value, channels: picked($("#creatorChannels")) });
+    $("#creatorDialog").close();
+  }, "Gespeichert");
+});
+$("#creatorRemove").addEventListener("click", () => {
+  const c = creatorOf(editCreatorId);
+  if (!c || !confirm(`${c.name} von der Watchlist entfernen? Fertige Clips bleiben erhalten.`)) return;
+  act(async () => { await api(`/api/creators/${encodeURIComponent(c.id)}/delete`, {}); $("#creatorDialog").close(); }, "Entfernt");
+});
+
+/* ---------- Suche auf YouTube ---------- */
+const HINTS = {
+  channels: ["Name eines Kanals, z. B. N3on", "Sucht Kanäle, deren Name zum Begriff passt."],
+  trending: ["Thema, z. B. irl stream oder gaming highlights", "Zeigt die Kanäle, deren Videos zu diesem Thema in den letzten 7 Tagen die meisten Aufrufe hatten."],
+};
+$$(".seg button").forEach(b => b.addEventListener("click", () => {
+  searchMode = b.dataset.mode;
+  $$(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#searchQuery").placeholder = HINTS[searchMode][0]; $("#searchHint").textContent = HINTS[searchMode][1];
+}));
+function renderSearch() {
+  const box = $("#searchResults");
+  if (searchResults === null) return (box.innerHTML = "");
+  if (!searchResults.length) return (box.innerHTML = `<p class="muted">Nichts gefunden. Versuche einen anderen Begriff.</p>`);
+  const known = new Set(data.creators.map(c => sameUrl(c.url)));
+  box.innerHTML = searchResults.map((r, i) => {
+    const meta = [r.handle, r.subscribers ? compact(r.subscribers) + " Abonnenten" : ""].filter(Boolean).join(", ");
+    const week = r.views ? `${compact(r.views)} Aufrufe mit ${plural(r.videos, "Video", "Videos")} diese Woche` : "";
+    return `<div class="result">
+      ${r.thumbnail ? `<img class="avatar" alt="" referrerpolicy="no-referrer" data-name="${esc(r.name)}" src="${esc(r.thumbnail)}">` : avatar(r.name)}
+      <strong title="${esc(r.name)}">${esc(r.name)}</strong>
+      <small>${esc(week || meta || r.url)}</small>
+      ${r.top_video ? `<small title="${esc(r.top_video.title)}">Meistgesehen: ${esc(r.top_video.title)}</small>` : week && meta ? `<small>${esc(meta)}</small>` : ""}
+      ${known.has(sameUrl(r.url)) ? `<span class="state-ok">Auf der Watchlist</span>`
+        : `<button type="button" class="btn small fill cyan" data-add="${i}">Auf die Watchlist</button>`}
+    </div>`;
+  }).join("");
+}
+$("#searchForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const query = $("#searchQuery").value.trim();
+  if (!query) return;
+  $("#searchBtn").disabled = true;
+  $("#searchResults").innerHTML = `<p class="muted">Suche auf YouTube läuft, das dauert einige Sekunden.</p>`;
+  try { searchResults = (await api("/api/search", { query, mode: searchMode })).results; renderSearch(); }
+  catch (err) { searchResults = null; $("#searchResults").innerHTML = `<p class="state-bad">${esc(err.message)}</p>`; }
+  finally { $("#searchBtn").disabled = false; }
+});
+$("#searchResults").addEventListener("click", e => {
+  const b = e.target.closest("[data-add]"); if (!b) return;
+  const r = searchResults[Number(b.dataset.add)];
+  act(() => api("/api/creators", { urls: r.url, name: r.name, channels: picked($("#creatorAddChannels")), notify: true, auto_clip: true }),
+    `${r.name} steht jetzt auf der Watchlist.`);
+});
+// Laedt ein Kanalbild nicht, erscheint stattdessen der Anfangsbuchstabe.
+document.addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains("avatar")) return;
+  const span = document.createElement("span");
+  span.className = "avatar"; span.style.setProperty("--c", colorOf(img.dataset.name)); span.textContent = (img.dataset.name || "?")[0];
+  img.replaceWith(span);
+}, true);
+
+/* ---------- Konten ---------- */
+function renderAccounts() {
+  const missing = p => data.accounts.some(a => a.platform === p && !a.connected);
+  const notes = [];
+  if (missing("youtube") && !data.setup.youtube_app) notes.push("YouTube: Im ClipBot-Ordner fehlt die Datei client_secret.json. Du bekommst sie in der Google Cloud Console: Projekt anlegen, „YouTube Data API v3“ aktivieren, OAuth-Client vom Typ „Desktop-App“ erstellen, JSON herunterladen und so benennen. Eine App reicht für alle deine YouTube-Konten.");
+  if (missing("tiktok") && !data.setup.tiktok_app) notes.push("TikTok: Es fehlen die Zugangsdaten deiner App von developers.tiktok.com. Kopiere .env.example nach .env und trage TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET und TIKTOK_REDIRECT_URI ein. Eine App reicht für alle deine TikTok-Konten.");
+  if (missing("instagram")) notes.push("Instagram: Trage beim Konto die Instagram-User-ID und den Namen der Token-Variable ein und hinterlege den Token in der Datei .env.");
+  if (changed("appNote", notes)) {
+    $("#appNote").hidden = !notes.length;
+    $("#appNoteList").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
+  }
+  const general = data.settings.upload_times;
+  $("#timesNote").textContent = general ? `Allgemeine Upload-Zeiten: ${general}. Du änderst sie unter „Einstellungen“, eigene Zeiten je Konto über „Bearbeiten“.`
+    : "Es sind noch keine allgemeinen Upload-Zeiten eingestellt. Trage sie unter „Einstellungen“ bei „Automatik und Zeitplan“ ein oder gib einzelnen Konten eigene Zeiten.";
+  if (!changed("accounts", [data.accounts, data.setup, data.job.running, Math.floor(Date.now() / 60000)])) return;
+  $("#accountList").innerHTML = data.accounts.length ? data.accounts.map(a => {
+    const [label, short, cls] = UP[a.platform];
+    const status = a.connected ? `<span class="state-ok">Verbunden</span>`
+      : `<span class="state-bad">${a.platform === "instagram" ? "User-ID oder Token fehlt" : data.setup[a.platform + "_app"] ? "Nicht verbunden" : "Eigene App fehlt noch"}</span>`;
+    const connect = a.platform === "instagram" ? "Token prüfen" : a.connected ? "Neu verbinden" : "Verbinden";
+    const facts = [
+      ["Upload-Zeiten", a.effective_times ? a.effective_times + (a.times ? " (eigene)" : "") : "Keine eingestellt"],
+      ["Nächster Upload", !a.next_slot ? "–" : a.queue ? clock(a.next_slot) : `${clock(a.next_slot)}, wenn etwas freigegeben ist`],
+      ["Warteschlange", a.queue ? plural(a.queue, "freigegebenes Video", "freigegebene Videos") : "Leer"],
+      ["Letzter Upload", a.last_ts ? when(a.last_ts) : "Noch keiner"],
+    ];
+    return `<div class="card" data-account="${esc(a.id)}">
+      <div class="head"><span class="avatar" style="--c:var(--${cls}); font-size:0.9375rem">${short}</span>
+        <strong title="${esc(a.label)}">${esc(a.label)}</strong><span class="side-tag">${status}</span><small>${label}</small></div>
+      <dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+      <div class="chips">${a.channels.length ? a.channels.map(n => `<span class="chip" style="--c:${colorOf(n)}">${esc(n)}</span>`).join("")
+        : `<span class="chip" style="--c:var(--faint)">Noch keinem Kanal zugeordnet</span>`}</div>
+      <div class="foot">
+        <button class="btn small ${a.connected ? "" : "fill"}" style="--c:var(--${cls})" data-connect="${a.platform}">${connect}</button>
+        <button class="btn small" data-edit>Bearbeiten</button>
+        <button class="btn small danger push" data-remove>Entfernen</button>
+      </div></div>`;
+  }).join("") : `<div class="empty"><h3>Noch kein Konto</h3><p class="muted">Lege für jeden deiner YouTube- und TikTok-Accounts ein Konto an. Danach verbindest du es einmal und ordnest es einem Kanal zu.</p></div>`;
+}
+function openAccountForm(a) {
+  const f = $("#accountForm");
+  editAccountId = a?.id || null;
+  $("#accountDialogTitle").textContent = a ? `Konto ${a.label} bearbeiten` : "Konto hinzufügen";
+  f.platform.value = a?.platform || "youtube"; f.platform.disabled = !!a;
+  f.label.value = a?.label || ""; f.times.value = a?.times || "";
+  f.ig_user_id.value = a?.ig_user_id || ""; f.ig_token_env.value = a?.ig_token_env || "";
+  $("#igFields").hidden = f.platform.value !== "instagram";
+  fillPicker($("#accountChannels"), data.channels.map(c => ({ value: c.name, label: c.name, hint: c.kind === "explainer" ? "Erklärvideos" : "" })),
+    a ? a.channels : data.channels.length === 1 ? [data.channels[0].name] : []);
+  $("#accountDialog").showModal();
+}
+$("#accountForm").platform.addEventListener("change", e => ($("#igFields").hidden = e.target.value !== "instagram"));
+$("#addAccount").addEventListener("click", () => openAccountForm(null));
+$("#accountCancel").addEventListener("click", () => $("#accountDialog").close());
+$("#accountForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, isNew = !editAccountId;
+  act(async () => {
+    await api("/api/accounts", { id: editAccountId, platform: f.platform.value, label: f.label.value, times: f.times.value,
+      ig_user_id: f.ig_user_id.value, ig_token_env: f.ig_token_env.value, channels: picked($("#accountChannels")) });
+    $("#accountDialog").close();
+  }, isNew && f.platform.value !== "instagram" ? "Konto gespeichert. Klicke jetzt bei dem Konto auf „Verbinden“." : "Konto gespeichert");
+});
+$("#accountList").addEventListener("click", e => {
+  const card = e.target.closest("[data-account]"), t = e.target.closest("button"); if (!card || !t) return;
+  const a = accountOf(card.dataset.account); if (!a) return;
+  if (t.dataset.edit !== undefined) openAccountForm(a);
+  else if (t.dataset.remove !== undefined) {
+    if (confirm(`Das Konto ${a.label} entfernen? Auf der Plattform selbst ändert sich nichts.`))
+      act(() => api(`/api/accounts/${encodeURIComponent(a.id)}/delete`, {}), "Konto entfernt");
+  } else if (t.dataset.connect === "youtube")
+    act(() => api("/api/connect/youtube", { account: a.id }), `Die Google-Anmeldung öffnet sich im Browser. Wähle dort den YouTube-Kanal für „${a.label}“.`);
+  else if (t.dataset.connect === "instagram")
+    act(async () => { const r = await api("/api/connect/instagram", { account: a.id }); toast(`Token gültig für @${r.username}`); });
+  else if (t.dataset.connect === "tiktok")
+    act(async () => {
+      const r = await api("/api/connect/tiktok/start", { account: a.id });
+      tiktokAccount = a.id; $("#tiktokLink").href = r.url; $("#tiktokForm").redirected.value = "";
+      window.open(r.url, "_blank", "noopener"); $("#tiktokDialog").showModal();
+    });
+});
+$("#tiktokCancel").addEventListener("click", () => $("#tiktokDialog").close());
+$("#tiktokForm").addEventListener("submit", e => {
+  e.preventDefault();
+  act(async () => {
+    await api("/api/connect/tiktok/finish", { account: tiktokAccount, redirected: e.target.redirected.value });
+    $("#tiktokDialog").close();
+  }, "TikTok verbunden");
+});
+
+/* ---------- Kanaele ---------- */
+function renderChannels() {
+  if (!changed("channels", [data.channels, data.accounts.map(a => [a.id, a.label, a.connected]), data.creators.map(c => [c.id, c.name]), data.languages, data.job.running])) return;
+  $("#channelList").innerHTML = data.channels.length ? data.channels.map(ch => {
+    const clips = (ch.kind || "clips") === "clips";
+    const makes = !clips ? "" : [ch.clips !== false ? "Clips aus jedem Video" : "", ch.bestof === "daily" ? "ein tägliches Best-of" : ch.bestof === "weekly" ? "ein wöchentliches Best-of" : ""]
+      .filter(Boolean).join(" und ") || "im Moment nichts";
+    const creators = (ch.creators || []).map(creatorOf).filter(Boolean), accounts = (ch.accounts || []).map(accountOf).filter(Boolean);
+    const several = Object.keys(UP).some(p => accounts.filter(a => a.platform === p).length > 1);
+    return `<div class="card" data-channel="${esc(ch.name)}">
+      <div class="head">${avatar(ch.name, null, "small")}
+        <strong title="${esc(ch.name)}">${esc(ch.name)}</strong>
+        <span class="side-tag chip" style="--c:var(--blue)">${esc(data.languages[ch.language] || ch.language || "")}</span>
+        <small>${clips ? "Clips aus Videos und Streams" : "Eigene Erklärvideos"}</small></div>
+      ${clips ? `<div class="makes">Erzeugt ${esc(makes)}.</div>
+      <div><small class="muted">Creator</small><div class="chips" style="margin-top:5px">${creators.length
+        ? creators.map(c => platformChip(c.platform, c.name)).join("") : `<span class="chip" style="--c:var(--faint)">Noch keiner</span>`}</div></div>` : ""}
+      <div><small class="muted">Lädt hoch auf${several ? (ch.distribute === "abwechselnd" ? " (Clips abwechselnd verteilt)" : " (jedes Konto bekommt jeden Clip)") : ""}</small>
+        <div class="chips" style="margin-top:5px">${accounts.length
+        ? accounts.map(a => platformChip(a.platform, `${UP[a.platform][1]} ${a.label}${a.connected ? "" : " (nicht verbunden)"}`)).join("") : `<span class="chip" style="--c:var(--faint)">Noch kein Konto</span>`}</div></div>
+      <div class="foot">
+        <button class="btn small" data-edit>Bearbeiten</button>
+        ${clips ? `<button class="btn small amber" data-bestof ${data.job.running ? "disabled" : ""}>Best-of bauen</button>` : ""}
+        <button class="btn small danger push" data-remove>Entfernen</button>
+      </div></div>`;
+  }).join("") : `<div class="empty"><h3>Noch kein Kanal</h3><p class="muted">Ein Kanal ist dein Thema, zum Beispiel „deutsche Streamer“. Du wählst, aus welchen Creatorn geclippt wird, in welcher Sprache die Texte sind und auf welche Konten hochgeladen wird.</p></div>`;
+}
+function openChannelForm(ch, prefill) {
+  const f = $("#channelForm");
+  $("#channelDialogTitle").textContent = ch ? `Kanal ${ch.name} bearbeiten` : "Kanal anlegen";
+  f.dataset.isNew = ch ? "" : "1";
+  f.name.value = ch?.name || prefill?.name || ""; f.name.readOnly = !!ch;
+  f.kind.value = ch?.kind || prefill?.kind || "clips";
+  f.language.innerHTML = Object.entries(data.languages).map(([code, label]) => `<option value="${esc(code)}">${esc(label)}</option>`).join("");
+  f.language.value = ch?.language || "de";
+  f.distribute.value = ch?.distribute || "alle";
+  f.clips.checked = ch ? ch.clips !== false : true;
+  f.bestof.value = ch?.bestof || "off";
+  f.title_template.value = ch?.title_template ?? "{hook} #shorts";
+  f.caption_template.value = ch?.caption_template ?? "{hook}";
+  f.tags.value = (ch?.tags || []).join(", ");
+  f.credit.value = ch?.credit || "";
+  fillPicker($("#channelCreators"), data.creators.map(c => ({ value: c.id, label: c.name, hint: (SRC[c.platform] || SRC.other)[0] })), ch?.creators || []);
+  fillPicker($("#channelAccounts"), data.accounts.map(a => ({ value: a.id, label: a.label, hint: UP[a.platform][0] })), ch?.accounts || []);
+  $("#clipOptions").hidden = f.kind.value === "explainer";
+  $("#channelDialog").showModal();
+}
+$("#channelForm").kind.addEventListener("change", e => ($("#clipOptions").hidden = e.target.value === "explainer"));
+$("#addChannel").addEventListener("click", () => openChannelForm(null));
+$("#channelCancel").addEventListener("click", () => $("#channelDialog").close());
+$("#channelForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  act(async () => {
+    await api("/api/channels", { is_new: !!f.dataset.isNew, name: f.name.value, kind: f.kind.value, language: f.language.value,
+      distribute: f.distribute.value, clips: f.clips.checked, bestof: f.bestof.value,
+      creators: picked($("#channelCreators")), accounts: picked($("#channelAccounts")),
+      title_template: f.title_template.value, caption_template: f.caption_template.value, tags: f.tags.value, credit: f.credit.value });
+    $("#channelDialog").close();
+  }, "Kanal gespeichert");
+});
+$("#channelList").addEventListener("click", e => {
+  const card = e.target.closest("[data-channel]"), t = e.target.closest("button"); if (!card || !t) return;
+  const name = card.dataset.channel;
+  if (t.dataset.edit !== undefined) openChannelForm(channelOf(name));
+  else if (t.dataset.bestof !== undefined) startBestof(name);
+  else if (t.dataset.remove !== undefined && confirm(`Kanal ${name} entfernen? Fertige Clips, Creator und Konten bleiben erhalten.`))
+    act(() => api(`/api/channels/${encodeURIComponent(name)}/delete`, {}), "Kanal entfernt");
+});
+
+/* ---------- Einstellungen ---------- */
+const SETTINGS = [
+  ["Automatik und Zeitplan", "green", [
+    ["autopilot", "Automatik einschalten", "check"],
+    ["upload_times", "Upload-Zeiten, durch Komma getrennt (z. B. 12:00, 17:30, 20:00)", "text"],
+    ["upload_grace_minutes", "Verpasste Uhrzeit nachholen bis (Minuten)", "number"],
+    ["watch_interval_minutes", "Watchlist prüfen alle (Minuten)", "number"],
+    ["require_approval", "Neue Videos erst nach deiner Freigabe hochladen", "check"],
+    ["dry_run", "Probemodus: Die Automatik lädt nichts hoch", "check"]],
+    "Je Konto und Uhrzeit lädt die Automatik ein freigegebenes Video hoch. Dafür muss der Rechner an sein und ClipBot laufen. Eigene Zeiten für einzelne Konten stellst du unter „Konten“ ein."],
+  ["Creator-Tag oben im Video", "pink", [
+    ["hook_overlay", "Zeile oben im Clip einblenden", "check"],
+    ["creator_tag", "Die Zeile nennt den Creator (z. B. „Gtastys unglaublicher Stunt“)", "check"],
+    ["hook_seconds", "So lange bleibt die Zeile stehen (0 = der ganze Clip)", "number", 0.5]],
+    "Mit KI entsteht eine packende Zeile mit dem Namen. Ohne KI steht dort nur der Name des Creators."],
+  ["Best-of", "amber", [
+    ["bestof_min_seconds", "Mindestlänge in Sekunden", "number"],
+    ["bestof_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["bestof_max_per_creator", "Höchstens Momente je Creator", "number"],
+    ["moments_per_video", "Momente je Video merken", "number"],
+    ["moment_min_seconds", "Ein Moment dauert mindestens (Sekunden)", "number"],
+    ["moment_max_seconds", "Ein Moment dauert höchstens (Sekunden)", "number"],
+    ["bestof_time", "Uhrzeit, ab der gebaut wird", "text"],
+    ["bestof_weekday", "Wochentag für wöchentliche Best-ofs", "select", Object.fromEntries(WEEKDAYS.map((d, i) => [i, d]))]],
+    "Ob ein Kanal ein tägliches oder wöchentliches Best-of bekommt, stellst du beim Kanal ein."],
+  ["Benachrichtigungen", "cyan", [
+    ["notify_desktop", "Mitteilung auf diesem Rechner anzeigen", "check"],
+    ["notify_ntfy_topic", "Handy: dein ntfy-Thema (frei wählbar, schwer zu erraten)", "text"]],
+    () => "Fürs Handy installierst du die kostenlose App „ntfy“ und abonnierst dort dasselbe Thema. "
+      + (data.setup.discord ? "Der Discord-Webhook ist eingerichtet, Reminder gehen auch dorthin." : "Für Discord trägst du DISCORD_WEBHOOK_URL in die Datei .env ein.")],
+  ["Clips", "violet", [
+    ["videos_per_run", "Neueste Videos je Lauf von Hand prüfen", "number"],
+    ["clips_per_video", "Clips je Video", "number"],
+    ["clip_min_seconds", "Mindestlänge in Sekunden", "number"],
+    ["clip_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["ai_candidates", "Mit KI: so viele Stellen je Video bewerten", "number"],
+    ["skip_start_seconds", "Sekunden am Anfang überspringen", "number"],
+    ["skip_end_seconds", "Sekunden am Ende überspringen", "number"],
+    ["max_video_minutes", "Videos überspringen ab (Minuten)", "number"],
+    ["max_height", "Höchste Auflösung beim Download", "select", { 720: "720p", 1080: "1080p", 1440: "1440p", 2160: "2160p" }],
+    ["keep_source_videos", "Quellvideos nach dem Schneiden behalten", "check"]]],
+  ["Bild", "pink", [
+    ["layout", "Bildaufbau", "select", { blur: "Video mittig, Hintergrund unscharf", crop: "Bildfüllender Ausschnitt" }],
+    ["zoom", "Vergrößerung des Videos (1 = ganzes Bild)", "number", 0.05]]],
+  ["Untertitel", "amber", [
+    ["subtitle_font", "Schriftart", "text"],
+    ["subtitle_size", "Schriftgröße", "number"],
+    ["subtitle_margin_bottom", "Abstand vom unteren Rand", "number"],
+    ["subtitle_words_per_line", "Wörter pro Einblendung", "number"],
+    ["subtitle_uppercase", "Alles in Großbuchstaben", "check"]]],
+  ["Spracherkennung", "blue", [
+    ["whisper_model", "Modell (größer = genauer, langsamer)", "select", { tiny: "tiny", base: "base", small: "small", medium: "medium", "large-v3": "large-v3" }],
+    ["language", "Sprache der Videos (leer = automatisch erkennen)", "text"]],
+    "Leer lassen, wenn du Creator in mehreren Sprachen clippst. Die Sprache der Titel und Captions stellst du beim Kanal ein."],
+  ["KI für Texte", "violet", [
+    ["ai_backend", "KI", "select", { off: "Aus (Vorlagen wie bisher)", claude: "Claude (API-Schlüssel in .env)", ollama: "Ollama (lokal, kostenlos)" }],
+    ["ai_claude_model", "Claude-Modell", "text"],
+    ["ai_effort", "Claude-Aufwand", "select", { low: "Niedrig (günstig)", medium: "Mittel", high: "Hoch (gründlich)" }],
+    ["ai_ollama_model", "Ollama-Modell", "text"],
+    ["ai_ollama_url", "Ollama-Adresse", "text"]]],
+  ["Erklärvideos", "blue", [
+    ["voice_backend", "Stimme", "select", { elevenlabs: "ElevenLabs (API-Schlüssel in .env)", stumm: "Stumm (kostenlose Vorschau)" }],
+    ["elevenlabs_voice_id", "ElevenLabs-Stimme (Voice-ID)", "text"],
+    ["elevenlabs_model", "ElevenLabs-Modell", "text"],
+    ["explainer_min_seconds", "Mindestlänge in Sekunden (über 60 für Vergütung)", "number"],
+    ["explainer_max_seconds", "Höchstlänge in Sekunden", "number"],
+    ["explainer_queries", "Suchbegriffe für Trends, durch Komma getrennt", "text"],
+    ["explainer_themes", "Themenfelder deines Kanals", "text"],
+    ["hyperframes_cmd", "Befehl für hyperframes", "text"]]],
+  ["Hochladen", "teal", [
+    ["privacy", "Sichtbarkeit", "select", { public: "Öffentlich", unlisted: "Nicht gelistet (nur YouTube)", private: "Privat" }],
+    ["max_uploads_per_run", "Höchstens Uploads je Lauf von Hand und Konto", "number"],
+    ["youtube_category_id", "YouTube-Kategorie (24 Unterhaltung, 20 Gaming)", "text"],
+    ["instagram_api_version", "Version der Instagram-Schnittstelle", "text"]]],
+];
+function renderSettings() {
+  const s = data.settings;
+  $("#settingsFields").innerHTML = SETTINGS.map(([legend, color, fields, hint]) => `<fieldset style="--c:var(--${color})"><legend>${legend}</legend><div class="grid">${
+    fields.map(([key, label, type, extra]) => type === "check"
+      ? `<label class="check"><input type="checkbox" name="${key}" ${s[key] ? "checked" : ""}> ${label}</label>`
+      : type === "select"
+      ? `<label class="field"><span>${label}</span><select name="${key}">${Object.entries(extra).map(([v, l]) =>
+          `<option value="${esc(v)}" ${String(s[key]) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`
+      : `<label class="field"><span>${label}</span><input type="${type}" name="${key}" value="${esc(s[key] ?? "")}" ${type === "number" ? `min="0" step="${extra || 1}"` : ""}></label>`
+    ).join("")}</div>${hint ? `<p class="hint">${esc(typeof hint === "function" ? hint() : hint)}</p>` : ""}</fieldset>`).join("");
+}
+$("#aiTest").addEventListener("click", async () => {
+  toast("KI wird gefragt …");
+  try { const r = await api("/api/ai/test", {}); toast("KI antwortet: " + r.message); }
+  catch (err) { toast(err.message, true); }
+});
+$("#settingsForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const payload = {};
+  for (const [, , fields] of SETTINGS) for (const [key, , type] of fields) {
+    const el = e.target.elements[key];
+    payload[key] = type === "check" ? el.checked : type === "number" ? Number(el.value) : el.value;
+  }
+  payload.max_height = Number(payload.max_height); payload.bestof_weekday = Number(payload.bestof_weekday);
+  act(() => api("/api/settings", payload), "Einstellungen gespeichert");
+});
 
 $("#quitApp").addEventListener("click", () => {
-  if (!confirm("ClipBot beenden? Zum Neustarten die ClipBot-App wieder öffnen.")) return;
+  if (!confirm("ClipBot beenden? Zum Neustarten die ClipBot-App wieder öffnen. Solange ClipBot aus ist, gibt es keine Reminder und keine Uploads.")) return;
   act(async () => { await api("/api/quit", {}); stopped = true;
-    document.body.innerHTML = `<div style="padding:60px;font:600 20px system-ui">ClipBot ist beendet. Du kannst dieses Fenster schließen.</div>`; });
+    $(".app").innerHTML = `<div style="padding:60px;font:600 20px var(--font)">ClipBot ist beendet. Du kannst dieses Fenster schließen.</div>`; });
 });
-let stopped = false;
 
 /* ---------- Aktualisieren ---------- */
 function render() {
-  if (!data) return;
-  $("#tally").classList.toggle("running", data.job.running);
-  $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
+  if (!data || stopped) return;
+  renderTop();
   if (view === "overview") renderOverview();
   if (view === "clips") renderClips();
   if (view === "review") renderReview();
   if (view === "explainer") renderExplainer();
-  const waitingCount = data.clips.filter(c => c.review === "wartet").length;
-  $("#reviewBadge").hidden = !waitingCount; $("#reviewBadge").textContent = waitingCount;
+  if (view === "watchlist") renderWatchlist();
+  if (view === "accounts") renderAccounts();
   if (view === "channels") renderChannels();
   if (openClipId) renderClipPlatforms();
 }
 async function refresh() {
   if (stopped) return;
   try { data = await api("/api/state"); render(); }
-  catch (err) { $("#tallyText").textContent = "Keine Verbindung zu ClipBot. Läuft das Programmfenster noch?"; }
+  catch (err) { $("#tallyText").textContent = "Keine Verbindung zu ClipBot. Läuft das Programm noch?"; }
 }
 const start = (location.hash || "#overview").slice(1);
-refresh().then(() => show(["overview", "review", "clips", "explainer", "channels", "settings"].includes(start) ? start : "overview"));
+refresh().then(() => show(TITLES[start] ? start : "overview"));
 setInterval(refresh, 2500);
 </script>
 </body>

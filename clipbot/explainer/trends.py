@@ -56,7 +56,8 @@ IDEAS_SCHEMA = {
 }
 
 
-def ideas(settings: dict, trending: list[dict], themes: list[str], count: int = 8) -> list[dict]:
+def ideas(settings: dict, trending: list[dict], themes: list[str], count: int = 8,
+          language: str = "Deutsch") -> list[dict]:
     """Eigene Themenideen aus den Trends ableiten (keine Kopien einzelner Videos)."""
     listing = "\n".join(f"- {v['title']} ({v['views']:,} Aufrufe)".replace(",", ".") for v in trending[:20])
     prompt = (
@@ -68,6 +69,7 @@ def ideas(settings: dict, trending: list[dict], themes: list[str], count: int = 
         "gesichertem Wissen sachlich korrekt beantworten lassen; keine Verschwoerungen, keine Gesundheitsratschlaege.\n"
         "topic: das Thema als Frage. hook: der erste gesprochene Satz (packend, max. 12 Woerter). "
         "why: kurz, welcher Trend dahintersteht."
+        + ("" if language == "Deutsch" else f" Schreibe topic und hook auf {language}, why auf Deutsch.")
     )
     data = ai.generate_json(settings, prompt, IDEAS_SCHEMA)
     return data["ideas"][:count]

@@ -1,7 +1,7 @@
 # Nach "config.yaml" kopieren und anpassen.
 
 settings:
-  dry_run: true              # true = Clips nur erzeugen, NICHT hochladen. Erst pruefen, dann auf false.
+  dry_run: true              # Probemodus: true = Automatik und auto.bat laden NICHTS hoch. Erst pruefen, dann auf false.
   work_dir: data
   videos_per_run: 2          # die neuesten N Videos je Kanal pruefen
   max_video_minutes: 300     # laengere Videos/VODs ueberspringen
@@ -12,11 +12,11 @@ settings:
   skip_start_seconds: 60     # Intro ignorieren
   skip_end_seconds: 30
   require_approval: true     # neue Clips warten auf deine Freigabe im Dashboard, bevor sie hochgeladen werden
-  max_uploads_per_run: 6     # je Plattform und Kanal
+  max_uploads_per_run: 6     # je Konto bei einem Lauf von Hand
   keep_source_videos: false  # Quellvideo nach dem Schneiden loeschen
 
   whisper_model: small       # tiny | base | small | medium | large-v3
-  language: null             # null = automatisch, sonst z.B. "en" oder "de"
+  language: null             # Sprache der Videos fuer die Spracherkennung: null = automatisch, sonst z.B. "en" oder "de"
 
   layout: blur               # blur = Video mittig + unscharfer Hintergrund | crop = Vollbild-Ausschnitt
   zoom: 1.15                 # nur bei blur: 1.0 = ganzes Bild sichtbar, groesser = naeher dran
@@ -31,7 +31,7 @@ settings:
   instagram_api_version: v26.0
 
   ai_candidates: 6           # mit KI: so viele Stellen je Video bewerten lassen (mehr = langsamer)
-  hook_overlay: true         # Hook-Zeile in den ersten Sekunden oben einblenden (nur mit KI)
+  hook_overlay: true         # Zeile oben im Clip einblenden
   ai_backend: "off"          # off | claude (ANTHROPIC_API_KEY in .env) | ollama (lokal, kostenlos)
   ai_claude_model: claude-opus-5-5
   ai_effort: low             # low | medium | high - hoeher = gruendlicher, teurer
@@ -48,32 +48,80 @@ settings:
   explainer_max_seconds: 90
   explainer_themes: "menschlicher Körper, Was passiert wenn, Geschichte, Politik, Wissenschaft, KI und Technik"
 
-channels:
-  - name: n3on
-    source_url: https://www.youtube.com/@N3on
-    title_template: "{hook} #n3on #shorts"
-    caption_template: "{hook}\n\nClip aus: {video_title}\nCredit: N3on\n#n3on #clips #fyp"
-    tags: [n3on, clips, stream]
-    credit: N3on               # steht in jeder Caption
-    caption_language: Englisch # Sprache der KI-Texte
-    upload:
-      youtube:
-        token_file: tokens/n3on_youtube.json
-      tiktok:
-        token_file: tokens/n3on_tiktok.json
-      instagram:
-        ig_user_id: "1784xxxxxxxxxxxxx"
-        token_env: IG_TOKEN_N3ON
+  # Creator-Tag: Zeile oben im Clip, die den Creator nennt (z. B. "Gtastys unglaublicher Stunt")
+  creator_tag: true
+  hook_seconds: 0            # so lange bleibt die Zeile stehen; 0 = den ganzen Clip
 
-  # Eigener Kanal fuer Erklaervideos (keine Quelle noetig):
+  # Automatik: Watchlist pruefen, neue Videos clippen, Best-ofs bauen, zu festen Uhrzeiten hochladen
+  autopilot: false           # im Dashboard oben rechts ein- und ausschaltbar
+  watch_interval_minutes: 5  # so oft wird die Watchlist geprueft
+  upload_times: ""           # z. B. "12:00, 17:30, 20:00"; je Konto und Uhrzeit ein Video. Leer = kein automatischer Upload
+  upload_grace_minutes: 60   # so lange wird eine verpasste Uhrzeit noch nachgeholt (z. B. Rechner war aus)
+
+  # Best-ofs: mehrere kurze Momente verschiedener Creator in einem Video
+  moments_per_video: 3       # so viele Momente je Video merken
+  moment_min_seconds: 8
+  moment_max_seconds: 22
+  bestof_min_seconds: 60
+  bestof_max_seconds: 120
+  bestof_max_per_creator: 2
+  bestof_time: "18:00"       # ab dieser Uhrzeit baut die Automatik das Best-of
+  bestof_weekday: 6          # woechentliche Best-ofs: 0 = Montag ... 6 = Sonntag
+
+  # Reminder
+  notify_desktop: true       # Mitteilung auf diesem Rechner
+  notify_ntfy_topic: ""      # Handy: App "ntfy" installieren und dieses Thema abonnieren (frei waehlbar, schwer zu erraten)
+
+# Am einfachsten legst du Konten, Creator und Kanaele im Dashboard an. So sieht das Ergebnis aus:
+
+# Upload-Konten. Jedes Konto wird einmal verbunden (Dashboard, Bereich "Konten").
+accounts:
+  - id: yt_streamerclips
+    platform: youtube              # youtube | tiktok | instagram
+    label: StreamerClips DE        # Anzeigename, frei waehlbar
+    token_file: tokens/yt_streamerclips.json
+    times: ""                      # eigene Upload-Zeiten; leer = upload_times von oben
+  - id: tt_streamerclips
+    platform: tiktok
+    label: streamerclips.de
+    token_file: tokens/tt_streamerclips.json
+    times: "12:00, 17:30, 21:00"
+  # - id: ig_streamerclips
+  #   platform: instagram
+  #   label: streamerclips
+  #   ig_user_id: "1784xxxxxxxxxxxxx"
+  #   token_env: IG_TOKEN_STREAMERCLIPS
+
+# Watchlist: YouTuber und Streamer (YouTube, Twitch; bei Kick und anderen Seiten nur der Live-Reminder).
+creators:
+  - id: gtasty
+    name: Gtasty                   # steht oben im Clip
+    url: https://www.youtube.com/@Gtasty
+    notify: true                   # Reminder, wenn er live geht oder ein Video hochlaedt
+    auto_clip: true                # neue Videos und beendete Streams automatisch clippen
+  - id: papaplatte
+    name: Papaplatte
+    url: https://www.twitch.tv/papaplatte
+    notify: true
+    auto_clip: true
+
+# Kanaele verknuepfen Creator mit Konten: Woraus entsteht was, in welcher Sprache, wohin geht es?
+channels:
+  - name: streamer_de
+    kind: clips                    # clips | explainer
+    language: de                   # Sprache der Titel und Captions: de | en | fr | pl
+    creators: [gtasty, papaplatte]
+    accounts: [yt_streamerclips, tt_streamerclips]
+    clips: true                    # aus jedem Video einzelne Clips schneiden
+    bestof: daily                  # off | daily | weekly
+    distribute: alle               # alle = jedes Konto bekommt jeden Clip | abwechselnd = Clips auf die Konten verteilen
+    title_template: "{hook} #shorts"            # nur ohne KI
+    caption_template: "{hook}\n\nClip aus: {video_title}"
+    tags: [streamer, clips]
+    credit: ""                     # leer = der Name des Creators
+
+  # Eigener Kanal fuer Erklaervideos (keine Creator noetig):
   # - name: wissen
   #   kind: explainer
-  #   credit: ""
-  #   upload:
-  #     youtube:
-  #       token_file: tokens/wissen_youtube.json
-
-  # Weiteren Kanal einfach als neuen Block anhaengen:
-  # - name: anderer_streamer
-  #   source_url: https://www.youtube.com/@...
-  #   ...
+  #   language: de
+  #   accounts: [yt_wissen]

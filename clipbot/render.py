@@ -41,3 +41,39 @@ def render_clip(source: Path, start: float, end: float, out_path: Path, ass_path
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg-Fehler: {result.stderr.strip()[-600:]}")
     return out_path
+
+
+def _run(cmd: list[str], cwd: Path | None = None) -> None:
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg-Fehler: {result.stderr.strip()[-600:]}")
+
+
+def cut_raw(source: Path, start: float, end: float, out_path: Path) -> Path:
+    """Schneidet einen Abschnitt bildgenau aus dem Quellvideo (Originalformat, hohe Qualitaet).
+    Daraus entstehen spaeter die Best-of-Videos, auch wenn das Quellvideo schon geloescht ist."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    _run(["ffmpeg", "-v", "error", "-y", "-ss", f"{max(0.0, start):.3f}", "-t", f"{end - start:.3f}",
+          "-i", str(Path(source).resolve()), "-map", "0:v:0", "-map", "0:a:0?",
+          "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+          "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out_path.resolve())])
+    return out_path
+
+
+def concat(parts: list[Path], out_path: Path) -> Path:
+    """Haengt fertig gerenderte Abschnitte (gleiches Format) zu einem Video zusammen."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    listing = out_path.with_suffix(".txt")
+    quoted = (Path(p).resolve().as_posix().replace("'", "'\\''") for p in parts)
+    listing.write_text("".join(f"file '{q}'\n" for q in quoted), encoding="utf-8")
+    base = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing.resolve())]
+    try:
+        try:  # ohne erneutes Kodieren: schnell und verlustfrei
+            _run(base + ["-c", "copy", "-movflags", "+faststart", str(out_path.resolve())])
+        except RuntimeError:  # Abschnitte passen nicht zusammen (z. B. einer ohne Ton): neu kodieren
+            _run(base + ["-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+                         "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart",
+                         str(out_path.resolve())])
+    finally:
+        listing.unlink(missing_ok=True)
+    return out_path

@@ -63,7 +63,7 @@ def test_ai_texts_per_platform(fake_ai):
     texts = viral.write_texts(s(ai_backend="fake"), CHANNEL, "Stream 12", "transcript", 1)
     yt, tt, ig = (texts["platforms"][p]["caption"] for p in ("youtube", "tiktok", "instagram"))
     assert texts["platforms"]["youtube"]["title"].endswith("#shorts")
-    assert "#shorts" in yt and "Credit: N3on" in yt and "Clip aus: Stream 12" in tt
+    assert "#shorts" in yt and "Credit: N3on" in yt and "Clip from: Stream 12" in tt  # Kanal ist englisch
     assert tt.startswith("Would you have stayed calm? #fyp")
     assert ig.count("#") <= 10 and "#reels" in ig
     assert texts["hook_overlay"] == "He did not expect this"
@@ -175,7 +175,7 @@ def test_clips_payload_parses_texts_and_hides_transcript(tmp_path):
 def dashboard(tmp_path, monkeypatch):
     import app
     settings = {**config.DEFAULTS, "work_dir": tmp_path, "ai_backend": "fake"}
-    cfg = {"settings": settings, "channels": [CHANNEL]}
+    cfg = {"settings": settings, "accounts": [], "creators": [], "channels": [CHANNEL]}
     monkeypatch.setattr(app.config, "load", lambda path=None, allow_empty=False: cfg)
     st = State(tmp_path / "state.sqlite")
     st.mark_video("v", "n3on", "Stream 12", "done")

@@ -76,14 +76,17 @@ def write_ass(words, clip_start: float, clip_end: float, out_path: Path, font: s
               size: int = 86, margin_bottom: int = 430, uppercase: bool = True, per_line: int = 3,
               hook: str = "", hook_seconds: float = 3.5) -> Path:
     """`words` haben Zeiten relativ zum Quellvideo; die Datei nutzt Zeiten relativ zum Clip.
-    `hook`: Textzeile, die in den ersten Sekunden oben als Kasten eingeblendet wird."""
+    `hook`: Textzeile, die oben als Kasten eingeblendet wird (z. B. "Gtastys unglaublicher Stunt").
+    `hook_seconds`: so lange bleibt sie stehen; 0 = ueber die ganze Laenge."""
     inside = merge_fragments([w for w in words if w.end > clip_start and w.start < clip_end])
     lines = [HEADER.format(font=font, size=size, margin=margin_bottom)]
     duration = clip_end - clip_start
     if hook.strip():
         text = r"\N".join(_wrap(_clean(hook, uppercase), 18))
-        lines.append(f"Dialogue: 1,{_ts(0)},{_ts(min(hook_seconds, duration))},Hook,,0,0,0,,"
-                     f"{{\\fad(150,250)}}{text}\n")
+        whole = hook_seconds <= 0 or hook_seconds >= duration
+        fade = r"{\fad(150,0)}" if whole else r"{\fad(150,250)}"
+        lines.append(f"Dialogue: 1,{_ts(0)},{_ts(duration if whole else hook_seconds)},Hook,,0,0,0,,"
+                     f"{fade}{text}\n")
     groups = list(_groups(inside, per_line))
     for g, group in enumerate(groups):
         next_start = groups[g + 1][0].start if g + 1 < len(groups) else float("inf")

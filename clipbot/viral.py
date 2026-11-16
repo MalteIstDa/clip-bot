@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import re
 
-from clipbot import ai
+from clipbot import ai, lang
 
 log = logging.getLogger("clipbot")
 
@@ -118,36 +118,55 @@ TEXT_SCHEMA = {
 }
 
 
-def _template_texts(channel: dict, video_title: str, transcript: str, n: int) -> dict:
+def creator_headline(settings: dict, creator: str) -> str:
+    """Zeile oben im Bild, wenn keine KI einen Text liefert: der Name des Creators."""
+    return creator.strip()[:60] if settings.get("creator_tag", True) and creator else ""
+
+
+def _template_texts(channel: dict, video_title: str, transcript: str, n: int,
+                    settings: dict | None = None, creator: str = "") -> dict:
     hook = short_hook(transcript, video_title)
     fields = {"hook": hook, "video_title": video_title, "channel": channel["name"], "n": n}
     title = channel["title_template"].format(**fields).strip()[:100]
     caption = channel["caption_template"].format(**fields).strip()
-    return {"title": title, "caption": caption, "hook_overlay": "", "platforms": {}}
+    hook_overlay = creator_headline(settings, creator) if settings is not None else ""
+    return {"title": title, "caption": caption, "hook_overlay": hook_overlay, "platforms": {}}
 
 
-def credit_line(channel: dict, video_title: str) -> str:
-    credit = str(channel.get("credit") or "").strip()
-    return f"Clip aus: {video_title}" + (f"\nCredit: {credit}" if credit else "")
+def credit_line(channel: dict, video_title: str, creator: str = "") -> str:
+    """Quellenangabe in der Sprache des Kanals. Credit: der Creator des Clips, sonst der Eintrag des Kanals."""
+    words = lang.of_channel(channel)
+    credit = str(creator or channel.get("credit") or "").strip()
+    line = words["clip_from"].format(title=video_title)
+    return line + ("\n" + words["credit"].format(name=credit) if credit else "")
 
 
 def write_texts(settings: dict, channel: dict, video_title: str, transcript: str, n: int,
-                reason: str = "") -> dict:
+                reason: str = "", creator: str = "") -> dict:
     """Gibt {"title", "caption", "hook_overlay", "platforms": {plattform: {"title", "caption"}}} zurueck.
-    title/caption sind die allgemeine Fassung (Dashboard), platforms die Fassung je Plattform."""
-    base = _template_texts(channel, video_title, transcript, n)
+    title/caption sind die allgemeine Fassung (Dashboard), platforms die Fassung je Plattform.
+    creator: Anzeigename des Streamers oder YouTubers; er wird oben im Bild genannt."""
+    base = _template_texts(channel, video_title, transcript, n, settings, creator)
     if not ai.enabled(settings):
         return base
-    language = channel.get("caption_language") or "Englisch"
+    language = lang.of_channel(channel)["prompt"]
     niche = ", ".join(channel.get("tags") or []) or channel["name"]
+    tag_creator = bool(settings.get("creator_tag", True) and creator)
+    hook_rule = (
+        f"- hook_overlay: 3 bis 7 Woerter, die oben im Bild stehen und neugierig machen. Nenne darin {creator} "
+        f"beim Namen und sag, was passiert (z. B. '{creator}s unglaublicher Stunt' oder "
+        f"'{creator} rastet komplett aus'). Kein Hashtag, kein Emoji-Spam.\n"
+        if tag_creator else
+        "- hook_overlay: 3 bis 7 Woerter, die in den ersten 3 Sekunden gross im Bild stehen und neugierig machen "
+        "(z. B. 'Er hat nicht damit gerechnet…'). Kein Hashtag, kein Emoji-Spam.\n")
     prompt = (
         f"Kanal: {channel['name']} (Nische/Stichworte: {niche})\n"
-        f"Quellvideo: {video_title}\n"
+        + (f"Creator im Clip: {creator}\n" if creator else "")
+        + f"Quellvideo: {video_title}\n"
         + (f"Warum der Clip stark ist: {reason}\n" if reason else "")
         + f"\nTranskript des Clips:\n{transcript[:4000]}\n\n"
         f"Schreibe alle Texte auf {language}.\n"
-        "- hook_overlay: 3 bis 7 Woerter, die in den ersten 3 Sekunden gross im Bild stehen und neugierig machen "
-        "(z. B. 'Er hat nicht damit gerechnet…'). Kein Hashtag, kein Emoji-Spam.\n"
+        + hook_rule +
         "- youtube_title: hoechstens 70 Zeichen, Neugier-Luecke, kein Hashtag.\n"
         "- youtube_description: 1 bis 2 Saetze.\n"
         "- tiktok_caption: 1 kurzer Satz plus Frage oder Aufforderung zum Kommentieren, ohne Hashtags.\n"
@@ -162,7 +181,7 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
         log.info("KI-Texte nicht moeglich (%s), nehme die Vorlagen.", exc)
         return base
 
-    credit = credit_line(channel, video_title)
+    credit = credit_line(channel, video_title, creator)
     own_tags = [t for t in (channel.get("tags") or [])]
     yt_tags = normalize_hashtags(data["hashtags_youtube"] + own_tags[:1] + ["shorts"], 5)
     tt_tags = normalize_hashtags(data["hashtags_tiktok"] + own_tags[:1], 6)
@@ -179,4 +198,4 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
                       "caption": f"{data['instagram_caption'].strip()}\n\n{credit}\n\n{' '.join(ig_tags)}"},
     }
     return {"title": yt_title[:100], "caption": platforms["tiktok"]["caption"],
-            "hook_overlay": data["hook_overlay"].strip()[:60], "platforms": platforms}
+            "hook_overlay": data["hook_overlay"].strip()[:60] or base["hook_overlay"], "platforms": platforms}
