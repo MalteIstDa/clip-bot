@@ -53,4 +53,8 @@ def download(video: dict, out_dir: Path, max_height: int, max_minutes: int) -> t
         "duration": float(duration),
         "uploader": info.get("channel") or info.get("uploader") or "",
         "heatmap": info.get("heatmap") or [],  # "Most replayed"-Daten, falls vorhanden
+        # fuer die Art des Videos (Gaming, Just Chatting, IRL): YouTube-Kategorie, Twitch-Kapitel
+        "categories": info.get("categories") or [],
+        "chapters": info.get("chapters") or [],
+        "extractor_key": info.get("extractor_key") or "",
     }

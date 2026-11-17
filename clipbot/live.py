@@ -22,7 +22,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-from clipbot import config, sources
+from clipbot import config, genre, sources
 
 log = logging.getLogger("clipbot")
 
@@ -31,6 +31,7 @@ KEEP_SECONDS = 360           # so viel Stream bleibt auf der Platte liegen
 SYNC_SECONDS = 15            # so oft gleicht der LiveManager die laufenden Mitschnitte mit der Watchlist ab
 CHAT_SILENT_SECONDS = 600    # kommt so lange keine Nachricht, wird nach Lautstaerke geclippt
 RECORDER_RESTARTS = 6        # so oft wird ein abgebrochener Mitschnitt neu gestartet
+CATEGORY_SECONDS = 300      # so oft wird die Kategorie des Streams neu gelesen (Wechsel Just Chatting -> Spiel)
 FAILURE_PAUSE = 600          # nach einem gescheiterten Mitschnitt so lange warten, bevor es erneut versucht wird
 
 # Woerter, bei denen der Chat lacht oder ausrastet (klein geschrieben, ganze Woerter; Emojis als Zeichen)
@@ -352,6 +353,8 @@ class Session(threading.Thread):
         self.mode = "chat" if self._chat_source() else "laut"
         self.error = ""
         self.restarts, self.last_start = 0, 0.0
+        self.category: str | None = None
+        self.last_category = -1e18
         self._heard: set[str] = set()
 
     # -- Chat
@@ -374,8 +377,10 @@ class Session(threading.Thread):
     def status(self) -> dict:
         now = self.clock()
         minutes = max(1.0, (now - self.started_at) / 60)
+        kind = genre.classify(self.category, self.title)
         return {"creator": self.creator["id"], "name": self.creator.get("name") or self.creator["id"],
                 "title": self.title, "since": self.started_at, "mode": self.mode,
+                "category": self.category or "", "genre": genre.describe(kind, self.category),
                 "per_minute": round(self.messages / minutes), "cuts": self.cuts, "recording": self.recorder.alive(),
                 "error": self.error}
 
@@ -406,8 +411,30 @@ class Session(threading.Thread):
             shutil.rmtree(self.folder / "mitschnitt", ignore_errors=True)
             log.info("[live] %s: Beobachtung beendet, %d Szenen gesammelt.", self.creator.get("name"), self.cuts)
 
+    def lookup_category(self) -> str | None:
+        """Kategorie des Streams: Twitch ueber die Webseiten-Schnittstelle, YouTube ueber yt-dlp."""
+        if self.platform == "twitch" and twitch_login(self.creator["url"]):
+            return genre.twitch_category(twitch_login(self.creator["url"]))
+        if self.platform == "youtube":
+            cats = sources.probe(self.page_url).get("categories") or []
+            return cats[0] if cats else None
+        return None
+
+    def _update_category(self) -> None:
+        try:
+            found = self.lookup_category()
+        except Exception as exc:
+            log.debug("[live] Kategorie von %s: %s", self.creator.get("name"), exc)
+            return
+        if found and found != self.category:
+            log.info("[live] %s: Kategorie %s", self.creator.get("name"), found)
+            self.category = found
+
     def step(self, now: float) -> None:
         """Ein Takt: Mitschnitt pruefen, Peaks suchen, faellige Szenen ausschneiden."""
+        if now - self.last_category >= CATEGORY_SECONDS:
+            self.last_category = now
+            threading.Thread(target=self._update_category, daemon=True).start()
         if not self.recorder.alive() and not self.stop_event.is_set() and now - self.last_start >= 20:
             # Abbruch (z. B. abgelaufene Stream-Adresse): neu starten, aber nicht endlos
             self.restarts = 0 if now - self.last_start > 600 else self.restarts + 1
@@ -460,7 +487,7 @@ class Session(threading.Thread):
         clip_start = max(0.0, start - first)
         note = {"start": clip_start, "end": min(length, clip_start + before + after), "duration": length,
                 "score": peak["score"], "base": peak["base"], "laughs": peak.get("laughs", 0),
-                "mode": self.mode, "stream_title": self.title, "at": peak["ts"]}
+                "mode": self.mode, "stream_title": self.title, "at": peak["ts"], "category": self.category or ""}
         state = self.open_state()
         try:
             state.mark_video(cut_id, "", self.title or self.creator.get("name", ""), "queued",

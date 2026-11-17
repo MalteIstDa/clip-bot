@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from clipbot import ai, bestof, config, download, highlights, notify, render, subtitles, transcribe, viral
+from clipbot import ai, bestof, config, download, genre, highlights, notify, render, subtitles, transcribe, viral
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -63,8 +63,11 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
         start, end = highlights.snap_to_speech(words, pick["start"], pick["end"],
                                                s["clip_min_seconds"], s["clip_max_seconds"])
         end = min(end, info["duration"])
+        category = genre.category_from_info(info, start)
+        kind_of = genre.classify(category, info["title"]) if s.get("genre_formats", True) else None
+        cs = genre.settings_for(s, kind_of)  # Bildaufbau je Art
         texts = viral.write_texts(s, channel, info["title"], viral.spoken_text(words, start, end), n,
-                                  pick.get("reason", ""), creator_name)
+                                  pick.get("reason", ""), creator_name, kind_of, category)
         hook = texts["hook_overlay"] if s["hook_overlay"] else ""
         log.info("[%s] Clip %d von %d: rendern ...", name, n, len(picks))
         ass = subtitles.write_ass(
@@ -72,11 +75,12 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
             s["subtitle_margin_bottom"], s["subtitle_uppercase"], s["subtitle_words_per_line"], hook=hook,
             hook_seconds=float(s.get("hook_seconds") or 0))
         out = render.render_clip(source, start, end, clip_dir / f"{clip_id}.mp4", ass,
-                                 s["layout"], s["zoom"])
+                                 cs["layout"], s["zoom"])
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
                        texts["platforms"], hook, pick.get("reason", ""),
                        review or ("wartet" if s["require_approval"] else "freigegeben"),
-                       viral.spoken_text(words, start, end), creator=creator_name, kind=kind)
+                       viral.spoken_text(words, start, end), creator=creator_name, kind=kind,
+                       genre=genre.describe(kind_of, category))
         log.info("[%s] Clip %d fertig (%.0fs): %s", name, n, end - start, texts["title"])
     return len(picks)
 
@@ -144,7 +148,8 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
               + (f", {laughs}x Lachen im Chat" if laughs else "")) if note.get("mode") != "laut" \
         else "Lauter Moment im Livestream (Chat war nicht lesbar)"
     info = {"id": cut_id, "title": note.get("stream_title") or row["title"] or creator_name,
-            "duration": float(note.get("duration") or end + 10), "heatmap": []}
+            "duration": float(note.get("duration") or end + 10), "heatmap": [],
+            "categories": [note["category"]] if note.get("category") else []}
     pick = {"start": start, "end": end, "words": words, "reason": reason}
     made = 0
     for i, channel in enumerate(channels):
