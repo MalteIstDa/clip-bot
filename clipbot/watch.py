@@ -65,7 +65,19 @@ class _Check:
             self.notify("video", f"{self.name}: Stream-Aufzeichnung ist da", text, video.get("url") or "")
         else:
             self.notify("video", f"{self.name} hat ein neues Video", text, video.get("url") or "")
+        if was_stream and self.auto and self.live_clipped():
+            self.state.mark_video(video["id"], "", title, "seen", creator=self.id, url=video.get("url") or "",
+                                  kind="live", note="Schon live aus den Chat-Peaks geclippt")
+            return
         self.mark(video, "queued" if self.auto else "seen", "live" if was_stream else "video")
+
+    def live_clipped(self) -> bool:
+        """Wurde der Stream schon live geclippt (Chat-Peaks)? Dann die Aufzeichnung nicht noch einmal clippen,
+        ausser ein Kanal des Creators braucht Momente fuer Best-ofs."""
+        last = float(self.state.get_meta(f"live_session:{self.id}") or 0)
+        if self.now - last > 12 * 3600:
+            return False
+        return not any(ch.get("bestof", "off") != "off" for ch in config.channels_of_creator(self.cfg, self.id))
 
     # ------------------------------------------------------------ YouTube
     def classify(self, video: dict, info: dict, prev: str | None, seen: float) -> None:

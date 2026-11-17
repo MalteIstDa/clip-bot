@@ -78,6 +78,15 @@ DEFAULTS = {
     "bestof_max_per_creator": 2,       # hoechstens so viele Momente je Creator in einem Best-of
     "bestof_time": "18:00",            # ab dieser Uhrzeit baut die Automatik das Best-of
     "bestof_weekday": 6,               # Wochentag fuer woechentliche Best-ofs: 0 = Montag ... 6 = Sonntag
+    # Live-Clips aus Chat-Peaks und Vault
+    "live_clips": True,                # laufende Streams der Watchlist mitschneiden und bei Chat-Peaks clippen
+    "live_max_streams": 6,             # so viele Streams hoechstens gleichzeitig mitschneiden
+    "live_sensitivity": "normal",      # niedrig | normal | hoch: wie stark der Chat ausrasten muss
+    "live_before_seconds": 40,         # so viel vor dem Chat-Peak beginnt der Clip
+    "live_after_seconds": 12,          # so viel nach dem Beginn des Peaks endet er
+    "live_cooldown_seconds": 120,      # Mindestabstand zwischen zwei Clips aus demselben Stream
+    "live_max_clips_per_stream": 12,
+    "vault_size": 10,                  # sind so viele Live-Clips eines Kanals im Vault, wird gepostet; 0 = nie automatisch
     # Benachrichtigungen
     "notify_desktop": True,            # Mitteilung des Betriebssystems (Mac, Windows)
     "notify_ntfy_topic": "",           # Handy: Thema bei ntfy.sh (App "ntfy" installieren und das Thema abonnieren)
@@ -244,6 +253,12 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         raise ConfigError("Best-of: Mindestlaenge muss kleiner als die Hoechstlaenge sein (15 bis 600 Sekunden).")
     if not 0 <= int(settings["bestof_weekday"]) <= 6:
         raise ConfigError("Best-of-Wochentag: 0 (Montag) bis 6 (Sonntag).")
+    if settings["live_sensitivity"] not in ("niedrig", "normal", "hoch"):
+        raise ConfigError("Live-Empfindlichkeit: erlaubt sind niedrig, normal oder hoch.")
+    if not 10 <= settings["live_before_seconds"] + settings["live_after_seconds"] <= 180:
+        raise ConfigError("Live-Clips: Vorlauf und Nachlauf zusammen muessen zwischen 10 und 180 Sekunden liegen.")
+    if settings["live_max_streams"] < 1 or settings["vault_size"] < 0:
+        raise ConfigError("Live-Clips: mindestens 1 Stream gleichzeitig, Vault-Groesse 0 oder mehr.")
     if settings["watch_interval_minutes"] < 1:
         raise ConfigError("Die Watchlist kann hoechstens einmal pro Minute geprueft werden.")
     _check_times(settings["upload_times"], "Upload-Zeiten")

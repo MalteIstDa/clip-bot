@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS watch (
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
-REVIEW_STATES = ("wartet", "freigegeben", "verworfen")
+REVIEW_STATES = ("wartet", "freigegeben", "verworfen", "vault")  # vault = Live-Clip, wartet im Vault aufs Posten
 # Videos: seen = bekannt, nichts zu tun | upcoming/live/processing = Stream angekuendigt, laeuft, wird noch verarbeitet
 # queued = wartet auf das automatische Clippen | done | skipped | failed
 WAITING = ("upcoming", "live", "processing")
@@ -178,6 +178,23 @@ class State:
                        AND o.status='ok' AND o.account<>?)"""
             args += [platform, account]
         return self.db.execute(sql + " ORDER BY c.ts", args).fetchall()
+
+    # ---- Vault (Live-Clips) ----
+    def vault_counts(self) -> dict[str, int]:
+        """Zahl der Clips im Vault je Kanal."""
+        rows = self.db.execute("SELECT channel, COUNT(*) AS n FROM clips WHERE review='vault' GROUP BY channel")
+        return {r["channel"]: r["n"] for r in rows}
+
+    def release_vault(self, channel: str) -> int:
+        """Alle Clips des Kanals aus dem Vault freigeben. Gibt ihre Zahl zurueck."""
+        cur = self.db.execute("UPDATE clips SET review='freigegeben' WHERE channel=? AND review='vault'", (channel,))
+        self.db.commit()
+        return cur.rowcount
+
+    def failed_posts_since(self, account: str, since: float) -> int:
+        row = self.db.execute("SELECT COUNT(*) AS n FROM posts WHERE account=? AND status='failed' AND ts>=?",
+                              (account, since)).fetchone()
+        return row["n"]
 
     def mark_post(self, clip_id: str, account: str, platform: str, status: str, remote_id=None, error=None) -> None:
         self.db.execute("INSERT OR REPLACE INTO posts VALUES (?,?,?,?,?,?,?)",

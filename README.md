@@ -15,6 +15,7 @@ Alternativ öffnet `start.bat` (Windows) bzw. `./start.sh` (Mac/Linux) das Dashb
 - **Clips:** alle Videos nach Quelle sortiert, mit dem Upload-Stand je Konto.
 - **Erklärvideos:** eigene animierte Videos aus einem Thema bauen.
 - **Watchlist:** YouTuber und Streamer hinzufügen (auch viele auf einmal), Reminder und Auto-Clip je Creator schalten.
+- **Live & Vault:** wer gerade mitgeschnitten wird, wie stark der Chat läuft und welche Live-Clips im Vault aufs Posten warten.
 - **Konten:** Upload-Konten anlegen, verbinden und ihnen Upload-Zeiten geben.
 - **Kanäle:** Creator mit Konten verknüpfen, Sprache und Best-of festlegen.
 - **Einstellungen:** Automatik und Zeitplan, Creator-Tag, Best-of, Benachrichtigungen, Clip-Länge, Bild, Untertitel und KI.
@@ -80,6 +81,18 @@ Oben im Clip steht eine Zeile, die den Creator nennt, z. B. „Gtastys unglaubli
 Beim Clippen merkt sich ClipBot aus jedem Video die stärksten kurzen Momente (je 8 bis 22 Sekunden). Ist bei einem Kanal „Best-of“ auf täglich oder wöchentlich gestellt, setzt ClipBot daraus ein Video von 1 bis 2 Minuten zusammen: Momente verschiedener Creator hintereinander, über jedem steht der Name. Der stärkste Moment kommt zuerst. Mit KI wählt und betitelt die KI die Momente, ohne KI zählen Lautstärke und „Most replayed“.
 
 Das Best-of entsteht ab der eingestellten Uhrzeit (Standard 18:00, wöchentlich am Sonntag) und wartet dann unter **Freigabe**. Mit „Best-of bauen“ unter „Übersicht“ oder beim Kanal startest du es sofort. Jeder Moment wird je Kanal nur einmal verwendet. Ein Kanal kann auch nur Best-ofs erzeugen: dann beim Kanal „Einzelne Clips aus jedem Video erzeugen“ abwählen.
+
+## Live-Clips aus Chat-Peaks und Vault
+
+Geht ein Creator aus der Watchlist live, schneidet ClipBot den Stream mit (es bleiben nur die letzten Minuten auf der Platte) und liest den Chat mit. Jede Nachricht zählt, Lachen („KEKW“, „LUL“, „xD“, „haha“, 😂) und Hype („W“, „Pog“, „omg“, „Clip!“) zählen mehr. Rastet der Chat im Vergleich zu den Minuten davor aus, wird die Szene davor ausgeschnitten (Standard: 40 Sekunden vor bis 12 Sekunden nach dem Peak) und wie jeder Clip mit Untertiteln und Creator-Tag gerendert.
+
+- **Twitch:** Der Chat wird anonym gelesen, ohne Konto und ohne Schlüssel.
+- **YouTube:** Der Live-Chat läuft über das Paket `chat-downloader`, eine inoffizielle Schnittstelle. Ändert YouTube etwas, kann sie ausfallen.
+- **Kick und andere Seiten, oder wenn der Chat nicht lesbar ist:** ClipBot clippt nach der Lautstärke des Streams.
+
+Die Live-Clips landen im **Vault** des Kanals (Bereich „Live & Vault“). Sind 10 drin (einstellbar), werden sie freigegeben und sofort nacheinander auf jedes Konto des Kanals gepostet, ohne Freigabe und ohne Upload-Zeiten. Mit „Jetzt posten“ geht das auch früher; schlechte Clips löschst du vorher im Vault. Lehnt eine Plattform ab (YouTube erlaubt mit einem Google-Projekt nur etwa 6 Uploads am Tag), versucht ClipBot dieses Konto nach 6 Stunden erneut. Im Probemodus wird nichts hochgeladen.
+
+Voraussetzungen: Die Automatik ist an, der Creator hat „Auto-Clip“ und gehört zu einem Kanal, und ClipBot läuft, solange der Stream läuft. Gleichzeitig werden höchstens 6 Streams mitgeschnitten (einstellbar). Wurde ein Stream schon live geclippt, wird seine Aufzeichnung danach nicht noch einmal geclippt, außer ein Kanal braucht sie für Best-ofs. Alles Weitere unter Einstellungen → „Live-Clips und Vault“.
 
 ## Sprachen
 

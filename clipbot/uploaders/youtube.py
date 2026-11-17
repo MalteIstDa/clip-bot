@@ -24,7 +24,7 @@ def _credentials(token_file: Path):
     from google.oauth2.credentials import Credentials
 
     if not token_file.exists():
-        raise UploadError(f"{token_file} fehlt. Zuerst 'python auth.py youtube <kanal>' ausfuehren.")
+        raise UploadError(f"{token_file} fehlt. Im Dashboard unter „Konten“ verbinden.")
     creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
     if not creds.valid:
         try:

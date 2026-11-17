@@ -19,6 +19,7 @@ from clipbot.state import State
 log = logging.getLogger("clipbot")
 TICK_SECONDS = 20
 QUEUE_MAX_AGE = 3 * 86400  # aeltere wartende Videos nicht mehr clippen (z. B. wenn die Automatik lange aus war)
+VAULT_RETRY_SECONDS = 6 * 3600  # nach einem gescheiterten Vault-Upload (z. B. YouTube-Tageslimit) so lange warten
 
 
 def account_times(account: dict, settings: dict) -> list[tuple[int, int]]:
@@ -69,6 +70,75 @@ def run_uploads(cfg: dict, due, open_state) -> bool:
         state.close()
 
 
+def release_vaults(cfg: dict, state: State) -> list[tuple[str, int]]:
+    """Kanaele, deren Vault voll ist, freigeben. Gibt [(kanal, zahl)] zurueck."""
+    size = int(cfg["settings"]["vault_size"])
+    if size <= 0:
+        return []
+    released = []
+    for channel, count in state.vault_counts().items():
+        if count >= size:
+            released.append((channel, state.release_vault(channel)))
+    return released
+
+
+def vault_due(cfg: dict, state: State, now: float) -> list[tuple[dict, dict, list]]:
+    """Freigegebene Live-Clips, die ein Konto noch nicht gepostet hat: [(konto, kanal, [clips])].
+    Ein Konto, dessen Upload gerade gescheitert ist, kommt erst nach VAULT_RETRY_SECONDS wieder dran."""
+    due = []
+    for account in cfg.get("accounts") or []:
+        if not config.account_connected(account) or state.failed_posts_since(account["id"], now - VAULT_RETRY_SECONDS):
+            continue
+        for channel in config.channels_of_account(cfg, account["id"]):
+            exclusive = channel.get("distribute") == "abwechselnd"
+            clips = [dict(c) for c in state.pending_clips(channel["name"], account["id"], account["platform"], exclusive)
+                     if (c["kind"] or "") == "live" and Path(c["path"]).exists()]
+            if clips:
+                due.append((account, channel, clips))
+    return due
+
+
+def run_vault(cfg: dict, due, open_state) -> bool:
+    """Alle faelligen Live-Clips sofort nacheinander posten; scheitert ein Upload, ist das Konto fuer diesen Lauf fertig."""
+    import run as pipeline
+    s = cfg["settings"]
+    state = open_state()
+    ok = True
+    try:
+        for account, channel, clips in due:
+            for i, clip in enumerate(clips):
+                if not pipeline.post_clip(account, clip, channel, s, state):
+                    ok = False
+                    break
+                if pipeline.UPLOAD_PAUSE and i < len(clips) - 1:
+                    time.sleep(pipeline.UPLOAD_PAUSE)
+        return ok
+    finally:
+        state.close()
+
+
+def run_livecut(cfg: dict, creator: dict, row: dict, open_state) -> None:
+    """Eine Live-Szene rendern (fuer alle Clip-Kanaele des Creators)."""
+    import run as pipeline
+    s = cfg["settings"]
+    state = open_state()
+    try:
+        channels = config.channels_of_creator(cfg, creator["id"])
+        try:
+            made = pipeline.process_livecut(channels, s, state, row, creator)
+        except Exception as exc:
+            state.mark_video(row["video_id"], "", "", "failed", note=str(exc)[:300])
+            raise
+        if made:
+            counts = state.vault_counts()
+            size = int(s["vault_size"])
+            for channel in channels:
+                if channel["name"] in counts:
+                    log.info("[%s] Vault: %d von %d Live-Clips", channel["name"], counts[channel["name"]], size)
+    finally:
+        state.close()
+
+
 def run_clip(cfg: dict, creator: dict, video: dict, open_state) -> None:
     """Ein Video aus der Warteschlange clippen (fuer alle Kanaele des Creators)."""
     import run as pipeline
@@ -115,7 +185,17 @@ def next_task(cfg: dict, open_state, now: datetime | None = None):
     s = cfg["settings"]
     state = open_state()
     try:
+        for channel, count in release_vaults(cfg, state):
+            log.info("[%s] Vault voll: %d Live-Clips werden jetzt gepostet.", channel, count)
+            notify.send(state, s, "upload", f"Vault voll: {channel}",
+                        f"{count} Live-Clips werden jetzt auf allen Konten des Kanals gepostet."
+                        if not s["dry_run"] else f"{count} Live-Clips sind freigegeben (Probemodus: kein Upload).")
         if not s["dry_run"]:
+            vault = vault_due(cfg, state, now.timestamp())
+            if vault:
+                count = sum(len(clips) for _, _, clips in vault)
+                names = ", ".join(sorted({a.get("label") or a["id"] for a, _, _ in vault}))
+                return f"Vault posten: {count} Uploads ({names})"[:140], lambda: run_vault(cfg, vault, open_state)
             due = due_uploads(cfg, state, now)
             if due:
                 names = ", ".join(a.get("label") or a["id"] for a, _, _ in due)
@@ -130,6 +210,10 @@ def next_task(cfg: dict, open_state, now: datetime | None = None):
             if now.timestamp() - (row["ts"] or 0) > QUEUE_MAX_AGE:
                 state.mark_video(row["video_id"], "", "", "skipped", note="Lag zu lange in der Warteschlange")
                 continue
+            if row["kind"] == "livecut":
+                cut = dict(row)
+                return (f"Live-Clip rendern: {creator['name']}"[:140],
+                        lambda: run_livecut(cfg, creator, cut, open_state))
             video = {"id": row["video_id"], "title": row["title"] or row["video_id"], "url": row["url"]}
             return (f"Automatisch clippen: {creator['name']} – {video['title']}"[:140],
                     lambda: run_clip(cfg, creator, video, open_state))
