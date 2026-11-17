@@ -68,6 +68,12 @@ settings:
   bestof_time: "18:00"       # ab dieser Uhrzeit baut die Automatik das Best-of
   bestof_weekday: 6          # woechentliche Best-ofs: 0 = Montag ... 6 = Sonntag
 
+  # Format je Art des Streams (Kategorie bei Twitch/YouTube)
+  genre_formats: true        # Gaming, Just Chatting und IRL erkennen; Bild, Hook und Hashtags anpassen
+  layout_gaming: blur        # ganzes Spielbild sichtbar
+  layout_chatting: crop      # bildfuellend auf den Streamer
+  layout_irl: crop
+
   # Live-Clips aus Chat-Peaks und Vault
   live_clips: true           # laufende Streams der Watchlist mitschneiden und bei Chat-Peaks clippen
   live_max_streams: 6        # hoechstens so viele Streams gleichzeitig

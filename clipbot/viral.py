@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import re
 
-from clipbot import ai, lang
+from clipbot import ai, genre as genres, lang
 
 log = logging.getLogger("clipbot")
 
@@ -142,12 +142,15 @@ def credit_line(channel: dict, video_title: str, creator: str = "") -> str:
 
 
 def write_texts(settings: dict, channel: dict, video_title: str, transcript: str, n: int,
-                reason: str = "", creator: str = "") -> dict:
+                reason: str = "", creator: str = "", genre: str | None = None, category: str | None = None) -> dict:
     """Gibt {"title", "caption", "hook_overlay", "platforms": {plattform: {"title", "caption"}}} zurueck.
     title/caption sind die allgemeine Fassung (Dashboard), platforms die Fassung je Plattform.
     creator: Anzeigename des Streamers oder YouTubers; er wird oben im Bild genannt."""
     base = _template_texts(channel, video_title, transcript, n, settings, creator)
+    extra_tags = genres.tags_for(genre, category)  # z. B. fortnite, gaming
     if not ai.enabled(settings):
+        if extra_tags and "#" not in base["caption"]:
+            base["caption"] = f"{base['caption']} {' '.join('#' + t for t in extra_tags)}".strip()
         return base
     language = lang.of_channel(channel)["prompt"]
     niche = ", ".join(channel.get("tags") or []) or channel["name"]
@@ -163,6 +166,7 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
         f"Kanal: {channel['name']} (Nische/Stichworte: {niche})\n"
         + (f"Creator im Clip: {creator}\n" if creator else "")
         + f"Quellvideo: {video_title}\n"
+        + (f"Art des Streams: {genres.describe(genre, category)}. {genres.HOOK_HINTS[genre]}\n" if genre else "")
         + (f"Warum der Clip stark ist: {reason}\n" if reason else "")
         + f"\nTranskript des Clips:\n{transcript[:4000]}\n\n"
         f"Schreibe alle Texte auf {language}.\n"
@@ -182,10 +186,10 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
         return base
 
     credit = credit_line(channel, video_title, creator)
-    own_tags = [t for t in (channel.get("tags") or [])]
-    yt_tags = normalize_hashtags(data["hashtags_youtube"] + own_tags[:1] + ["shorts"], 5)
-    tt_tags = normalize_hashtags(data["hashtags_tiktok"] + own_tags[:1], 6)
-    ig_tags = normalize_hashtags(data["hashtags_instagram"] + own_tags[:1], 10)
+    own_tags = list(channel.get("tags") or [])[:1] + extra_tags[:1]  # eigener Kanal-Tag + Spiel bzw. Art
+    yt_tags = normalize_hashtags(data["hashtags_youtube"][:2] + own_tags + ["shorts"] + data["hashtags_youtube"][2:], 6)
+    tt_tags = normalize_hashtags(data["hashtags_tiktok"][:3] + own_tags + data["hashtags_tiktok"][3:], 6)
+    ig_tags = normalize_hashtags(data["hashtags_instagram"][:5] + own_tags + data["hashtags_instagram"][5:], 10)
     yt_title = data["youtube_title"].strip()[:90]
     if "#shorts" not in yt_title.lower():
         yt_title = f"{yt_title} #shorts"

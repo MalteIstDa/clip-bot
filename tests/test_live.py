@@ -32,6 +32,8 @@ def fake_words(path, a, b, *rest):
 @pytest.fixture(autouse=True)
 def quiet(monkeypatch):
     monkeypatch.setattr(notify, "_push", lambda *a: None)
+    monkeypatch.setattr(live.genre, "twitch_category", lambda login: None)  # kein Netz
+    monkeypatch.setattr(live.sources, "probe", lambda url: {"categories": []})
     monkeypatch.setattr(run, "UPLOAD_PAUSE", 0)
 
 

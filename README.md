@@ -94,6 +94,16 @@ Die Live-Clips landen im **Vault** des Kanals (Bereich „Live & Vault“). Sind
 
 Voraussetzungen: Die Automatik ist an, der Creator hat „Auto-Clip“ und gehört zu einem Kanal, und ClipBot läuft, solange der Stream läuft. Gleichzeitig werden höchstens 6 Streams mitgeschnitten (einstellbar). Wurde ein Stream schon live geclippt, wird seine Aufzeichnung danach nicht noch einmal geclippt, außer ein Kanal braucht sie für Best-ofs. Alles Weitere unter Einstellungen → „Live-Clips und Vault“.
 
+## Gaming, Just Chatting und IRL
+
+ClipBot erkennt die Art des Streams an seiner Kategorie: bei Twitch „Just Chatting“, „IRL“ oder der Name des Spiels (live wird sie alle 5 Minuten neu gelesen, Aufzeichnungen nehmen das Kapitel an der Stelle des Clips), bei YouTube die Videokategorie wie „Gaming“. Ohne Kategorie hilft der Titel („IRL durch Tokyo“, „Ranked bis Platin“).
+
+- **Gaming:** Das ganze Spielbild bleibt sichtbar (Video mittig, Hintergrund unscharf). Der Hook nennt den Spielmoment und das Spiel, dazu Hashtags wie `#fortnite #gaming`.
+- **Just Chatting:** bildfüllend auf den Streamer. Der Hook greift die Reaktion oder Aussage auf.
+- **IRL:** bildfüllend. Der Hook beschreibt die Situation und den Ort.
+
+Hook und Titel passt die KI an; ohne KI kommen nur die Hashtags zur Beschreibung dazu (außer die Vorlage enthält schon eigene). Den Bildaufbau je Art stellst du unter Einstellungen → „Format je Art des Streams“ um oder schaltest die Erkennung dort ab. Die Kategorie steht im Bereich „Live & Vault“ beim Stream und bei jedem Clip.
+
 ## Sprachen
 
 Jeder Kanal hat eine Sprache: Deutsch, Englisch (US), Französisch oder Polnisch. In dieser Sprache entstehen Titel, Captions, Hashtags, der Creator-Tag, die Credit-Zeile und die Texte der Best-ofs, bei Erklärvideo-Kanälen auch Skript und Stimme. Die Untertitel folgen dem, was im Video gesprochen wird; lass dafür unter Einstellungen → Spracherkennung die Sprache leer (automatisch), wenn du Creator in mehreren Sprachen clippst. Das Dashboard selbst bleibt deutsch.

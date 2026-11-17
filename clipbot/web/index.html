@@ -194,7 +194,7 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .source header span.count { flex: none; color: var(--muted); font-size: 0.875rem; }
 .tag { --c: var(--violet); flex: none; padding: 3px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 650;
   background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); }
-.strip { display: flex; gap: 18px; overflow-x: auto; padding: 14px 3px 12px; }
+.strip { display: flex; align-items: flex-start; gap: 18px; overflow-x: auto; padding: 14px 3px 12px; }
 .clip { flex: none; width: 176px; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
 .clip .frame { position: relative; display: block; aspect-ratio: 9 / 16; background: var(--frame); border-radius: 16px; overflow: hidden; border: 1px solid var(--line);
   box-shadow: var(--shadow); transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s; }
@@ -1238,7 +1238,7 @@ function openClip(id) {
   $("#clipVideo").poster = clip.exists ? "/thumb/" + encodeURIComponent(id) : "";
   $("#clipTitle").value = clip.title; $("#clipCaption").value = clip.caption;
   $("#titleCount").textContent = clip.title.length;
-  $("#clipMeta").textContent = (clip.kind === "clip" ? `${timecode(clip.start)} bis ${timecode(clip.end)}, ` : `${Math.round(clip.end - clip.start)} s, `) + `erzeugt am ${when(clip.ts)}`;
+  $("#clipMeta").textContent = (clip.kind === "clip" ? `${timecode(clip.start)} bis ${timecode(clip.end)}, ` : `${Math.round(clip.end - clip.start)} s, `) + `erzeugt am ${when(clip.ts)}` + (clip.genre ? `, ${clip.genre}` : "");
   renderClipPlatforms();
   $("#clipDialog").showModal();
 }
@@ -1755,7 +1755,7 @@ function renderLive() {
     return `<div class="card is-live"><div class="head">${avatar(x.name, "var(--red)")}
         <strong title="${esc(x.name)}">${esc(x.name)}</strong><span class="side-tag"><span class="livebadge">LIVE</span></span>
         <small title="${esc(x.title)}">${esc(x.title || "Livestream")}</small></div>
-      <dl class="facts"><dt>Seit</dt><dd>${ago(x.since)}</dd><dt>Signal</dt><dd>${esc(mode)}</dd>
+      <dl class="facts"><dt>Seit</dt><dd>${ago(x.since)}</dd>${x.category ? `<dt>Kategorie</dt><dd>${esc(x.genre && !x.genre.includes(x.category) ? `${x.category} (${x.genre})` : x.genre || x.category)}</dd>` : ""}<dt>Signal</dt><dd>${esc(mode)}</dd>
         <dt>Szenen</dt><dd>${x.cuts ? plural(x.cuts, "Szene gesammelt", "Szenen gesammelt") : "Noch kein Peak"}</dd></dl>
       ${x.error ? `<small class="state-warn">${esc(x.error)}</small>` : x.recording ? "" : `<small class="state-warn">Mitschnitt startet gerade neu …</small>`}</div>`;
   }).join("") : `<div class="empty"><h3>${!data.settings.autopilot ? "Die Automatik ist aus" : !data.settings.live_clips ? "Live-Clips sind ausgeschaltet" : liveNow.length ? "Gleich geht's los" : "Gerade ist niemand live"}</h3><p class="muted">${
@@ -1778,7 +1778,7 @@ function renderLive() {
       <p class="muted">${where}${data.settings.dry_run ? ". Probemodus ist an: Es wird nichts hochgeladen." : "."}</p>
       ${n ? `<div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
           <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}<span class="kind">${esc(c.creator || "Live")}</span></span>
-          <span class="title">${esc(c.title)}</span><span class="tc">${Math.round(c.end - c.start)} s, ${ago(c.ts)}</span></button>`).join("")}</div>`
+          <span class="title">${esc(c.title)}</span><span class="tc">${c.genre ? esc(c.genre) + ", " : ""}${Math.round(c.end - c.start)} s, ${ago(c.ts)}</span></button>`).join("")}</div>`
         : `<p class="muted">Noch leer. Live-Clips der Creator dieses Kanals landen hier.</p>`}</div>`;
   }).join("") : `<div class="empty"><h3>Noch kein Clip-Kanal</h3><p class="muted">Lege unter „Kanäle“ einen Kanal an und ordne ihm Creator und Konten zu.</p></div>`;
 }
@@ -1805,6 +1805,12 @@ const SETTINGS = [
     ["creator_tag", "Die Zeile nennt den Creator (z. B. „Gtastys unglaublicher Stunt“)", "check"],
     ["hook_seconds", "So lange bleibt die Zeile stehen (0 = der ganze Clip)", "number", 0.5]],
     "Mit KI entsteht eine packende Zeile mit dem Namen. Ohne KI steht dort nur der Name des Creators."],
+  ["Format je Art des Streams", "teal", [
+    ["genre_formats", "Gaming, Just Chatting und IRL erkennen und Bild, Hook und Hashtags anpassen", "check"],
+    ["layout_gaming", "Bild bei Gaming", "select", { blur: "Ganzes Spielbild", crop: "Bildfüllend" }],
+    ["layout_chatting", "Bild bei Just Chatting", "select", { crop: "Bildfüllend", blur: "Ganzes Bild" }],
+    ["layout_irl", "Bild bei IRL", "select", { crop: "Bildfüllend", blur: "Ganzes Bild" }]],
+    "Erkannt wird die Kategorie des Streams (bei Twitch z. B. „Just Chatting“, „IRL“ oder das Spiel, bei YouTube „Gaming“). Mit KI passen sich Hook und Titel an die Art an, Hashtags zum Spiel kommen dazu. Ohne erkennbare Kategorie gilt der normale Bildaufbau unter „Bild“."],
   ["Live-Clips und Vault", "pink", [
     ["live_clips", "Laufende Streams mitschneiden und bei Chat-Peaks clippen", "check"],
     ["vault_size", "Vault posten, sobald so viele Live-Clips drin sind (0 = nur von Hand)", "number"],

@@ -158,7 +158,7 @@ def probe(url: str) -> dict:
         status = "is_live"
     return {"id": str(info.get("id") or ""), "title": info.get("title") or "", "live_status": status,
             "duration": info.get("duration"), "uploader": info.get("channel") or info.get("uploader") or "",
-            "url": info.get("webpage_url") or url}
+            "url": info.get("webpage_url") or url, "categories": info.get("categories") or []}
 
 
 def live_now(url: str) -> dict | None:

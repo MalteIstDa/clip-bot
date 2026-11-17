@@ -56,7 +56,7 @@ class State:
         self.db = sqlite3.connect(path, timeout=30)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
-        self._add_columns("clips", ("texts", "hook", "reason", "review", "transcript", "creator", "kind"))
+        self._add_columns("clips", ("texts", "hook", "reason", "review", "transcript", "creator", "kind", "genre"))
         self._add_columns("videos", ("creator", "url", "kind", "note"))
         self._add_columns("videos", ("seen",), "REAL")
         self._migrate_uploads()
@@ -132,14 +132,16 @@ class State:
     # ---- Clips ----
     def add_clip(self, clip_id, video_id, channel, path, title, caption, start, end,
                  texts: dict | None = None, hook: str = "", reason: str = "",
-                 review: str = "wartet", transcript: str = "", creator: str = "", kind: str = "clip") -> None:
+                 review: str = "wartet", transcript: str = "", creator: str = "", kind: str = "clip",
+                 genre: str = "") -> None:
         """review: wartet (auf Freigabe im Dashboard) | freigegeben | verworfen. kind: clip | bestof | explainer."""
         self.db.execute(
             """INSERT OR REPLACE INTO clips (clip_id, video_id, channel, path, title, caption, start, end, ts,
-               texts, hook, reason, review, transcript, creator, kind) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               texts, hook, reason, review, transcript, creator, kind, genre)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (clip_id, video_id, channel, str(path), title, caption, start, end, time.time(),
              json.dumps(texts, ensure_ascii=False) if texts else None, hook, reason, review, transcript,
-             creator, kind),
+             creator, kind, genre),
         )
         self.db.commit()
 
