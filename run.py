@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import shutil
 import sys
@@ -48,7 +49,7 @@ def candidate_windows(source, info: dict, s: dict, loud=None) -> list[dict]:
 
 
 def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks: list[dict],
-                 creator_name: str, suffix: str = "") -> int:
+                 creator_name: str, suffix: str = "", review: str | None = None, kind: str = "clip") -> int:
     """Rendert die gewaehlten Stellen als Clips dieses Kanals (Texte in der Sprache des Kanals)."""
     name = channel["name"]
     work = s["work_dir"] / name
@@ -74,8 +75,8 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
                                  s["layout"], s["zoom"])
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
                        texts["platforms"], hook, pick.get("reason", ""),
-                       "wartet" if s["require_approval"] else "freigegeben",
-                       viral.spoken_text(words, start, end), creator=creator_name)
+                       review or ("wartet" if s["require_approval"] else "freigegeben"),
+                       viral.spoken_text(words, start, end), creator=creator_name, kind=kind)
         log.info("[%s] Clip %d fertig (%.0fs): %s", name, n, end - start, texts["title"])
     return len(picks)
 
@@ -120,6 +121,38 @@ def process_video(channels, s: dict, state: State, video: dict, creator: dict | 
         state.mark_video(video["id"], name, info["title"], "done", creator=creator_id)
     if not s["keep_source_videos"]:
         source.unlink(missing_ok=True)
+    return made
+
+
+def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
+    """Eine ausgeschnittene Live-Szene (Chat-Peak) als Clip rendern; er landet im Vault des Kanals.
+    row: Eintrag aus der Warteschlange (videos, kind "livecut"). Gibt die Zahl der Clips zurueck."""
+    channels = [ch for ch in ([channels] if isinstance(channels, dict) else list(channels)) if ch.get("clips", True)]
+    raw = Path(row["url"] or "")
+    note = json.loads(row["note"] or "{}")
+    cut_id = row["video_id"]
+    if not channels or not raw.exists():
+        state.mark_video(cut_id, "", "", "skipped", note="Szene fehlt" if channels else "Kein Kanal fuer Clips")
+        return 0
+    creator_name = str(creator.get("name") or "").strip()
+    start, end = float(note.get("start", 0)), float(note.get("end", 0))
+    length = end - start
+    live_s = {**s, "clip_min_seconds": max(5.0, length - 12), "clip_max_seconds": length + 15}
+    words = transcribe.transcribe_range(raw, start - 10, end + 10, s["whisper_model"], s["language"])
+    laughs = int(note.get("laughs") or 0)
+    reason = (f"Chat-Peak im Livestream: {note.get('score', 0):.0f} statt sonst {note.get('base', 0):.0f}"
+              + (f", {laughs}x Lachen im Chat" if laughs else "")) if note.get("mode") != "laut" \
+        else "Lauter Moment im Livestream (Chat war nicht lesbar)"
+    info = {"id": cut_id, "title": note.get("stream_title") or row["title"] or creator_name,
+            "duration": float(note.get("duration") or end + 10), "heatmap": []}
+    pick = {"start": start, "end": end, "words": words, "reason": reason}
+    made = 0
+    for i, channel in enumerate(channels):
+        made += render_picks(channel, live_s, state, raw, info, [pick], creator_name,
+                             "" if i == 0 else f"-{channel['name']}", review="vault", kind="live")
+    state.mark_video(cut_id, "", "", "done")
+    if not s["keep_source_videos"]:
+        raw.unlink(missing_ok=True)
     return made
 
 

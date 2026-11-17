@@ -2,6 +2,7 @@
 """ClipBot-Dashboard: private Weboberflaeche, laeuft nur auf diesem PC (http://127.0.0.1:8765)."""
 from __future__ import annotations
 
+import atexit
 import collections
 import logging
 import os
@@ -18,7 +19,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_file
 
 import run as pipeline
-from clipbot import auto, config, lang, schedule, sources
+from clipbot import auto, config, lang, live, schedule, sources
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -76,6 +77,7 @@ def _open_state(settings: dict) -> State:
 
 
 autopilot = auto.Autopilot(lambda label, fn: start_job(label, fn), lambda: job["running"], _open_state)
+live_manager = live.LiveManager(_open_state)  # Livestreams mitschneiden und bei Chat-Peaks clippen
 
 
 # ---------------------------------------------------------------- Hilfsfunktionen
@@ -196,6 +198,7 @@ def api_state():
         unread = state.unread_count()
         queued = len(state.videos_by_status(("queued",)))
         moments = state.moment_counts(time.time() - 8 * 86400)
+        vault = state.vault_counts()
     finally:
         state.close()
     for clip in clips:
@@ -206,6 +209,8 @@ def api_state():
         accounts=accounts, creators=creators, notifications=notifications, unread=unread,
         auto={"enabled": bool(s["autopilot"]), "dry_run": bool(s["dry_run"]), "queued": queued,
               "watching": autopilot.watching, "last_watch": autopilot.last_watch or None, "moments": moments},
+        live={"sessions": live_manager.status(), "vault": vault, "vault_size": int(s["vault_size"]),
+              "on": bool(s["autopilot"] and s["live_clips"])},
         local_channel=_local_name(), languages=lang.labels(),
         settings={k: s[k] for k in config.DEFAULTS if k != "work_dir"},
         setup={
@@ -781,12 +786,29 @@ def explainer_create():
     return jsonify(ok=True, label=label)
 
 
+@app.post("/api/vault/<name>/release")
+def vault_release(name: str):
+    """Den Vault eines Kanals sofort freigeben (ohne auf die volle Zahl zu warten)."""
+    cfg = config.load(allow_empty=True)
+    find_channel(cfg, name)
+    state = open_state(cfg["settings"])
+    try:
+        count = state.release_vault(name)
+    finally:
+        state.close()
+    if not count:
+        raise ApiError("Im Vault dieses Kanals liegt gerade nichts.")
+    log.info("[%s] Vault von Hand freigegeben: %d Live-Clips.", name, count)
+    return jsonify(ok=True, released=count)
+
+
 @app.post("/api/quit")
 def quit_app():
     """ClipBot beenden (fuer den Start per Mac-App ohne Terminalfenster)."""
     if job["running"]:
         raise ApiError(f"Es laeuft noch: {job['label']}. Warte, bis es fertig ist.", 409)
-    threading.Timer(0.5, lambda: os._exit(0)).start()
+    live_manager.stop_all()  # ffmpeg-Mitschnitte beenden
+    threading.Timer(1.5, lambda: os._exit(0)).start()
     return jsonify(ok=True)
 
 
@@ -876,6 +898,8 @@ def main() -> int:
     if "--no-browser" not in sys.argv:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     autopilot.start()  # Watchlist und Zeitplan im Hintergrund
+    live_manager.start()
+    atexit.register(live_manager.stop_all)
     app.run(host="127.0.0.1", port=PORT, threaded=True)
     return 0
 

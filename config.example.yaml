@@ -68,6 +68,16 @@ settings:
   bestof_time: "18:00"       # ab dieser Uhrzeit baut die Automatik das Best-of
   bestof_weekday: 6          # woechentliche Best-ofs: 0 = Montag ... 6 = Sonntag
 
+  # Live-Clips aus Chat-Peaks und Vault
+  live_clips: true           # laufende Streams der Watchlist mitschneiden und bei Chat-Peaks clippen
+  live_max_streams: 6        # hoechstens so viele Streams gleichzeitig
+  live_sensitivity: normal   # niedrig | normal | hoch
+  live_before_seconds: 40    # Clip beginnt so viel vor dem Peak
+  live_after_seconds: 12     # und endet so viel danach
+  live_cooldown_seconds: 120
+  live_max_clips_per_stream: 12
+  vault_size: 10             # so viele Live-Clips je Kanal sammeln, dann sofort auf allen Konten posten (0 = nur von Hand)
+
   # Reminder
   notify_desktop: true       # Mitteilung auf diesem Rechner
   notify_ntfy_topic: ""      # Handy: App "ntfy" installieren und dieses Thema abonnieren (frei waehlbar, schwer zu erraten)

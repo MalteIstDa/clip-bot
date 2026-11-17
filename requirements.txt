@@ -10,3 +10,4 @@ google-auth-oauthlib
 google-auth-httplib2
 flask
 anthropic
+chat-downloader  # YouTube-Live-Chat fuer Live-Clips (inoffizielle Schnittstelle)

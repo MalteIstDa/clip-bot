@@ -227,6 +227,12 @@ label.check input { margin-top: 4px; accent-color: var(--violet); }
 .ptabs button.yt { --c: var(--yt); } .ptabs button.tt { --c: var(--tt); } .ptabs button.ig { --c: var(--ig); }
 .review-state { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
 .review-state.wartet { background: color-mix(in srgb, var(--amber) 22%, transparent); color: var(--amber); }
+.review-state.vault { background: color-mix(in srgb, var(--pink) 22%, transparent); color: var(--pink); }
+.meter { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pink), var(--violet)); box-shadow: 0 0 16px -2px var(--pink); transition: width 0.4s ease; }
+.vault-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.vault-head h3 { margin-right: auto; }
+.vault-head .num { font-weight: 800; font-size: 1.25rem; }
 .review-state.verworfen { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
 
 /* Erklaervideos */
@@ -368,6 +374,7 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
     <button data-view="clips" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor"/></svg></span>Clips</button>
     <button data-view="explainer" style="--c:var(--blue)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>Erklärvideos</button>
     <button data-view="watchlist" style="--c:var(--cyan)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></span>Watchlist<span class="badge" id="liveBadge" style="--c:var(--red)" hidden></span></button>
+    <button data-view="live" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg></span>Live &amp; Vault<span class="badge" id="vaultBadge" style="--c:var(--pink)" hidden></span></button>
     <button data-view="accounts" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg></span>Konten</button>
     <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="12" r="2.6"/><path d="M8.4 7.2l7.2 3.6M8.4 16.8l7.2-3.6"/></svg></span>Kanäle</button>
     <button data-view="settings" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
@@ -476,6 +483,15 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
         <div id="trendResults"><p class="muted">Sucht kurze Erklärvideos dieses Monats auf YouTube, sortiert nach Aufrufen, und lässt die KI daraus eigene Themen ableiten.</p></div>
       </form>
     </div>
+  </section>
+
+  <section id="view-live" hidden>
+    <div class="pagehead">
+      <p class="lead">Geht ein Creator aus deiner Watchlist live, schneidet ClipBot den Stream mit und liest den Chat. Rastet der Chat aus, lacht oder spammt „Clip“, wird die Szene davor zum Clip. Die Clips sammeln sich im Vault und werden automatisch auf allen Konten des Kanals gepostet, sobald er voll ist.</p>
+      <span class="muted num" id="liveInfo"></span>
+    </div>
+    <div class="cards" id="liveSessions"></div>
+    <div class="stack" id="vaultList" style="margin-top:28px"></div>
   </section>
 
   <section id="view-watchlist" hidden>
@@ -934,7 +950,7 @@ const sky = (() => {
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const UP = { youtube: ["YouTube", "YT", "yt"], tiktok: ["TikTok", "TT", "tt"], instagram: ["Instagram", "IG", "ig"] };
 const SRC = { youtube: ["YouTube", "yt"], twitch: ["Twitch", "twitch"], kick: ["Kick", "kick"], other: ["Andere Seite", "other"] };
-const TITLES = { overview: "Übersicht", review: "Freigabe", clips: "Clips", explainer: "Erklärvideos", watchlist: "Watchlist",
+const TITLES = { overview: "Übersicht", review: "Freigabe", clips: "Clips", explainer: "Erklärvideos", watchlist: "Watchlist", live: "Live & Vault",
   accounts: "Konten", channels: "Kanäle", settings: "Einstellungen" };
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 const COLORS = ["violet", "pink", "teal", "amber", "blue", "green", "cyan"];
@@ -1004,7 +1020,7 @@ function isOpen(clip) {  // fehlt noch ein Upload? Bei "abwechselnd" genuegt ein
   if (channelOf(clip.channel)?.distribute !== "abwechselnd") return accounts.some(a => upState(clip, a) !== "ok");
   return [...new Set(accounts.map(a => a.platform))].some(p => !accounts.some(a => a.platform === p && upState(clip, a) === "ok"));
 }
-const kindLabel = clip => clip.kind === "bestof" ? "Best-of" : clip.kind === "explainer" ? "Erklärvideo" : "";
+const kindLabel = clip => clip.kind === "bestof" ? "Best-of" : clip.kind === "explainer" ? "Erklärvideo" : clip.kind === "live" ? "Live" : "";
 const platformChip = (platform, text) => `<span class="chip" style="--c:var(--${(UP[platform] || SRC[platform] || SRC.other).at(-1)})">${esc(text)}</span>`;
 function fillPicker(el, items, checked) {  // items: [{value, label, hint}]
   el.innerHTML = items.map(i => `<label class="check"><input type="checkbox" value="${esc(i.value)}" ${checked.includes(i.value) ? "checked" : ""}>
@@ -1046,6 +1062,10 @@ function renderTop() {
   $("#bellCount").hidden = !data.unread; $("#bellCount").textContent = data.unread > 99 ? "99+" : data.unread;
   const waiting = data.clips.filter(c => c.review === "wartet").length;
   $("#reviewBadge").hidden = !waiting; $("#reviewBadge").textContent = waiting;
+  const inVault = data.clips.filter(c => c.review === "vault").length, recording = data.live.sessions.length;
+  $("#vaultBadge").hidden = !(inVault || recording); $("#vaultBadge").textContent = recording || inVault;
+  $("#vaultBadge").title = recording ? plural(recording, "Stream wird", "Streams werden") + " mitgeschnitten" : plural(inVault, "Clip", "Clips") + " im Vault";
+  $("#vaultBadge").style.setProperty("--c", recording ? "var(--red)" : "var(--pink)");
   $("#tally").classList.toggle("running", data.job.running);
   $("#tallyText").textContent = data.job.running ? "Läuft: " + data.job.label : "Bereit";
 
@@ -1189,12 +1209,12 @@ function renderClips() {
   }
   const groups = new Map();
   for (const c of clips) {
-    const key = c.kind === "bestof" ? "bestof:" + c.channel : c.kind === "explainer" ? "explainer:" + c.channel : c.video_id;
+    const key = c.kind === "bestof" ? "bestof:" + c.channel : c.kind === "explainer" ? "explainer:" + c.channel : c.kind === "live" ? "live:" + c.channel : c.video_id;
     (groups.get(key) || groups.set(key, []).get(key)).push(c);
   }
   $("#sheet").innerHTML = [...groups].map(([key, list]) => {
     const first = list[0], video = data.videos.find(v => v.video_id === first.video_id);
-    const title = first.kind === "bestof" ? "Best-ofs" : first.kind === "explainer" ? "Erklärvideos" : video?.title || first.video_id;
+    const title = first.kind === "bestof" ? "Best-ofs" : first.kind === "explainer" ? "Erklärvideos" : first.kind === "live" ? "Live-Clips aus Chat-Peaks" : video?.title || first.video_id;
     if (first.kind === "clip") list.sort((a, b) => a.start - b.start);
     return `<div class="source"><header><span class="tag" style="--c:${colorOf(first.channel)}">${esc(first.channel)}</span>
       ${first.kind === "clip" && first.creator ? `<span class="tag" style="--c:var(--cyan)">${esc(first.creator)}</span>` : ""}
@@ -1202,7 +1222,7 @@ function renderClips() {
       <div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
         <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}${kindLabel(c) ? `<span class="kind">${kindLabel(c)}</span>` : ""}</span>
         <span class="title">${esc(c.title)}</span>
-        <span class="tc">${c.kind === "clip" ? `${timecode(c.start)} bis ${timecode(c.end)}, ` : ""}${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
+        <span class="tc">${c.kind === "clip" ? `${timecode(c.start)} bis ${timecode(c.end)}, ` : ""}${Math.round(c.end - c.start)} s${c.review !== "freigegeben" ? `<span class="review-state ${esc(c.review)}">${c.review === "vault" ? "im Vault" : c.review === "wartet" ? "wartet" : "verworfen"}</span>` : ""}</span>
         <span class="lamps">${lamps(c)}</span></button>`).join("")}</div></div>`;
   }).join("");
 }
@@ -1722,6 +1742,54 @@ $("#channelList").addEventListener("click", e => {
     act(() => api(`/api/channels/${encodeURIComponent(name)}/delete`, {}), "Kanal entfernt");
 });
 
+/* ---------- Live & Vault ---------- */
+function renderLive() {
+  const lv = data.live, sessions = lv.sessions;
+  const clipChs = data.channels.filter(c => (c.kind || "clips") === "clips");
+  const vaultClips = data.clips.filter(c => c.review === "vault").sort((a, b) => a.ts - b.ts);  // in Post-Reihenfolge
+  if (!changed("live", [lv, vaultClips.map(c => [c.clip_id, c.title, c.exists]), clipChs.map(c => [c.name, c.accounts]), data.creators.map(c => c.live), Math.floor(Date.now() / 60000)])) return;
+  $("#liveInfo").textContent = !lv.on ? "" : sessions.length ? plural(sessions.length, "Stream wird", "Streams werden") + " mitgeschnitten" : "";
+  const liveNow = data.creators.filter(c => c.live);
+  $("#liveSessions").innerHTML = sessions.length ? sessions.map(x => {
+    const mode = x.mode === "chat" ? `Chat: ${x.per_minute} Nachrichten/Min.` : "Kein Chat lesbar, clippt nach Lautstärke";
+    return `<div class="card is-live"><div class="head">${avatar(x.name, "var(--red)")}
+        <strong title="${esc(x.name)}">${esc(x.name)}</strong><span class="side-tag"><span class="livebadge">LIVE</span></span>
+        <small title="${esc(x.title)}">${esc(x.title || "Livestream")}</small></div>
+      <dl class="facts"><dt>Seit</dt><dd>${ago(x.since)}</dd><dt>Signal</dt><dd>${esc(mode)}</dd>
+        <dt>Szenen</dt><dd>${x.cuts ? plural(x.cuts, "Szene gesammelt", "Szenen gesammelt") : "Noch kein Peak"}</dd></dl>
+      ${x.error ? `<small class="state-warn">${esc(x.error)}</small>` : x.recording ? "" : `<small class="state-warn">Mitschnitt startet gerade neu …</small>`}</div>`;
+  }).join("") : `<div class="empty"><h3>${!data.settings.autopilot ? "Die Automatik ist aus" : !data.settings.live_clips ? "Live-Clips sind ausgeschaltet" : liveNow.length ? "Gleich geht's los" : "Gerade ist niemand live"}</h3><p class="muted">${
+    !data.settings.autopilot ? "Schalte die Automatik in der Übersicht ein, dann werden Livestreams deiner Watchlist mitgeschnitten."
+    : !data.settings.live_clips ? "Du kannst sie unter „Einstellungen“ bei „Live-Clips und Vault“ einschalten."
+    : liveNow.length ? `${esc(liveNow.map(c => c.name).join(", "))} ${liveNow.length === 1 ? "ist" : "sind"} live. Mitgeschnitten wird, wenn der Creator Auto-Clip hat und zu einem Kanal gehört.`
+    : "Sobald jemand aus deiner Watchlist live geht, erscheint er hier. Die Watchlist wird alle " + data.settings.watch_interval_minutes + " Minuten geprüft."}</p></div>`;
+
+  const size = lv.vault_size;
+  $("#vaultList").innerHTML = clipChs.length ? clipChs.map(ch => {
+    const list = vaultClips.filter(c => c.channel === ch.name), n = list.length;
+    const accounts = (ch.accounts || []).map(id => accountOf(id)).filter(Boolean);
+    const pct = size ? Math.min(100, Math.round(n / size * 100)) : 0;
+    const where = accounts.length ? `Geht auf ${esc(accounts.map(a => a.label).join(", "))}` : `<span class="state-warn">Dem Kanal ist noch kein Konto zugeordnet.</span>`;
+    return `<div class="panel stack" data-vault="${esc(ch.name)}">
+      <div class="vault-head"><span class="tag" style="--c:${colorOf(ch.name)}">${esc(ch.name)}</span><h3>Vault</h3>
+        <span class="num">${n}${size ? ` / ${size}` : ""}</span>
+        <button class="btn small fill pink" data-release ${n ? "" : "disabled"}>Jetzt posten</button></div>
+      ${size ? `<div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="${size}" aria-valuenow="${n}"><span style="width:${pct}%"></span></div>` : ""}
+      <p class="muted">${where}${data.settings.dry_run ? ". Probemodus ist an: Es wird nichts hochgeladen." : "."}</p>
+      ${n ? `<div class="strip">${list.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
+          <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}<span class="kind">${esc(c.creator || "Live")}</span></span>
+          <span class="title">${esc(c.title)}</span><span class="tc">${Math.round(c.end - c.start)} s, ${ago(c.ts)}</span></button>`).join("")}</div>`
+        : `<p class="muted">Noch leer. Live-Clips der Creator dieses Kanals landen hier.</p>`}</div>`;
+  }).join("") : `<div class="empty"><h3>Noch kein Clip-Kanal</h3><p class="muted">Lege unter „Kanäle“ einen Kanal an und ordne ihm Creator und Konten zu.</p></div>`;
+}
+$("#vaultList").addEventListener("click", e => {
+  const clip = e.target.closest("[data-clip]");
+  if (clip) return openClip(clip.dataset.clip);
+  const box = e.target.closest("[data-vault]");
+  if (box && e.target.closest("[data-release]") && confirm(`Den Vault von ${box.dataset.vault} jetzt freigeben? Die Automatik postet die Clips dann sofort auf allen Konten des Kanals.`))
+    act(() => api(`/api/vault/${encodeURIComponent(box.dataset.vault)}/release`, {}), "Vault freigegeben");
+});
+
 /* ---------- Einstellungen ---------- */
 const SETTINGS = [
   ["Automatik und Zeitplan", "green", [
@@ -1737,6 +1805,16 @@ const SETTINGS = [
     ["creator_tag", "Die Zeile nennt den Creator (z. B. „Gtastys unglaublicher Stunt“)", "check"],
     ["hook_seconds", "So lange bleibt die Zeile stehen (0 = der ganze Clip)", "number", 0.5]],
     "Mit KI entsteht eine packende Zeile mit dem Namen. Ohne KI steht dort nur der Name des Creators."],
+  ["Live-Clips und Vault", "pink", [
+    ["live_clips", "Laufende Streams mitschneiden und bei Chat-Peaks clippen", "check"],
+    ["vault_size", "Vault posten, sobald so viele Live-Clips drin sind (0 = nur von Hand)", "number"],
+    ["live_sensitivity", "Wie stark muss der Chat ausrasten?", "select", { niedrig: "Sehr stark (weniger Clips)", normal: "Normal", hoch: "Schon bei kleinen Peaks (mehr Clips)" }],
+    ["live_before_seconds", "Clip beginnt so viele Sekunden vor dem Peak", "number"],
+    ["live_after_seconds", "Clip endet so viele Sekunden nach dem Peak", "number"],
+    ["live_cooldown_seconds", "Mindestabstand zwischen zwei Clips (Sekunden)", "number"],
+    ["live_max_clips_per_stream", "Höchstens Clips je Stream", "number"],
+    ["live_max_streams", "Höchstens so viele Streams gleichzeitig", "number"]],
+    "Läuft nur, wenn die Automatik an ist und der Creator Auto-Clip hat. Der Vault wird sofort nacheinander auf jedes Konto des Kanals gepostet. Lehnt YouTube wegen des Tageslimits ab, versucht ClipBot es nach 6 Stunden erneut."],
   ["Best-of", "amber", [
     ["bestof_min_seconds", "Mindestlänge in Sekunden", "number"],
     ["bestof_max_seconds", "Höchstlänge in Sekunden", "number"],
@@ -1839,6 +1917,7 @@ function render() {
   if (view === "review") renderReview();
   if (view === "explainer") renderExplainer();
   if (view === "watchlist") renderWatchlist();
+  if (view === "live") renderLive();
   if (view === "accounts") renderAccounts();
   if (view === "channels") renderChannels();
   if (openClipId) renderClipPlatforms();
