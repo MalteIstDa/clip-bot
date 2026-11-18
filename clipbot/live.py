@@ -69,6 +69,8 @@ class PeakDetector:
     mindestens `factor`-mal so gross ist wie ein typisches Fenster der letzten `history` Sekunden
     und ausserdem `min_score` erreicht. Nach einem Peak wird `cooldown` Sekunden lang nichts gemeldet."""
 
+    GAP = 120  # so lange ohne Daten (Ruhezustand, Verbindung weg): Grundlinie neu lernen
+
     def __init__(self, window: int = 8, history: int = 300, factor: float = 3.0, min_score: float = 12.0,
                  cooldown: float = 90.0, warmup: float = 60.0):
         self.window, self.history, self.factor = window, history, factor
@@ -76,14 +78,21 @@ class PeakDetector:
         self.buckets: dict[int, float] = {}
         self.laughs: dict[int, int] = {}
         self.started: float | None = None
+        self.last_data: float | None = None
         self.last_peak = -1e18
         self.lock = threading.Lock()  # der Chat schreibt aus einem eigenen Thread
 
     def add(self, ts: float, value: float = 1.0, laugh: bool = False) -> None:
         sec = int(ts)
         with self.lock:
+            if self.last_data is not None and ts - self.last_data > self.GAP:
+                # Luecke: Ohne Neustart waere die Grundlinie 0 und jede Nachricht danach ein "Peak"
+                self.buckets.clear()
+                self.laughs.clear()
+                self.started = None
             if self.started is None:
                 self.started = ts
+            self.last_data = max(ts, self.last_data or ts)
             self.buckets[sec] = self.buckets.get(sec, 0.0) + value
             if laugh:
                 self.laughs[sec] = self.laughs.get(sec, 0) + 1
@@ -109,6 +118,8 @@ class PeakDetector:
         end = int(now)
         score = self._sum(end, self.window)
         base = self.baseline(now)
+        if base <= 0 and score < 3 * self.min_score:
+            return None  # ohne Grundlinie (vorher Stille) nur bei sehr starkem Ausschlag
         if score < self.min_score or score < self.factor * max(base, 1e-9):
             return None
         # Beginn des Anstiegs: erste Sekunde im Fenster, die deutlich ueber dem Mittel der Grundlinie liegt
