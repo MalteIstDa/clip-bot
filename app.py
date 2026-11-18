@@ -19,7 +19,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_file
 
 import run as pipeline
-from clipbot import auto, config, lang, live, schedule, sources
+from clipbot import auto, config, lang, live, render, schedule, sources
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -215,6 +215,7 @@ def api_state():
         settings={k: s[k] for k in config.DEFAULTS if k != "work_dir"},
         setup={
             "ffmpeg": bool(shutil.which("ffmpeg")),
+            "subtitles": render.can_burn_subtitles(),
             "youtube_app": config.youtube_secrets_file().exists(),
             "tiktok_app": all(os.environ.get(k) for k in
                               ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")),
@@ -893,6 +894,9 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s", datefmt="%H:%M:%S")
     log.addHandler(handler)
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    render.use_full_ffmpeg()
+    if shutil.which("ffmpeg") and not render.can_burn_subtitles():
+        log.warning(render.SUBTITLE_HINT)
     url = f"http://127.0.0.1:{PORT}"
     print(f"\nClipBot-Dashboard laeuft: {url}\nDieses Fenster offen lassen. Beenden mit Strg+C.\n")
     if "--no-browser" not in sys.argv:

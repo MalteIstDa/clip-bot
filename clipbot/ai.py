@@ -58,8 +58,14 @@ def _strict(schema: dict) -> dict:
         out["additionalProperties"] = False
         out["properties"] = {k: _strict(v) for k, v in out.get("properties", {}).items()}
         out.setdefault("required", list(out["properties"]))
-    if out.get("type") == "array" and "items" in out:
-        out["items"] = _strict(out["items"])
+    if out.get("type") == "array":
+        # Die Claude-API kennt bei Listen nur minItems 0 oder 1 und keine Obergrenze.
+        # Die genauen Grenzen prueft validate() danach mit dem vollstaendigen Schema.
+        if out.get("minItems", 0) > 1:
+            out["minItems"] = 1
+        out.pop("maxItems", None)
+        if "items" in out:
+            out["items"] = _strict(out["items"])
     return out
 
 
