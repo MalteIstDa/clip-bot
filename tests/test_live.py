@@ -230,7 +230,8 @@ def test_live_scene_becomes_a_vault_clip(tmp_path, monkeypatch, stream_file):
     st.mark_video("live-papaplatte-1", "", "Chill-Stream", "queued", creator="papaplatte", url=str(raw),
                   kind="livecut", note=json.dumps(note))
     row = dict(st.get_video("live-papaplatte-1"))
-    made = run.process_livecut([channel(creators=["papaplatte"])], s(work_dir=tmp_path), st, row, creator)
+    made = run.process_livecut([channel(creators=["papaplatte"])], s(work_dir=tmp_path, live_compilation=False), st,
+                              row, creator)
     clip = st.clips()[0]
     assert made == 1 and clip["review"] == "vault" and clip["kind"] == "live" and clip["creator"] == "Papaplatte"
     assert "31x Lachen" in clip["reason"] and 30 <= clip["end"] - clip["start"] <= 55

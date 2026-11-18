@@ -95,7 +95,7 @@ def test_live_clip_uses_the_layout_of_its_kind(tmp_path, monkeypatch):
         note = {"start": 15, "end": 55, "duration": 90, "score": 50, "base": 9, "mode": "chat", "category": cat}
         st.mark_video(f"cut{i}", "", "Stream", "queued", creator="papaplatte", url=str(raw), kind="livecut",
                       note=json.dumps(note))
-        run.process_livecut([channel()], s(work_dir=tmp_path), st, dict(st.get_video(f"cut{i}")), creator)
+        run.process_livecut([channel()], s(work_dir=tmp_path, live_compilation=False), st, dict(st.get_video(f"cut{i}")), creator)
     assert used == ["crop", "blur"]
     assert sorted(c["genre"] for c in st.clips()) == ["Gaming (Fortnite)", "Just Chatting"]
 

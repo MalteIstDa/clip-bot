@@ -387,6 +387,12 @@ class Session(threading.Thread):
     def stop(self) -> None:
         self.stop_event.set()
 
+    def max_scenes(self) -> int:
+        """Hoechstzahl Szenen je Stream. Bei Zusammenschnitten zaehlt die Einstellung die fertigen Clips,
+        ein Clip braucht etwa 4 bis 5 Momente."""
+        cap = int(self.s["live_max_clips_per_stream"])
+        return cap * 5 if self.s.get("live_compilation", True) else cap
+
     # -- Ablauf
     def run(self) -> None:
         log.info("[live] %s ist live: Mitschnitt und Chat laufen.", self.creator.get("name"))
@@ -455,7 +461,7 @@ class Session(threading.Thread):
         if self.mode == "laut":
             self._listen()
         peak = (self.detector if self.mode == "chat" else self.audio).check(now)
-        if peak and self.cuts + len(self.pending) < int(self.s["live_max_clips_per_stream"]):
+        if peak and self.cuts + len(self.pending) < self.max_scenes():
             log.info("[live] %s: Chat-Peak (%.0f statt %.0f)%s", self.creator.get("name"), peak["score"],
                      peak["base"], f", {peak['laughs']}x Lachen" if peak.get("laughs") else "")
             self.pending.append(peak)
@@ -486,6 +492,7 @@ class Session(threading.Thread):
         path, first, length = result
         clip_start = max(0.0, start - first)
         note = {"start": clip_start, "end": min(length, clip_start + before + after), "duration": length,
+                "peak": max(0.0, peak["ts"] - first),
                 "score": peak["score"], "base": peak["base"], "laughs": peak.get("laughs", 0),
                 "mode": self.mode, "stream_title": self.title, "at": peak["ts"], "category": self.category or ""}
         state = self.open_state()

@@ -38,11 +38,18 @@ def short_hook(text: str, fallback: str, max_chars: int = 60) -> str:
     return cut + "…"
 
 
-def normalize_hashtags(tags, limit: int) -> list[str]:
+def _tag_key(text) -> str:
+    return re.sub(r"[^\w]", "", str(text).lstrip("#"), flags=re.UNICODE).lower()
+
+
+def normalize_hashtags(tags, limit: int, skip=()) -> list[str]:
+    """Hashtags ohne # und Sonderzeichen, ohne Doppelte. skip: Namen, die kein Hashtag werden sollen
+    (die Creator: Malte will keinen #streamername unter den Clips)."""
+    banned = {_tag_key(name) for name in skip if _tag_key(name)}
     out = []
     for tag in tags:
         tag = re.sub(r"[^\w]", "", str(tag).lstrip("#"), flags=re.UNICODE)
-        if tag and tag.lower() not in {t.lower() for t in out}:
+        if tag and tag.lower() not in banned and tag.lower() not in {t.lower() for t in out}:
             out.append(tag)
     return ["#" + t for t in out[:limit]]
 
@@ -118,6 +125,16 @@ TEXT_SCHEMA = {
 }
 
 
+def name_variants(*names) -> list[str]:
+    """Namen der Creator und ihre Teile (z. B. "Papa Platte" -> papaplatte, papa, platte), fuer den Hashtag-Filter."""
+    out = []
+    for name in names:
+        for part in [name] + str(name or "").split():
+            if len(_tag_key(part)) >= 3:
+                out.append(part)
+    return out
+
+
 def creator_headline(settings: dict, creator: str) -> str:
     """Zeile oben im Bild, wenn keine KI einen Text liefert: der Name des Creators."""
     return creator.strip()[:60] if settings.get("creator_tag", True) and creator else ""
@@ -131,14 +148,6 @@ def _template_texts(channel: dict, video_title: str, transcript: str, n: int,
     caption = channel["caption_template"].format(**fields).strip()
     hook_overlay = creator_headline(settings, creator) if settings is not None else ""
     return {"title": title, "caption": caption, "hook_overlay": hook_overlay, "platforms": {}}
-
-
-def credit_line(channel: dict, video_title: str, creator: str = "") -> str:
-    """Quellenangabe in der Sprache des Kanals. Credit: der Creator des Clips, sonst der Eintrag des Kanals."""
-    words = lang.of_channel(channel)
-    credit = str(creator or channel.get("credit") or "").strip()
-    line = words["clip_from"].format(title=video_title)
-    return line + ("\n" + words["credit"].format(name=credit) if credit else "")
 
 
 def write_texts(settings: dict, channel: dict, video_title: str, transcript: str, n: int,
@@ -176,8 +185,9 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
         "- tiktok_caption: 1 kurzer Satz plus Frage oder Aufforderung zum Kommentieren, ohne Hashtags.\n"
         "- instagram_caption: starke erste Zeile, dann 1 bis 2 Saetze, ohne Hashtags.\n"
         "- hashtags_youtube: 3 bis 4 (shorts wird automatisch ergaenzt), hashtags_tiktok: 4 bis 6, "
-        "hashtags_instagram: 6 bis 10. Mische 1 bis 2 breite Tags mit spezifischen Tags zur Person, "
-        "zum Thema und zur Nische. Keine erfundenen oder irrefuehrenden Tags, keine Leerzeichen.\n"
+        "hashtags_instagram: 6 bis 10. Mische 1 bis 2 breite Tags mit spezifischen Tags zum Thema, Spiel und "
+        "zur Nische. Kein Hashtag mit dem Namen des Creators. Keine erfundenen oder irrefuehrenden Tags, "
+        "keine Leerzeichen.\n"
     )
     try:
         data = ai.generate_json(settings, prompt, TEXT_SCHEMA, SYSTEM)
@@ -185,21 +195,23 @@ def write_texts(settings: dict, channel: dict, video_title: str, transcript: str
         log.info("KI-Texte nicht moeglich (%s), nehme die Vorlagen.", exc)
         return base
 
-    credit = credit_line(channel, video_title, creator)
+    # Ohne "Clip aus: ..." und "Credit: ..." und ohne Hashtag mit dem Creator-Namen (Wunsch von Malte, 2026-11-18)
+    names = name_variants(creator)
     own_tags = list(channel.get("tags") or [])[:1] + extra_tags[:1]  # eigener Kanal-Tag + Spiel bzw. Art
-    yt_tags = normalize_hashtags(data["hashtags_youtube"][:2] + own_tags + ["shorts"] + data["hashtags_youtube"][2:], 6)
-    tt_tags = normalize_hashtags(data["hashtags_tiktok"][:3] + own_tags + data["hashtags_tiktok"][3:], 6)
-    ig_tags = normalize_hashtags(data["hashtags_instagram"][:5] + own_tags + data["hashtags_instagram"][5:], 10)
+    yt_tags = normalize_hashtags(data["hashtags_youtube"][:2] + own_tags + ["shorts"] + data["hashtags_youtube"][2:],
+                                 6, names)
+    tt_tags = normalize_hashtags(data["hashtags_tiktok"][:3] + own_tags + data["hashtags_tiktok"][3:], 6, names)
+    ig_tags = normalize_hashtags(data["hashtags_instagram"][:5] + own_tags + data["hashtags_instagram"][5:], 10, names)
     yt_title = data["youtube_title"].strip()[:90]
     if "#shorts" not in yt_title.lower():
         yt_title = f"{yt_title} #shorts"
     platforms = {
         "youtube": {"title": yt_title[:100],
-                    "caption": f"{data['youtube_description'].strip()}\n\n{credit}\n\n{' '.join(yt_tags)}"},
+                    "caption": f"{data['youtube_description'].strip()}\n\n{' '.join(yt_tags)}"},
         "tiktok": {"title": yt_title[:100],
-                   "caption": f"{data['tiktok_caption'].strip()} {' '.join(tt_tags)}\n\n{credit}"},
+                   "caption": f"{data['tiktok_caption'].strip()} {' '.join(tt_tags)}"},
         "instagram": {"title": yt_title[:100],
-                      "caption": f"{data['instagram_caption'].strip()}\n\n{credit}\n\n{' '.join(ig_tags)}"},
+                      "caption": f"{data['instagram_caption'].strip()}\n\n{' '.join(ig_tags)}"},
     }
     return {"title": yt_title[:100], "caption": platforms["tiktok"]["caption"],
             "hook_overlay": data["hook_overlay"].strip()[:60] or base["hook_overlay"], "platforms": platforms}

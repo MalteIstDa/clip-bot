@@ -90,7 +90,11 @@ DEFAULTS = {
     "live_before_seconds": 40,         # so viel vor dem Chat-Peak beginnt der Clip
     "live_after_seconds": 12,          # so viel nach dem Beginn des Peaks endet er
     "live_cooldown_seconds": 120,      # Mindestabstand zwischen zwei Clips aus demselben Stream
-    "live_max_clips_per_stream": 12,
+    "live_max_clips_per_stream": 12,   # bei Zusammenschnitten: so viele Zusammenschnitte je Stream
+    "live_compilation": True,          # Peaks als kurze Momente sammeln und zu einem Clip ueber 1 Minute zusammensetzen
+    "live_moment_seconds": 20,         # so lang ist ein Moment (der Kern um den Chat-Peak)
+    "live_compilation_min_seconds": 65,  # TikTok zahlt erst ab ueber 1 Minute
+    "live_compilation_max_seconds": 90,
     "vault_size": 10,                  # sind so viele Live-Clips eines Kanals im Vault, wird gepostet; 0 = nie automatisch
     # Benachrichtigungen
     "notify_desktop": True,            # Mitteilung des Betriebssystems (Mac, Windows)
@@ -265,6 +269,10 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         raise ConfigError("Live-Empfindlichkeit: erlaubt sind niedrig, normal oder hoch.")
     if not 10 <= settings["live_before_seconds"] + settings["live_after_seconds"] <= 180:
         raise ConfigError("Live-Clips: Vorlauf und Nachlauf zusammen muessen zwischen 10 und 180 Sekunden liegen.")
+    if not 6 <= settings["live_moment_seconds"] <= 60:
+        raise ConfigError("Live-Momente: 6 bis 60 Sekunden.")
+    if not 20 <= settings["live_compilation_min_seconds"] < settings["live_compilation_max_seconds"] <= 600:
+        raise ConfigError("Live-Zusammenschnitt: Mindestlaenge muss kleiner als die Hoechstlaenge sein (20 bis 600 Sekunden).")
     if settings["live_max_streams"] < 1 or settings["vault_size"] < 0:
         raise ConfigError("Live-Clips: mindestens 1 Stream gleichzeitig, Vault-Groesse 0 oder mehr.")
     if settings["watch_interval_minutes"] < 1:
