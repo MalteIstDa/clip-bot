@@ -82,3 +82,12 @@ def test_yaml_off_is_read_as_off(tmp_path):
     cfg = tmp_path / "config.yaml"
     cfg.write_text("settings:\n  ai_backend: off\nchannels: []\n", encoding="utf-8")
     assert config.load_raw(cfg)["settings"]["ai_backend"] == "off"
+
+
+def test_strict_schema_only_sends_list_limits_the_api_accepts():
+    from clipbot.explainer.script import SCRIPT_SCHEMA
+    sent = json.dumps(ai._strict(SCRIPT_SCHEMA))
+    assert '"maxItems"' not in sent and '"minItems": 4' not in sent
+    assert ai._strict({"type": "array", "minItems": 1, "items": {"type": "string"}})["minItems"] == 1
+    with pytest.raises(ai.AIError):  # die echte Untergrenze gilt weiter beim Pruefen der Antwort
+        ai.validate({"scenes": []}, SCRIPT_SCHEMA)

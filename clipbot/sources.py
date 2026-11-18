@@ -62,11 +62,20 @@ def videos_url(url: str) -> str:
     return str(url).strip()
 
 
+class _Silent:
+    """yt-dlp druckt Fehler sonst trotz quiet ins Protokoll (z. B. Kanal ohne Streams-Tab); sie kommen als
+    Ausnahme ohnehin beim Aufrufer an."""
+    def debug(self, msg):
+        pass
+
+    warning = info = error = debug
+
+
 def _flat(url: str, limit: int) -> dict:
     import yt_dlp
 
     opts = {"quiet": True, "no_warnings": True, "extract_flat": "in_playlist",
-            "playlistend": limit, "skip_download": True}
+            "playlistend": limit, "skip_download": True, "logger": _Silent()}
     with yt_dlp.YoutubeDL(opts) as ydl:
         return ydl.extract_info(url, download=False) or {}
 
