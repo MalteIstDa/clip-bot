@@ -1145,6 +1145,7 @@ function renderOverview() {
 
   const todo = [];
   if (!data.setup.ffmpeg) todo.push("ffmpeg ist nicht installiert. Installiere es und starte ClipBot neu.");
+  else if (data.setup.subtitles === false) todo.push("Dein ffmpeg kann keine Untertitel einbrennen. Clips kommen ohne Untertitel. Mac: im Terminal brew install ffmpeg-full eingeben und ClipBot neu starten.");
   if (waiting) todo.push(`${waiting} ${waiting === 1 ? "Video wartet" : "Videos warten"} unter „Freigabe“ auf dich.`);
   if (!data.creators.length) todo.push("Die Watchlist ist leer. Füge unter „Watchlist“ YouTuber und Streamer hinzu.");
   if (!data.accounts.length) todo.push("Unter „Konten“ ist noch kein Upload-Konto angelegt.");

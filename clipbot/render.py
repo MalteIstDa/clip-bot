@@ -1,10 +1,61 @@
 """Clip ausschneiden, auf 9:16 (1080x1920) bringen und Untertitel einbrennen (ffmpeg)."""
 from __future__ import annotations
 
+import functools
+import logging
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
+log = logging.getLogger("clipbot")
+
 W, H = 1080, 1920
+
+# Homebrew baut "ffmpeg" inzwischen ohne libass (keine Untertitel). "brew install ffmpeg-full" legt eine
+# vollstaendige Version daneben, die Homebrew nicht in den PATH haengt. Liegt sie da, nimmt ClipBot sie.
+FULL_FFMPEG_DIRS = ("/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin")
+SUBTITLE_HINT = ("Dein ffmpeg kann keine Untertitel einbrennen (libass fehlt). Clips entstehen trotzdem, aber "
+                 "ohne Untertitel. Auf dem Mac im Terminal: brew install ffmpeg-full, danach ClipBot neu starten.")
+
+
+def use_full_ffmpeg(dirs: tuple[str, ...] = FULL_FFMPEG_DIRS) -> str | None:
+    """Stellt ein vorhandenes ffmpeg-full im PATH nach vorne. Gibt den Ordner zurueck (oder None)."""
+    for folder in dirs:
+        if Path(folder, "ffmpeg").exists():
+            parts = os.environ.get("PATH", "").split(os.pathsep)
+            if folder not in parts:
+                os.environ["PATH"] = os.pathsep.join([folder, *parts])
+            can_burn_subtitles.cache_clear()
+            return folder
+    return None
+
+
+@functools.lru_cache(maxsize=1)
+def can_burn_subtitles() -> bool:
+    """True, wenn das ffmpeg im PATH den Filter "ass" hat (libass)."""
+    if not shutil.which("ffmpeg"):
+        return False
+    try:
+        out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True, timeout=30)
+    except Exception:
+        return False
+    return any(line.split()[1:2] == ["ass"] for line in out.stdout.splitlines() if line.strip())
+
+
+_warned = False
+
+
+def _subtitles_usable(ass_path: Path | None) -> bool:
+    global _warned
+    if not ass_path:
+        return False
+    if can_burn_subtitles():
+        return True
+    if not _warned:
+        log.warning(SUBTITLE_HINT)
+        _warned = True
+    return False
 
 
 def _filter(layout: str, zoom: float, ass_name: str | None) -> str:
@@ -26,6 +77,8 @@ def render_clip(source: Path, start: float, end: float, out_path: Path, ass_path
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # ffmpeg laeuft im Ordner der Untertiteldatei: so braucht der Filter keinen Pfad
     # (Windows-Pfade mit "C:\" lassen sich im Filter kaum sauber maskieren).
+    if not _subtitles_usable(ass_path):
+        ass_path = None
     cwd = ass_path.parent if ass_path else out_path.parent
     cmd = [
         "ffmpeg", "-v", "error", "-y",

@@ -264,6 +264,7 @@ def main() -> int:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s", datefmt="%H:%M:%S")
+    render.use_full_ffmpeg()
     try:
         cfg = config.load()
     except config.ConfigError as exc:
