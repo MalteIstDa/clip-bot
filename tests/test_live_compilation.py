@@ -106,3 +106,27 @@ def test_settings_reject_bad_compilation_lengths():
     with pytest.raises(config.ConfigError):
         config.validate({"settings": {**config.DEFAULTS, "live_compilation_min_seconds": 90,
                                       "live_compilation_max_seconds": 60}, "channels": []}, allow_empty=True)
+
+
+@pytest.fixture(scope="module")
+def ad_break(tmp_path_factory):
+    """Wie die Twitch-Werbepause: ein stehendes Bild mit Ton."""
+    src = tmp_path_factory.mktemp("werbung") / "werbung.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=purple:size=320x180:rate=15:duration=72",
+                    "-f", "lavfi", "-i", "sine=frequency=300:duration=72", "-shortest", "-c:v", "libx264",
+                    "-preset", "ultrafast", "-c:a", "aac", str(src)], check=True)
+    return src
+
+
+def test_still_seconds_finds_the_ad_break(scene, ad_break):
+    from clipbot import render
+    assert render.still_seconds(ad_break, 30, 50) >= 15
+    assert render.still_seconds(scene, 30, 50) < 2
+
+
+def test_ad_break_does_not_become_a_moment(tmp_path, ad_break):
+    st = State(tmp_path / "db.sqlite")
+    row = queue_scene(st, tmp_path, ad_break, 1, 80)
+    made = run.process_livecut([channel()], s(work_dir=tmp_path), st, row, {"id": "lacy", "name": "Lacy"})
+    assert made == 0 and bestof.live_moments(st, "clips", "lacy") == []
+    assert not (tmp_path / "szene1.mp4").exists()

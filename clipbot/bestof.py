@@ -297,6 +297,10 @@ def add_live_moment(s: dict, state: State, raw: Path, note: dict, cut_id: str, c
     start, end = live_window(words, peak, length or peak + 10, seconds)
     if end - start < 4:
         return None
+    still = render.still_seconds(raw, start, end)
+    if still > 0.3 * (end - start):
+        log.info("Live-Moment verworfen: %.0f von %.0f s Standbild (Werbepause oder Pausenbild).", still, end - start)
+        return None
     moment_id = cut_id if cut_id.startswith(LIVE_PREFIX) else LIVE_PREFIX + cut_id
     path = render.cut_raw(raw, start, end, Path(s["work_dir"]) / "_momente" / "live" / f"{moment_id}.mp4")
     relative = [[round(w.start - start, 3), round(w.end - start, 3), w.text]

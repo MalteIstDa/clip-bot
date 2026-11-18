@@ -152,6 +152,12 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
     info = {"id": cut_id, "title": note.get("stream_title") or row["title"] or creator_name,
             "duration": float(note.get("duration") or end + 10), "heatmap": [],
             "categories": [note["category"]] if note.get("category") else []}
+    if render.still_seconds(raw, start, end) > 0.3 * max(1.0, length):
+        log.info("[live] Szene verworfen: vor allem Standbild (Werbepause oder Pausenbild).")
+        state.mark_video(cut_id, "", "", "skipped", note="Standbild (Werbepause)")
+        if not s["keep_source_videos"]:
+            raw.unlink(missing_ok=True)
+        return 0
     pick = {"start": start, "end": end, "words": words, "reason": reason}
     made = 0
     for i, channel in enumerate(channels):

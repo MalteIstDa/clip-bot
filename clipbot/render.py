@@ -96,6 +96,32 @@ def render_clip(source: Path, start: float, end: float, out_path: Path, ass_path
     return out_path
 
 
+def still_seconds(source: Path, start: float = 0.0, end: float | None = None, min_still: float = 2.0) -> float:
+    """Wie viele Sekunden des Abschnitts ein Standbild sind (Twitch-Werbepause "Commercial break in progress",
+    Pausenbild, eingefrorener Stream). Gemessen mit dem ffmpeg-Filter freezedetect."""
+    cmd = ["ffmpeg", "-hide_banner", "-nostats", "-ss", f"{max(0.0, start):.3f}"]
+    if end is not None:
+        cmd += ["-t", f"{max(0.1, end - start):.3f}"]
+    cmd += ["-i", str(Path(source).resolve()), "-map", "0:v:0", "-vf", f"freezedetect=n=-50dB:d={min_still}",
+            "-f", "null", "-"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except Exception:
+        return 0.0
+    total, opened = 0.0, None
+    for line in result.stderr.splitlines():
+        if "freeze_start:" in line:
+            opened = float(line.rsplit(":", 1)[1])
+        elif "freeze_end:" in line and opened is not None:
+            total += float(line.rsplit(":", 1)[1]) - opened
+            opened = None
+    if opened is not None:  # Standbild bis zum Schluss
+        length = (end - start) if end is not None else None
+        if length:
+            total += max(0.0, length - opened)
+    return total
+
+
 def _run(cmd: list[str], cwd: Path | None = None) -> None:
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if result.returncode != 0:
