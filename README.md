@@ -90,6 +90,10 @@ Geht ein Creator aus der Watchlist live, schneidet ClipBot den Stream mit (es bl
 - **YouTube:** Der Live-Chat läuft über das Paket `chat-downloader`, eine inoffizielle Schnittstelle. Ändert YouTube etwas, kann sie ausfallen.
 - **Kick und andere Seiten, oder wenn der Chat nicht lesbar ist:** ClipBot clippt nach der Lautstärke des Streams.
 
+**Clips über 1 Minute:** Standardmäßig wird aus jedem Chat-Peak zuerst ein kurzer Moment (etwa 20 Sekunden, vor allem die Sekunden vor dem Peak, weil der Chat erst nach dem Ereignis reagiert). Hat ein Streamer genug Momente, setzt ClipBot seine stärksten zu einem Clip von 65 bis 90 Sekunden zusammen: der stärkste zuerst, der zweitstärkste am Schluss, jeder mit eigener Zeile oben. Streamer werden nicht gemischt. TikTok zahlt erst für Videos über 1 Minute. Abschalten oder die Längen ändern kannst du unter Einstellungen → „Live-Clips und Vault“.
+
+Beschreibungen enthalten keine Quellenzeile („Clip aus …“, „Credit …“) und keinen Hashtag mit dem Namen des Creators.
+
 Die Live-Clips landen im **Vault** des Kanals (Bereich „Live & Vault“). Sind 10 drin (einstellbar), werden sie freigegeben und sofort nacheinander auf jedes Konto des Kanals gepostet, ohne Freigabe und ohne Upload-Zeiten. Mit „Jetzt posten“ geht das auch früher; schlechte Clips löschst du vorher im Vault. Lehnt eine Plattform ab (YouTube erlaubt mit einem Google-Projekt nur etwa 6 Uploads am Tag), versucht ClipBot dieses Konto nach 6 Stunden erneut. Im Probemodus wird nichts hochgeladen.
 
 Voraussetzungen: Die Automatik ist an, der Creator hat „Auto-Clip“ und gehört zu einem Kanal, und ClipBot läuft, solange der Stream läuft. Gleichzeitig werden höchstens 6 Streams mitgeschnitten (einstellbar). Wurde ein Stream schon live geclippt, wird seine Aufzeichnung danach nicht noch einmal geclippt, außer ein Kanal braucht sie für Best-ofs. Alles Weitere unter Einstellungen → „Live-Clips und Vault“.

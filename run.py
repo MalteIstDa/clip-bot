@@ -139,6 +139,8 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
         state.mark_video(cut_id, "", "", "skipped", note="Szene fehlt" if channels else "Kein Kanal fuer Clips")
         return 0
     creator_name = str(creator.get("name") or "").strip()
+    if s.get("live_compilation", True):
+        return _livecut_to_moment(channels, s, state, raw, note, cut_id, creator, creator_name)
     start, end = float(note.get("start", 0)), float(note.get("end", 0))
     length = end - start
     live_s = {**s, "clip_min_seconds": max(5.0, length - 12), "clip_max_seconds": length + 15}
@@ -158,6 +160,31 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
     state.mark_video(cut_id, "", "", "done")
     if not s["keep_source_videos"]:
         raw.unlink(missing_ok=True)
+    return made
+
+
+def _livecut_to_moment(channels, s: dict, state: State, raw: Path, note: dict, cut_id: str, creator: dict,
+                       creator_name: str) -> int:
+    """Zusammenschnitt-Modus: Aus der Szene wird ein kurzer Moment. Reichen die Momente des Streamers fuer
+    einen Clip ueber 1 Minute, setzt ClipBot die besten zusammen und legt den Clip in den Vault."""
+    moment = bestof.add_live_moment(s, state, raw, note, cut_id, creator["id"], creator_name or creator["id"])
+    state.mark_video(cut_id, "", "", "done")
+    if not s["keep_source_videos"]:
+        raw.unlink(missing_ok=True)
+    if not moment:
+        return 0
+    made = 0
+    for channel in channels:
+        waiting = bestof.live_moments(state, channel["name"], creator["id"])
+        total = sum(m["duration"] for m in waiting)
+        clip_id = bestof.build_live(s, channel, state, creator["id"], creator_name or creator["id"],
+                                    note.get("category") or None)
+        if clip_id:
+            made += 1
+        else:
+            log.info("[%s] %s: Moment gemerkt (%.0f s), gesammelt %d Momente mit %.0f s. Der Clip entsteht ab "
+                     "etwa %d s.", channel["name"], creator_name, moment["duration"], len(waiting), total,
+                     int(s["live_compilation_min_seconds"]) + int(s["live_moment_seconds"]))
     return made
 
 

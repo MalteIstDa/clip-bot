@@ -57,13 +57,27 @@ def test_normalize_hashtags():
     assert viral.normalize_hashtags(["#n3on", "irl stream", "N3ON", "#"], 5) == ["#n3on", "#irlstream"]
 
 
+def test_no_hashtag_with_the_creator_name():
+    names = viral.name_variants("Papa Platte", "xRohat")
+    tags = viral.normalize_hashtags(["#papaplatte", "#xrohat", "#XRohat", "#gta6", "#platte", "#fyp"], 6, names)
+    assert tags == ["#gta6", "#fyp"]
+
+
+def test_ai_texts_drop_creator_hashtags(fake_ai):
+    fake_ai.append(json.dumps({**AI_TEXTS, "hashtags_tiktok": ["xrohat", "gta6", "fyp"],
+                               "hashtags_youtube": ["xRohat", "gaming"]}))
+    texts = viral.write_texts(s(ai_backend="fake"), CHANNEL, "xRohat (live) 2026-11-18 13:50", "t", 1, creator="xRohat")
+    allcaps = " ".join(p["caption"] for p in texts["platforms"].values()).lower()
+    assert "#xrohat" not in allcaps and "#gta6" in allcaps and "clip aus" not in allcaps and "credit" not in allcaps
+
+
 # ---------------------------------------------------------------- Texte mit KI
 def test_ai_texts_per_platform(fake_ai):
     fake_ai.append(json.dumps(AI_TEXTS))
     texts = viral.write_texts(s(ai_backend="fake"), CHANNEL, "Stream 12", "transcript", 1)
     yt, tt, ig = (texts["platforms"][p]["caption"] for p in ("youtube", "tiktok", "instagram"))
     assert texts["platforms"]["youtube"]["title"].endswith("#shorts")
-    assert "#shorts" in yt and "Credit: N3on" in yt and "Clip from: Stream 12" in tt  # Kanal ist englisch
+    assert "#shorts" in yt and "Credit" not in yt + tt + ig and "Clip from" not in yt + tt + ig  # keine Quellenzeilen
     assert tt.startswith("Would you have stayed calm? #fyp")
     assert ig.count("#") <= 10 and "#reels" in ig
     assert texts["hook_overlay"] == "He did not expect this"

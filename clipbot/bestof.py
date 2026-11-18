@@ -130,7 +130,8 @@ def _ai_plan(s: dict, channel: dict, moments: list[dict], label: str) -> dict | 
         "- youtube_title: hoechstens 70 Zeichen, macht neugierig, nennt 1 bis 2 der Creator, kein Hashtag.\n"
         "- youtube_description: 1 bis 2 Saetze.\n"
         "- tiktok_caption: 1 kurzer Satz plus Frage, welcher Moment der beste war, ohne Hashtags.\n"
-        "- hashtags: 4 bis 6, breite Tags gemischt mit den Namen der Creator, keine Leerzeichen.\n"
+        "- hashtags: 4 bis 6, breite Tags gemischt mit Tags zum Thema oder Spiel, kein Hashtag mit dem Namen "
+        "eines Creators, keine Leerzeichen.\n"
         f"Schreibe alle Texte auf {language}. Versprich nichts, was die Momente nicht halten.\n\n" + listing
     )
     try:
@@ -168,11 +169,11 @@ def _ai_plan(s: dict, channel: dict, moments: list[dict], label: str) -> dict | 
     return {"picks": picks, "data": data}
 
 
-def plan(s: dict, channel: dict, moments: list[dict], period: str) -> dict:
+def plan(s: dict, channel: dict, moments: list[dict], period: str, label: str | None = None) -> dict:
     """Welche Momente in welcher Reihenfolge, mit welcher Zeile oben, und die Texte zum Video.
     Gibt {"picks": [(moment, headline)], "title", "caption", "platforms", "label"} zurueck."""
     words = lang.of_channel(channel)
-    label = words["bestof_weekly" if period == "weekly" else "bestof_daily"]
+    label = label or words["bestof_weekly" if period == "weekly" else "bestof_daily"]
     result = _ai_plan(s, channel, moments, label) if ai.enabled(s) else None
     if result:
         picks, data = result["picks"], result["data"]
@@ -181,20 +182,20 @@ def plan(s: dict, channel: dict, moments: list[dict], period: str) -> dict:
         picks, data = [(m, m["creator_name"]) for m in chosen], {}
 
     names = list(dict.fromkeys(m["creator_name"] for m, _ in picks))
-    credits = words["credits"].format(names=", ".join(names))
     fallback_title = f"{label}: {', '.join(names[:2])}" + (f" {words['and_more']}" if len(names) > 2 else "")
     title = (data.get("youtube_title") or fallback_title).strip()[:90]
     if "#shorts" not in title.lower():
         title += " #shorts"
     own_tags = list(channel.get("tags") or [])[:2]
-    tags = viral.normalize_hashtags((data.get("hashtags") or words["bestof_tags"]) + own_tags, 6)
-    yt_tags = viral.normalize_hashtags([t for t in tags if t.lower() != "#shorts"][:4] + ["shorts"], 5)
+    skip = viral.name_variants(*names)  # kein #streamername
+    tags = viral.normalize_hashtags((data.get("hashtags") or words["bestof_tags"]) + own_tags, 6, skip)
+    yt_tags = viral.normalize_hashtags([t for t in tags if t.lower() != "#shorts"][:4] + ["shorts"], 5, skip)
     description = (data.get("youtube_description") or words["bestof_caption"]).strip()
     tiktok = (data.get("tiktok_caption") or f"{label} 🔥 {words['bestof_caption']}").strip()
     platforms = {
-        "youtube": {"title": title[:100], "caption": f"{description}\n\n{credits}\n\n{' '.join(yt_tags)}"},
-        "tiktok": {"title": title[:100], "caption": f"{tiktok} {' '.join(tags)}\n\n{credits}"},
-        "instagram": {"title": title[:100], "caption": f"{tiktok}\n\n{credits}\n\n{' '.join(tags)}"},
+        "youtube": {"title": title[:100], "caption": f"{description}\n\n{' '.join(yt_tags)}"},
+        "tiktok": {"title": title[:100], "caption": f"{tiktok} {' '.join(tags)}"},
+        "instagram": {"title": title[:100], "caption": f"{tiktok}\n\n{' '.join(tags)}"},
     }
     return {"picks": picks, "title": title[:100], "caption": platforms["tiktok"]["caption"],
             "platforms": platforms, "label": label, "names": names}
@@ -224,14 +225,22 @@ def build(cfg: dict, channel: dict, state: State, period: str | None = None, for
                  "dieses Kanals geclippt werden.", name, len(moments))
         return None
     todo = plan(s, channel, moments, period)
-    picks = todo["picks"]
-    total = sum(m["duration"] for m, _ in picks)
+    total = sum(m["duration"] for m, _ in todo["picks"])
     if total < s["bestof_min_seconds"] and not force:
         log.info("[%s] Best-of: Das Material reicht erst fuer %.0f von %d Sekunden. Es wird spaeter gebaut.",
                  name, total, s["bestof_min_seconds"])
         return None
+    return render_plan(s, channel, state, todo, f"bestof-{name}", "wartet" if s["require_approval"] else "freigegeben",
+                       "bestof")
 
-    clip_id = f"bestof-{name}-{time.strftime('%Y%m%d-%H%M%S')}"
+
+def render_plan(s: dict, channel: dict, state: State, todo: dict, prefix: str, review: str, kind: str,
+                genre_label: str = "") -> str:
+    """Rendert die Momente eines Plans (je mit Untertiteln und Zeile oben), haengt sie zusammen und
+    legt den Clip an. Gibt die clip_id zurueck."""
+    name, picks = channel["name"], todo["picks"]
+    total = sum(m["duration"] for m, _ in picks)
+    clip_id = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S')}"
     clip_dir = s["work_dir"] / name / "clips" / clip_id
     clip_dir.mkdir(parents=True, exist_ok=True)
     log.info("[%s] %s: %d Momente von %s (%.0f s) rendern ...", name, todo["label"], len(picks),
@@ -252,10 +261,90 @@ def build(cfg: dict, channel: dict, state: State, period: str | None = None, for
 
     reason = f"{todo['label']} aus {len(picks)} Momenten von {', '.join(todo['names'])}."
     transcript = "\n".join(f"{m['creator_name']}: {m['text']}" for m, _ in picks)
-    state.mark_video(clip_id, name, f"{todo['label']} ({time.strftime('%d.%m.%Y')})", "done", kind="bestof")
+    state.mark_video(clip_id, name, f"{todo['label']} ({time.strftime('%d.%m.%Y')})", "done", kind=kind)
     state.add_clip(clip_id, clip_id, name, out, todo["title"], todo["caption"], 0, total, todo["platforms"],
-                   picks[0][1], reason, "wartet" if s["require_approval"] else "freigegeben", transcript,
-                   creator=", ".join(todo["names"]), kind="bestof")
+                   picks[0][1], todo.get("reason") or reason, review, transcript,
+                   creator=", ".join(todo["names"]), kind=kind, genre=genre_label)
     state.use_moments([m["moment_id"] for m, _ in picks], name, clip_id)
     log.info("[%s] %s fertig (%.0f s): %s", name, todo["label"], total, todo["title"])
     return clip_id
+
+
+# ---------------------------------------------------------------- Live: Momente zu Clips ueber 1 Minute
+LIVE_PREFIX = "live-"      # Momente aus Livestreams (die Stream-Kennung beginnt so)
+LIVE_MAX_AGE = 12 * 3600   # aeltere Live-Momente kommen in keinen Zusammenschnitt mehr
+
+
+def live_window(words, peak: float, length: float, seconds: float) -> tuple[float, float]:
+    """Kern um einen Chat-Peak: Der Chat reagiert einige Sekunden nach dem Ereignis, deshalb liegt der
+    Moment vor allem vor dem Peak. Start und Ende rutschen hoechstens 3 Sekunden auf Sprechpausen."""
+    start = max(0.0, peak - seconds * 0.8)
+    end = min(length, start + seconds)
+    start = max(0.0, min(start, end - seconds))
+    snapped = highlights.snap_to_speech(words, start, end, seconds * 0.7, seconds * 1.25)
+    if abs(snapped[0] - start) <= 3 and abs(snapped[1] - end) <= 4:
+        start, end = snapped
+    return max(0.0, start), min(length, end)
+
+
+def add_live_moment(s: dict, state: State, raw: Path, note: dict, cut_id: str, creator_id: str,
+                    creator_name: str) -> dict | None:
+    """Schneidet den Kern einer Live-Szene als Moment aus und merkt ihn sich. Gibt den Moment zurueck."""
+    length = float(note.get("duration") or 0)
+    peak = float(note.get("peak", float(note.get("start", 0)) + float(s["live_before_seconds"])))
+    seconds = float(s["live_moment_seconds"])
+    words = transcribe.transcribe_range(raw, peak - seconds - 6, peak + 10, s["whisper_model"], s["language"])
+    start, end = live_window(words, peak, length or peak + 10, seconds)
+    if end - start < 4:
+        return None
+    moment_id = cut_id if cut_id.startswith(LIVE_PREFIX) else LIVE_PREFIX + cut_id
+    path = render.cut_raw(raw, start, end, Path(s["work_dir"]) / "_momente" / "live" / f"{moment_id}.mp4")
+    relative = [[round(w.start - start, 3), round(w.end - start, 3), w.text]
+                for w in words if w.end > start and w.start < end]
+    # Wertung: wie stark der Chat ueber seinem Normalwert lag (vergleichbar zwischen grossen und kleinen Chats)
+    score = float(note.get("score") or 0) / max(1.0, float(note.get("base") or 0)) + 0.3 * int(note.get("laughs") or 0)
+    title = note.get("stream_title") or creator_name
+    state.add_moment(moment_id, cut_id, creator_id, creator_name, title, path, end - start, round(score, 3),
+                     viral.spoken_text(words, start, end), relative)
+    return {"moment_id": moment_id, "duration": end - start, "score": score}
+
+
+def live_moments(state: State, channel: str, creator_id: str, now: float | None = None) -> list[dict]:
+    since = (now or time.time()) - LIVE_MAX_AGE
+    return [m for m in state.unused_moments(channel, [creator_id], since)
+            if m["moment_id"].startswith(LIVE_PREFIX) and Path(m["path"]).exists()]
+
+
+def build_live(s: dict, channel: dict, state: State, creator_id: str, creator_name: str,
+               category: str | None = None, force: bool = False) -> str | None:
+    """Setzt die besten Live-Momente eines Streamers zu einem Clip ueber 1 Minute zusammen (in den Vault).
+    None, solange das Material nicht reicht (force: Rest am Stream-Ende trotzdem bauen, wenn ueber 1 Minute)."""
+    from clipbot import genre
+
+    moments = live_moments(state, channel["name"], creator_id)
+    lo, hi = float(s["live_compilation_min_seconds"]), float(s["live_compilation_max_seconds"])
+    total = sum(m["duration"] for m in moments)
+    if len(moments) < 2 or total < (60.5 if force else lo + float(s["live_moment_seconds"])):
+        return None  # warten: mit einem Moment mehr ist die Auswahl besser
+    for m in moments:
+        m["creator_name"] = creator_name or m["creator_name"]
+    kind_of = genre.classify(category) if s.get("genre_formats", True) else None
+    cs = {**genre.settings_for(s, kind_of), "bestof_min_seconds": min(lo, total), "bestof_max_seconds": hi,
+          "bestof_max_per_creator": 99}
+    words = lang.of_channel(channel)
+    game = genre.game_of(category, kind_of)
+    label = f"{creator_name}: {words['live_best']}" + (f" ({game})" if game else "")
+    todo = plan(cs, channel, moments, "daily", label)
+    picks = todo["picks"]
+    length = sum(m["duration"] for m, _ in picks)
+    if length < 60.5:
+        return None
+    todo["reason"] = f"{len(picks)} Chat-Peaks aus dem Livestream von {creator_name} ({length:.0f} s)."
+    extra = genre.tags_for(kind_of, category)[:2]
+    if extra:
+        for p in todo["platforms"].values():
+            p["caption"] += " " + " ".join("#" + t for t in extra if "#" + t not in p["caption"].lower())
+        todo["caption"] = todo["platforms"]["tiktok"]["caption"]
+    safe = "".join(ch for ch in creator_id if ch.isalnum() or ch in "-_")[:30]
+    return render_plan(cs, channel, state, todo, f"live-{channel['name']}-{safe}", "vault", "live",
+                       genre.describe(kind_of, category))

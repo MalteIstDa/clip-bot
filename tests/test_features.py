@@ -90,9 +90,7 @@ def test_config_rejects_unknown_links_and_bad_times():
 def test_languages():
     assert lang.code("Französisch") == "fr" and lang.code("pl") == "pl" and lang.code("") == "en"
     assert lang.get("Spanisch")["prompt"] == "Spanisch"  # unbekannte Sprache: Name geht an die KI
-    line = viral.credit_line({"language": "pl"}, "Stream", "Gtasty")
-    assert line == "Klip z: Stream\nŹródło: Gtasty"
-    assert viral.credit_line({"language": "fr", "credit": "Kanal"}, "Live", "") == "Extrait de : Live\nCrédit : Kanal"
+    assert lang.get("pl")["live_best"] == "Najlepsze momenty"
 
 
 # ---------------------------------------------------------------- Zeitplan
@@ -457,7 +455,7 @@ def test_ai_is_told_to_name_the_creator(monkeypatch):
     texts = viral.write_texts(s(ai_backend="fake"), channel(language="fr"), "Live", "transcript", 1, creator="Gtasty")
     assert "Nenne darin Gtasty beim Namen" in prompts[0] and "auf Französisch" in prompts[0]
     assert texts["hook_overlay"] == "Gtastys unglaublicher Stunt"
-    assert "Crédit : Gtasty" in texts["platforms"]["youtube"]["caption"]
+    assert "Crédit" not in texts["platforms"]["youtube"]["caption"]  # keine Quellenzeile mehr
 
 
 def test_headline_stays_for_whole_clip(tmp_path):
@@ -488,7 +486,7 @@ def test_plan_without_ai_uses_language_of_channel():
     todo = bestof.plan(s(), channel(language="en", tags=["irl"]), moments, "weekly")
     assert todo["title"] == "Best of the Week: Gtasty, Speed and more #shorts"  # Namen in der Reihenfolge im Video
     assert [h for _, h in todo["picks"]] == ["Gtasty", "Speed", "N3On"]
-    assert "Credits: Gtasty, Speed, N3On" in todo["platforms"]["youtube"]["caption"]
+    assert "Credits" not in todo["platforms"]["youtube"]["caption"]  # keine Quellenzeile (Wunsch von Malte)
     assert "#shorts" in todo["platforms"]["youtube"]["caption"] and "#irl" in todo["caption"]
 
 
@@ -501,7 +499,7 @@ def test_plan_with_ai_keeps_limits(fake_ai):
         "tiktok_caption": "Welcher war am besten?", "hashtags": ["bestof", "#n3on"]}))
     todo = bestof.plan(s(ai_backend="fake", bestof_max_seconds=100), channel(), moments, "weekly")
     assert [(m["moment_id"], h) for m, h in todo["picks"]] == [("m2", "N3on rastet aus"), ("m1", "Gtastys unglaublicher Stunt")]
-    assert todo["title"] == "Diese Woche war wild #shorts" and "#n3on" in todo["caption"]
+    assert todo["title"] == "Diese Woche war wild #shorts" and "#n3on" not in todo["caption"]  # kein #streamername
 
 
 def test_plan_fills_up_when_ai_picks_too_little(fake_ai):
