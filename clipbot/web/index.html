@@ -1808,8 +1808,8 @@ const SETTINGS = [
     "Mit KI entsteht eine packende Zeile mit dem Namen. Ohne KI steht dort nur der Name des Creators."],
   ["Format je Art des Streams", "teal", [
     ["genre_formats", "Gaming, Just Chatting und IRL erkennen und Bild, Hook und Hashtags anpassen", "check"],
-    ["layout_gaming", "Bild bei Gaming", "select", { blur: "Ganzes Spielbild", crop: "Bildfüllend" }],
-    ["layout_chatting", "Bild bei Just Chatting", "select", { crop: "Bildfüllend", blur: "Ganzes Bild" }],
+    ["layout_gaming", "Bild bei Gaming", "select", { facecam: "Facecam oben, Spiel unten", blur: "Ganzes Spielbild", crop: "Bildfüllend" }],
+    ["layout_chatting", "Bild bei Just Chatting", "select", { crop: "Bildfüllend", blur: "Ganzes Bild", facecam: "Facecam oben, Bild unten" }],
     ["layout_irl", "Bild bei IRL", "select", { crop: "Bildfüllend", blur: "Ganzes Bild" }]],
     "Erkannt wird die Kategorie des Streams (bei Twitch z. B. „Just Chatting“, „IRL“ oder das Spiel, bei YouTube „Gaming“). Mit KI passen sich Hook und Titel an die Art an, Hashtags zum Spiel kommen dazu. Ohne erkennbare Kategorie gilt der normale Bildaufbau unter „Bild“."],
   ["Live-Clips und Vault", "pink", [
@@ -1853,8 +1853,9 @@ const SETTINGS = [
     ["max_height", "Höchste Auflösung beim Download", "select", { 720: "720p", 1080: "1080p", 1440: "1440p", 2160: "2160p" }],
     ["keep_source_videos", "Quellvideos nach dem Schneiden behalten", "check"]]],
   ["Bild", "pink", [
-    ["layout", "Bildaufbau", "select", { blur: "Video mittig, Hintergrund unscharf", crop: "Bildfüllender Ausschnitt" }],
-    ["zoom", "Vergrößerung des Videos (1 = ganzes Bild)", "number", 0.05]]],
+    ["layout", "Bildaufbau", "select", { blur: "Video mittig, Hintergrund unscharf", crop: "Bildfüllender Ausschnitt", facecam: "Facecam oben, Spiel unten" }],
+    ["zoom", "Vergrößerung des Videos (1 = ganzes Bild)", "number", 0.05],
+    ["punch_ins", "An den lautesten Stellen kurz ins Bild zoomen", "check"]]],
   ["Untertitel", "amber", [
     ["subtitle_font", "Schriftart", "text"],
     ["subtitle_size", "Schriftgröße", "number"],

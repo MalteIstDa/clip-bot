@@ -70,12 +70,13 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
                                   pick.get("reason", ""), creator_name, kind_of, category)
         hook = texts["hook_overlay"] if s["hook_overlay"] else ""
         log.info("[%s] Clip %d von %d: rendern ...", name, n, len(picks))
+        layout, cam = render.prepare_layout(source, start, end, cs["layout"])
         ass = subtitles.write_ass(
             words, start, end, clip_dir / "subs.ass", s["subtitle_font"], s["subtitle_size"],
             s["subtitle_margin_bottom"], s["subtitle_uppercase"], s["subtitle_words_per_line"], hook=hook,
-            hook_seconds=float(s.get("hook_seconds") or 0))
+            hook_seconds=float(s.get("hook_seconds") or 0), hook_margin=render.HOOK_MARGIN.get(layout, 260))
         out = render.render_clip(source, start, end, clip_dir / f"{clip_id}.mp4", ass,
-                                 cs["layout"], s["zoom"])
+                                 layout, s["zoom"], bool(s.get("punch_ins", True)), cam)
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
                        texts["platforms"], hook, pick.get("reason", ""),
                        review or ("wartet" if s["require_approval"] else "freigegeben"),
@@ -149,9 +150,17 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
     reason = (f"Chat-Peak im Livestream: {note.get('score', 0):.0f} statt sonst {note.get('base', 0):.0f}"
               + (f", {laughs}x Lachen im Chat" if laughs else "")) if note.get("mode") != "laut" \
         else "Lauter Moment im Livestream (Chat war nicht lesbar)"
+    if note.get("chat"):
+        reason += f". Der Chat schrieb: {str(note['chat'])[:300]}"
     info = {"id": cut_id, "title": note.get("stream_title") or row["title"] or creator_name,
             "duration": float(note.get("duration") or end + 10), "heatmap": [],
             "categories": [note["category"]] if note.get("category") else []}
+    if render.still_seconds(raw, start, end) > 0.3 * max(1.0, length):
+        log.info("[live] Szene verworfen: vor allem Standbild (Werbepause oder Pausenbild).")
+        state.mark_video(cut_id, "", "", "skipped", note="Standbild (Werbepause)")
+        if not s["keep_source_videos"]:
+            raw.unlink(missing_ok=True)
+        return 0
     pick = {"start": start, "end": end, "words": words, "reason": reason}
     made = 0
     for i, channel in enumerate(channels):

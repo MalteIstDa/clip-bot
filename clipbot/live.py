@@ -62,6 +62,22 @@ def is_laugh(text: str) -> bool:
         w.lower() in LAUGH or re.fullmatch(r"(ha){2,}h?|x+d+|l+o+l+", w.lower()) for w in _TOKEN.findall(text or ""))
 
 
+def chat_summary(texts: list[str], top: int = 8) -> str:
+    """Was der Chat beim Peak geschrieben hat, verdichtet fuer die KI: haeufigste Nachrichten mit Anzahl,
+    z. B. "KEKW (41x), W (12x), CLIP IT (5x), bro what". Wiederholte Woerter in einer Nachricht zaehlen einmal."""
+    counts: dict[str, int] = {}
+    shown: dict[str, str] = {}
+    for text in texts:
+        words = text.split()
+        if not words:
+            continue
+        key = " ".join(dict.fromkeys(w.lower() for w in words))[:40]
+        counts[key] = counts.get(key, 0) + 1
+        shown.setdefault(key, " ".join(dict.fromkeys(words))[:40])
+    ranked = sorted(counts, key=lambda k: -counts[k])[:top]
+    return ", ".join(f"{shown[k]} ({counts[k]}x)" if counts[k] > 1 else shown[k] for k in ranked)
+
+
 class PeakDetector:
     """Findet Momente, in denen der Chat (oder die Lautstaerke) deutlich ueber dem Normalmass liegt.
 
@@ -367,6 +383,7 @@ class Session(threading.Thread):
         self.category: str | None = None
         self.last_category = -1e18
         self._heard: set[str] = set()
+        self.recent: deque[tuple[float, str]] = deque(maxlen=4000)  # letzte Nachrichten fuer die KI
 
     # -- Chat
     def _chat_source(self):
@@ -383,6 +400,7 @@ class Session(threading.Thread):
         self.messages += 1
         self.last_message = ts
         self.detector.add(ts, message_weight(text), is_laugh(text))
+        self.recent.append((ts, text))
 
     # -- Status fuers Dashboard
     def status(self) -> dict:
@@ -505,6 +523,7 @@ class Session(threading.Thread):
         note = {"start": clip_start, "end": min(length, clip_start + before + after), "duration": length,
                 "peak": max(0.0, peak["ts"] - first),
                 "score": peak["score"], "base": peak["base"], "laughs": peak.get("laughs", 0),
+                "chat": chat_summary([t for ts, t in list(self.recent) if peak["ts"] - 2 <= ts <= peak["at"] + 6]),
                 "mode": self.mode, "stream_title": self.title, "at": peak["ts"], "category": self.category or ""}
         state = self.open_state()
         try:

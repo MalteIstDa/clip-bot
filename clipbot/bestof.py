@@ -132,6 +132,9 @@ def _ai_plan(s: dict, channel: dict, moments: list[dict], label: str) -> dict | 
         "- tiktok_caption: 1 kurzer Satz plus Frage, welcher Moment der beste war, ohne Hashtags.\n"
         "- hashtags: 4 bis 6, breite Tags gemischt mit Tags zum Thema oder Spiel, kein Hashtag mit dem Namen "
         "eines Creators, keine Leerzeichen.\n"
+        "Steht bei einem Moment 'Chat beim Peak', zeigt das, wie die Zuschauer reagiert haben (Lachen, Schock, "
+        "W oder L, 'clip it'). Nimm das als staerkstes Zeichen, was passiert ist und wie lustig oder krass es war, "
+        "und nutze es fuer Auswahl und headline. Zitiere keine Beleidigungen.\n"
         f"Schreibe alle Texte auf {language}. Versprich nichts, was die Momente nicht halten.\n\n" + listing
     )
     try:
@@ -246,14 +249,25 @@ def render_plan(s: dict, channel: dict, state: State, todo: dict, prefix: str, r
     log.info("[%s] %s: %d Momente von %s (%.0f s) rendern ...", name, todo["label"], len(picks),
              ", ".join(todo["names"]), total)
     parts, helpers = [], []
+    # Facecam: bei einem einzigen Creator einmal suchen und fuer alle Teile nehmen (sie sitzt immer gleich),
+    # bei mehreren Creatorn je Teil.
+    single = len({m["creator"] for m, _ in picks}) == 1
+    shared = None
+    if s["layout"] == "facecam" and single:
+        for moment, _ in picks:
+            shared = render.prepare_layout(Path(moment["path"]), 0, moment["duration"], "facecam")
+            if shared[1]:
+                break
     for i, (moment, headline) in enumerate(picks, 1):
         words = [Word(a, b, text) for a, b, text in moment["words"]]
+        part_layout, part_cam = shared or render.prepare_layout(Path(moment["path"]), 0, moment["duration"],
+                                                                 s["layout"])
         ass = subtitles.write_ass(
             words, 0, moment["duration"], clip_dir / f"teil{i}.ass", s["subtitle_font"], s["subtitle_size"],
             s["subtitle_margin_bottom"], s["subtitle_uppercase"], s["subtitle_words_per_line"],
-            hook=headline, hook_seconds=0)
+            hook=headline, hook_seconds=0, hook_margin=render.HOOK_MARGIN.get(part_layout, 260))
         parts.append(render.render_clip(Path(moment["path"]), 0, moment["duration"], clip_dir / f"teil{i}.mp4",
-                                        ass, s["layout"], s["zoom"]))
+                                        ass, part_layout, s["zoom"], bool(s.get("punch_ins", True)), part_cam))
         helpers.append(ass)
     out = render.concat(parts, clip_dir / f"{clip_id}.mp4")
     for path in parts + helpers:
@@ -297,6 +311,10 @@ def add_live_moment(s: dict, state: State, raw: Path, note: dict, cut_id: str, c
     start, end = live_window(words, peak, length or peak + 10, seconds)
     if end - start < 4:
         return None
+    still = render.still_seconds(raw, start, end)
+    if still > 0.3 * (end - start):
+        log.info("Live-Moment verworfen: %.0f von %.0f s Standbild (Werbepause oder Pausenbild).", still, end - start)
+        return None
     moment_id = cut_id if cut_id.startswith(LIVE_PREFIX) else LIVE_PREFIX + cut_id
     path = render.cut_raw(raw, start, end, Path(s["work_dir"]) / "_momente" / "live" / f"{moment_id}.mp4")
     relative = [[round(w.start - start, 3), round(w.end - start, 3), w.text]
@@ -304,8 +322,11 @@ def add_live_moment(s: dict, state: State, raw: Path, note: dict, cut_id: str, c
     # Wertung: wie stark der Chat ueber seinem Normalwert lag (vergleichbar zwischen grossen und kleinen Chats)
     score = float(note.get("score") or 0) / max(1.0, float(note.get("base") or 0)) + 0.3 * int(note.get("laughs") or 0)
     title = note.get("stream_title") or creator_name
+    spoken = viral.spoken_text(words, start, end)
+    chat = str(note.get("chat") or "").strip()
+    text = f"Chat beim Peak: {chat}\nGesagt: {spoken}" if chat else spoken
     state.add_moment(moment_id, cut_id, creator_id, creator_name, title, path, end - start, round(score, 3),
-                     viral.spoken_text(words, start, end), relative)
+                     text, relative)
     return {"moment_id": moment_id, "duration": end - start, "score": score}
 
 

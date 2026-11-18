@@ -92,6 +92,8 @@ Geht ein Creator aus der Watchlist live, schneidet ClipBot den Stream mit (es bl
 
 **Clips über 1 Minute:** Standardmäßig wird aus jedem Chat-Peak zuerst ein kurzer Moment (etwa 20 Sekunden, vor allem die Sekunden vor dem Peak, weil der Chat erst nach dem Ereignis reagiert). Hat ein Streamer genug Momente, setzt ClipBot seine stärksten zu einem Clip von 65 bis 90 Sekunden zusammen: der stärkste zuerst, der zweitstärkste am Schluss, jeder mit eigener Zeile oben. Streamer werden nicht gemischt. TikTok zahlt erst für Videos über 1 Minute. Abschalten oder die Längen ändern kannst du unter Einstellungen → „Live-Clips und Vault“.
 
+**Spannender:** Bei Gaming sucht ClipBot die Facecam im Stream (Gesichtserkennung mit OpenCV) und zeigt sie oben groß, das Spiel darunter, der Hook sitzt auf der Kante. Ohne erkennbare Facecam bleibt das ganze Bild. An den lautesten Stellen zoomt das Bild kurz hinein (Punch-in, abschaltbar unter „Bild“). Die KI bekommt zu jedem Live-Moment mit, was der Chat beim Peak geschrieben hat, und wählt und betitelt die Momente danach.
+
 Beschreibungen enthalten keine Quellenzeile („Clip aus …“, „Credit …“) und keinen Hashtag mit dem Namen des Creators.
 
 Die Live-Clips landen im **Vault** des Kanals (Bereich „Live & Vault“). Sind 10 drin (einstellbar), werden sie freigegeben und sofort nacheinander auf jedes Konto des Kanals gepostet, ohne Freigabe und ohne Upload-Zeiten. Mit „Jetzt posten“ geht das auch früher; schlechte Clips löschst du vorher im Vault. Lehnt eine Plattform ab (YouTube erlaubt mit einem Google-Projekt nur etwa 6 Uploads am Tag), versucht ClipBot dieses Konto nach 6 Stunden erneut. Im Probemodus wird nichts hochgeladen.

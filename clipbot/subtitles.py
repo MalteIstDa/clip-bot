@@ -13,7 +13,7 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,{font},{size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,7,2,2,60,60,{margin},1
-Style: Hook,{font},72,&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,18,0,8,90,90,260,1
+Style: Hook,{font},72,&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,18,0,8,90,90,{hook_margin},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -74,12 +74,12 @@ def _groups(words, per_line: int, max_chars: int = 20):
 
 def write_ass(words, clip_start: float, clip_end: float, out_path: Path, font: str = "Arial",
               size: int = 86, margin_bottom: int = 430, uppercase: bool = True, per_line: int = 3,
-              hook: str = "", hook_seconds: float = 3.5) -> Path:
+              hook: str = "", hook_seconds: float = 3.5, hook_margin: int = 260) -> Path:
     """`words` haben Zeiten relativ zum Quellvideo; die Datei nutzt Zeiten relativ zum Clip.
     `hook`: Textzeile, die oben als Kasten eingeblendet wird (z. B. "Gtastys unglaublicher Stunt").
     `hook_seconds`: so lange bleibt sie stehen; 0 = ueber die ganze Laenge."""
     inside = merge_fragments([w for w in words if w.end > clip_start and w.start < clip_end])
-    lines = [HEADER.format(font=font, size=size, margin=margin_bottom)]
+    lines = [HEADER.format(font=font, size=size, margin=margin_bottom, hook_margin=hook_margin)]
     duration = clip_end - clip_start
     if hook.strip():
         text = r"\N".join(_wrap(_clean(hook, uppercase), 18))
