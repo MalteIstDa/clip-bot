@@ -110,6 +110,39 @@ def test_peak_when_chat_explodes():
         assert d.check(t + 1) is None
 
 
+def test_no_flood_of_peaks_after_sleep():
+    """Nach einer Luecke (Mac im Ruhezustand) lernt der Detektor die Grundlinie neu statt jede Nachricht
+    gegen 0 zu messen."""
+    d = live.PeakDetector()
+    steady_chat(d, 1000, 300)
+    for t in range(2300, 2340):  # 16 Minuten spaeter: der Chat ist wieder da, ganz normal
+        for _ in range(2):
+            d.add(t + 0.3, 1.0)
+    assert all(d.check(t) is None for t in range(2300, 2341))
+    for t in range(2361, 2367):  # nach dem neuen Einlernen erkennt er echte Peaks wieder
+        for _ in range(10):
+            d.add(t + 0.2, 1.5)
+    assert d.check(2367)
+
+
+def test_no_peak_when_chat_was_silent_before():
+    d = live.PeakDetector(warmup=0)
+    d.add(0, 1.0)
+    for t in range(90, 98):
+        for _ in range(2):
+            d.add(t + 0.5, 1.0)
+    assert d.check(98) is None  # 16 Nachrichten nach Stille sind kein Peak
+
+
+def test_keep_awake_uses_caffeinate_on_mac(monkeypatch):
+    from clipbot import awake
+    started = []
+    monkeypatch.setattr(awake.sys, "platform", "darwin")
+    monkeypatch.setattr(awake.shutil, "which", lambda name: "/usr/bin/caffeinate")
+    monkeypatch.setattr(awake.subprocess, "Popen", lambda cmd, **kw: started.append(cmd))
+    assert awake.keep_awake() == "caffeinate" and started[0][:3] == ["caffeinate", "-i", "-w"]
+
+
 def test_no_peak_in_quiet_chat_or_right_after_start():
     d = live.PeakDetector()
     for t in range(0, 30):
