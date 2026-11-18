@@ -265,7 +265,7 @@ def render_plan(s: dict, channel: dict, state: State, todo: dict, prefix: str, r
         ass = subtitles.write_ass(
             words, 0, moment["duration"], clip_dir / f"teil{i}.ass", s["subtitle_font"], s["subtitle_size"],
             s["subtitle_margin_bottom"], s["subtitle_uppercase"], s["subtitle_words_per_line"],
-            hook=headline, hook_seconds=0, hook_margin=render.HOOK_MARGIN.get(part_layout, 260))
+            hook=headline, hook_seconds=0, hook_margin=render.hook_margin(part_layout, part_cam))
         parts.append(render.render_clip(Path(moment["path"]), 0, moment["duration"], clip_dir / f"teil{i}.mp4",
                                         ass, part_layout, s["zoom"], bool(s.get("punch_ins", True)), part_cam))
         helpers.append(ass)

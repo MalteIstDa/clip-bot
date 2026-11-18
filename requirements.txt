@@ -11,4 +11,4 @@ google-auth-httplib2
 flask
 anthropic
 chat-downloader  # YouTube-Live-Chat fuer Live-Clips (inoffizielle Schnittstelle)
-opencv-python-headless  # Facecam im Stream finden (Layout facecam)
+opencv-python-headless<5  # Facecam im Stream finden (Layout facecam); OpenCV 5 hat den Gesichtsfinder nicht mehr

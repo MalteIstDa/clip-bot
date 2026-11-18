@@ -74,7 +74,7 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
         ass = subtitles.write_ass(
             words, start, end, clip_dir / "subs.ass", s["subtitle_font"], s["subtitle_size"],
             s["subtitle_margin_bottom"], s["subtitle_uppercase"], s["subtitle_words_per_line"], hook=hook,
-            hook_seconds=float(s.get("hook_seconds") or 0), hook_margin=render.HOOK_MARGIN.get(layout, 260))
+            hook_seconds=float(s.get("hook_seconds") or 0), hook_margin=render.hook_margin(layout, cam))
         out = render.render_clip(source, start, end, clip_dir / f"{clip_id}.mp4", ass,
                                  layout, s["zoom"], bool(s.get("punch_ins", True)), cam)
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
