@@ -58,7 +58,22 @@ def _subtitles_usable(ass_path: Path | None) -> bool:
     return False
 
 
-CAM_H = 640  # Hoehe der Facecam oben (Layout "facecam"); darunter das Spiel
+CAM_H = 640  # Hoehe der Facecam oben (Layout "facecam"), wenn ihr Format unbekannt ist; darunter das Spiel
+
+
+def cam_height(cam) -> int:
+    """Hoehe des Facecam-Streifens oben: so hoch, wie die Facecam bei voller Breite ist (Webcam 16:9 ergibt
+    etwa 610 px, eine schmalere Kamera mehr), zwischen 560 und 900 px."""
+    if not cam:
+        return CAM_H
+    _, _, w, h = cam
+    return int(min(900, max(560, W * h / max(1, w)))) // 2 * 2
+
+
+def hook_margin(layout: str, cam=None) -> int:
+    """Abstand des Hook-Kastens von oben: bei Facecam auf der Kante zur Spielszene, damit er das Gesicht
+    nicht verdeckt."""
+    return cam_height(cam) - 50 if layout == "facecam" else 260
 PUNCH = 1.16  # so stark zoomt ein Punch-in
 
 
@@ -76,9 +91,10 @@ def _filter(layout: str, zoom: float, ass_name: str | None, cam=None, punches=()
     after = f"{_punch(punches)},setsar=1{subs}[v]"
     if layout == "facecam" and cam:
         x, y, w, h = cam
-        game_h = H - CAM_H
-        return (f"[0:v]split[a][b];[a]crop={w}:{h}:{x}:{y},scale={W}:{CAM_H}:force_original_aspect_ratio=increase,"
-                f"crop={W}:{CAM_H}[top];[b]scale=-2:{game_h},crop='min(iw,{W})':{game_h},"
+        top_h = cam_height(cam)
+        game_h = H - top_h
+        return (f"[0:v]split[a][b];[a]crop={w}:{h}:{x}:{y},scale={W}:{top_h}:force_original_aspect_ratio=increase,"
+                f"crop={W}:{top_h}[top];[b]scale=-2:{game_h},crop='min(iw,{W})':{game_h},"
                 f"pad={W}:{game_h}:(ow-iw)/2:0[bot];[top][bot]vstack{after}")
     if layout == "crop":
         return f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}{after}"
@@ -91,7 +107,6 @@ def _filter(layout: str, zoom: float, ass_name: str | None, cam=None, punches=()
     )
 
 
-HOOK_MARGIN = {"facecam": CAM_H - 50}  # Hook-Kasten auf der Kante zwischen Facecam und Spiel, nicht ueber dem Gesicht
 
 
 def prepare_layout(source: Path, start: float, end: float, layout: str):

@@ -31,8 +31,27 @@ def test_facecam_is_a_small_face_in_the_same_place():
     face = (1060, 40, 90, 90)  # oben rechts in einem 1280x720-Bild
     frames = [[face], [(1062, 42, 88, 88)], [], [(1058, 39, 92, 92), (300, 400, 60, 60)], [face]]
     x, y, w, h = facecam.box_from_faces(frames, 1280, 720)
-    assert x <= 1060 and x + w >= 1150 and y <= 40 and w <= 1280 and x + w <= 1280
-    assert abs(w / h - facecam.TOP_ASPECT) < 0.05
+    assert x <= 1060 and x + w >= 1276 and y == 0  # Ecke oben rechts ganz mitgenommen
+    assert abs(w / h - 16 / 9) < 0.05
+
+
+def test_facecam_window_is_cut_along_its_frame():
+    """Wie bei xRohat: Fenster oben rechts mit Rahmen links und unten, oben weicher Uebergang zum Spiel."""
+    import numpy as np
+    W, H = 1280, 720
+    static = np.zeros((H, W), bool)
+    static[90:275, 955] = True      # linke Rahmenkante
+    static[273, 955:1280] = True    # untere Rahmenkante
+    static[150:275, 1177] = True    # Tuerrahmen im Zimmer: steht auch, ist aber kein Rahmen
+    motion = np.full((H, W), 20.0)  # das Spiel bewegt sich ueberall ...
+    motion[90:274, 956:1280] = 2.0  # ... nur das Zimmer hinter dem Streamer kaum
+    x, y, w, h = facecam.frame_box((static, motion), 1112, 216, 58, W, H)
+    assert 955 <= x <= 962 and 86 <= y <= 98 and 1270 <= x + w <= 1280 and 265 <= y + h <= 273
+
+
+def test_face_in_the_middle_without_frame_is_no_facecam():
+    frames = [[(600, 300, 80, 80)]] * 6  # Spielfigur in einer Zwischensequenz
+    assert facecam.box_from_faces(frames, 1280, 720) is None
 
 
 def test_no_facecam_for_full_camera_or_random_faces():
@@ -72,8 +91,9 @@ def test_punch_in_at_the_loud_spot(tmp_path, video):
 
 def test_hook_moves_below_the_facecam(tmp_path):
     ass = subtitles.write_ass([Word(0, 0.5, "hallo")], 0, 3, tmp_path / "s.ass", hook="Krass",
-                              hook_margin=render.HOOK_MARGIN["facecam"])
-    assert f",8,90,90,{render.CAM_H - 50},1" in ass.read_text()
+                              hook_margin=render.hook_margin("facecam", (0, 0, 320, 180)))
+    assert ",8,90,90,556,1" in ass.read_text()  # 16:9-Kamera: Streifen 606 px hoch, Hook knapp darueber
+    assert render.cam_height((0, 0, 300, 200)) == 720 and render.cam_height((0, 0, 100, 200)) == 900
 
 
 def test_settings_allow_facecam():
