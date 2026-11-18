@@ -44,7 +44,7 @@ def test_tags_layout_and_label_per_kind():
     assert genre.tags_for(None, None) == []
     assert genre.describe("gaming", "Elden Ring") == "Gaming (Elden Ring)" and genre.describe("irl", "IRL") == "IRL"
     base = s()
-    assert genre.settings_for(base, "gaming")["layout"] == "blur"
+    assert genre.settings_for(base, "gaming")["layout"] == "facecam"
     assert genre.settings_for(base, "chatting")["layout"] == "crop" and genre.settings_for(base, None) is base
     assert genre.settings_for(s(genre_formats=False), "chatting")["layout"] == "blur"
 
@@ -85,7 +85,8 @@ def test_live_clip_uses_the_layout_of_its_kind(tmp_path, monkeypatch):
     monkeypatch.setattr(run.transcribe, "transcribe_range",
                         lambda path, a, b, *r: [Word(a + i * 0.4, a + i * 0.4 + 0.3, f"w{i}") for i in range(int((b - a) / 0.4))])
     used = []
-    monkeypatch.setattr(run.render, "render_clip", lambda source, a, b, out, ass, layout, zoom:
+    monkeypatch.setattr(run.render, "prepare_layout", lambda source, a, b, layout: (layout, None))
+    monkeypatch.setattr(run.render, "render_clip", lambda source, a, b, out, ass, layout, zoom, *rest:
                         used.append(layout) or out.write_bytes(b"x") or out)
     raw = tmp_path / "szene.mp4"
     st = State(tmp_path / "db.sqlite")
@@ -96,7 +97,7 @@ def test_live_clip_uses_the_layout_of_its_kind(tmp_path, monkeypatch):
         st.mark_video(f"cut{i}", "", "Stream", "queued", creator="papaplatte", url=str(raw), kind="livecut",
                       note=json.dumps(note))
         run.process_livecut([channel()], s(work_dir=tmp_path, live_compilation=False), st, dict(st.get_video(f"cut{i}")), creator)
-    assert used == ["crop", "blur"]
+    assert used == ["crop", "facecam"]  # Gaming: Facecam oben (ohne Facecam faellt render auf das ganze Bild zurueck)
     assert sorted(c["genre"] for c in st.clips()) == ["Gaming (Fortnite)", "Just Chatting"]
 
 

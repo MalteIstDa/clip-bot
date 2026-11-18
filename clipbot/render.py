@@ -58,23 +58,93 @@ def _subtitles_usable(ass_path: Path | None) -> bool:
     return False
 
 
-def _filter(layout: str, zoom: float, ass_name: str | None) -> str:
+CAM_H = 640  # Hoehe der Facecam oben (Layout "facecam"); darunter das Spiel
+PUNCH = 1.16  # so stark zoomt ein Punch-in
+
+
+def _punch(punches) -> str:
+    """Kurze Zooms (Punch-ins) an lauten Stellen. punches: [(von, bis)] in Sekunden ab Clipbeginn."""
+    if not punches:
+        return ""
+    cond = "+".join(f"between(in_time,{a:.2f},{b:.2f})" for a, b in punches)
+    return (f",zoompan=z='if({cond},{PUNCH},1)':d=1:x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'"
+            f":s={W}x{H}:fps=30")
+
+
+def _filter(layout: str, zoom: float, ass_name: str | None, cam=None, punches=()) -> str:
     subs = f",ass={ass_name}" if ass_name else ""
+    after = f"{_punch(punches)},setsar=1{subs}[v]"
+    if layout == "facecam" and cam:
+        x, y, w, h = cam
+        game_h = H - CAM_H
+        return (f"[0:v]split[a][b];[a]crop={w}:{h}:{x}:{y},scale={W}:{CAM_H}:force_original_aspect_ratio=increase,"
+                f"crop={W}:{CAM_H}[top];[b]scale=-2:{game_h},crop='min(iw,{W})':{game_h},"
+                f"pad={W}:{game_h}:(ow-iw)/2:0[bot];[top][bot]vstack{after}")
     if layout == "crop":
-        return (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-                f"setsar=1{subs}[v]")
+        return f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}{after}"
     fg_w = int(W * max(1.0, zoom)) // 2 * 2
     return (
         f"[0:v]split[a][b];"
         f"[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=24:4,eq=brightness=-0.12[bg];"
         f"[b]scale={fg_w}:-2,crop='min(iw,{W})':'min(ih,{H})'[fg];"
-        f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1{subs}[v]"
+        f"[bg][fg]overlay=(W-w)/2:(H-h)/2{after}"
     )
 
 
+HOOK_MARGIN = {"facecam": CAM_H - 50}  # Hook-Kasten auf der Kante zwischen Facecam und Spiel, nicht ueber dem Gesicht
+
+
+def prepare_layout(source: Path, start: float, end: float, layout: str):
+    """Fuer "facecam": die Facecam suchen. Gibt (layout, cam) zurueck; ohne Facecam ("blur", None)."""
+    if layout != "facecam":
+        return layout, None
+    from clipbot import facecam
+    cam = facecam.find(Path(source), start, end)
+    if not cam:
+        log.info("Keine Facecam gefunden, der Clip zeigt das ganze Bild.")
+        return "blur", None
+    return "facecam", cam
+
+
+def loud_spots(source: Path, start: float, end: float, count: int = 3, length: float = 1.2) -> list[tuple[float, float]]:
+    """Die lautesten Stellen des Abschnitts (Schreien, Lachen, Explosion) fuer Punch-ins,
+    mindestens 4 Sekunden auseinander. Zeiten ab Beginn des Abschnitts."""
+    import numpy as np
+    from clipbot import highlights
+
+    cmd = ["ffmpeg", "-v", "error", "-ss", f"{max(0.0, start):.3f}", "-t", f"{end - start:.3f}",
+           "-i", str(Path(source).resolve()), "-vn", "-ac", "1", "-ar", "8000", "-f", "s16le", "-"]
+    try:
+        raw = subprocess.run(cmd, capture_output=True, timeout=120).stdout
+    except Exception:
+        return []
+    step = 4000  # halbe Sekunde bei 8 kHz
+    samples = np.frombuffer(raw[: len(raw) - len(raw) % (step * 2)], dtype=np.int16).astype(np.float32)
+    if len(samples) < step * 4:
+        return []
+    rms = np.sqrt((samples.reshape(-1, step) ** 2).mean(axis=1))
+    db = 20 * np.log10(np.maximum(rms, 1.0) / 32768.0)
+    z = highlights._zscore(db)
+    spots: list[float] = []
+    for i in np.argsort(-z):
+        t = i * 0.5
+        if z[i] < 1.5 or len(spots) >= count:
+            break
+        if t < 1.0 or t > (end - start) - length:
+            continue
+        if all(abs(t - s) >= 4 for s in spots):
+            spots.append(t)
+    return sorted((max(0.0, t - 0.2), t - 0.2 + length) for t in spots)
+
+
 def render_clip(source: Path, start: float, end: float, out_path: Path, ass_path: Path | None = None,
-                layout: str = "blur", zoom: float = 1.4) -> Path:
+                layout: str = "blur", zoom: float = 1.4, punch_ins: bool = False, cam=None) -> Path:
+    """layout: blur (ganzes Bild auf Unschaerfe), crop (bildfuellend) oder facecam (Facecam oben, Spiel unten;
+    ohne erkennbare Facecam wie blur). punch_ins: an den lautesten Stellen kurz ins Bild zoomen."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    if layout == "facecam" and not cam:
+        layout, cam = prepare_layout(source, start, end, layout)
+    punches = loud_spots(source, start, end) if punch_ins else []
     # ffmpeg laeuft im Ordner der Untertiteldatei: so braucht der Filter keinen Pfad
     # (Windows-Pfade mit "C:\" lassen sich im Filter kaum sauber maskieren).
     if not _subtitles_usable(ass_path):
@@ -83,7 +153,7 @@ def render_clip(source: Path, start: float, end: float, out_path: Path, ass_path
     cmd = [
         "ffmpeg", "-v", "error", "-y",
         "-ss", f"{start:.3f}", "-t", f"{end - start:.3f}", "-i", str(Path(source).resolve()),
-        "-filter_complex", _filter(layout, zoom, ass_path.name if ass_path else None),
+        "-filter_complex", _filter(layout, zoom, ass_path.name if ass_path else None, cam, punches),
         "-map", "[v]", "-map", "0:a:0?",
         "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
         "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",

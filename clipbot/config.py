@@ -37,10 +37,11 @@ DEFAULTS = {
     "layout": "blur",
     # Format je Art des Streams (Kategorie bei Twitch/YouTube)
     "genre_formats": True,             # Gaming, Just Chatting und IRL erkennen und Bild, Hook und Hashtags anpassen
-    "layout_gaming": "blur",           # ganzes Spielbild sichtbar
+    "layout_gaming": "facecam",        # Facecam oben, Spiel unten (ohne Facecam: ganzes Spielbild)
     "layout_chatting": "crop",         # bildfuellend auf den Streamer
     "layout_irl": "crop",
     "zoom": 1.15,
+    "punch_ins": True,                 # an den lautesten Stellen kurz ins Bild zoomen
     "subtitle_font": "Arial",
     "subtitle_size": 86,
     "subtitle_margin_bottom": 430,
@@ -263,8 +264,8 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
     if not 0 <= int(settings["bestof_weekday"]) <= 6:
         raise ConfigError("Best-of-Wochentag: 0 (Montag) bis 6 (Sonntag).")
     for key in ("layout", "layout_gaming", "layout_chatting", "layout_irl"):
-        if settings[key] not in ("blur", "crop"):
-            raise ConfigError("Bildaufbau: erlaubt sind blur oder crop.")
+        if settings[key] not in ("blur", "crop", "facecam"):
+            raise ConfigError("Bildaufbau: erlaubt sind blur, crop oder facecam.")
     if settings["live_sensitivity"] not in ("niedrig", "normal", "hoch"):
         raise ConfigError("Live-Empfindlichkeit: erlaubt sind niedrig, normal oder hoch.")
     if not 10 <= settings["live_before_seconds"] + settings["live_after_seconds"] <= 180:
