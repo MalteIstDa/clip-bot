@@ -609,6 +609,38 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
   </footer>
 </div></dialog>
 
+<dialog id="tiktokDialog"><form class="dlg stack" id="tiktokForm">
+  <h2>Post to TikTok</h2>
+  <p class="muted" id="ttAccount">Loading your TikTok account …</p>
+  <div class="editor">
+    <video id="ttVideo" controls playsinline preload="metadata"></video>
+    <div class="stack">
+      <label class="field"><span>Caption</span><textarea name="caption" maxlength="2200" rows="5"></textarea></label>
+      <label class="field"><span>Who can view this video</span>
+        <select name="privacy_level" id="ttPrivacy" required><option value="" selected disabled>Select who can view</option></select></label>
+      <div class="field"><span class="muted" style="display:block;font-size:0.875rem;margin-bottom:5px">Allow users to</span>
+        <div class="row">
+          <label class="check"><input type="checkbox" name="allow_comment"> Comment</label>
+          <label class="check"><input type="checkbox" name="allow_duet"> Duet</label>
+          <label class="check"><input type="checkbox" name="allow_stitch"> Stitch</label>
+        </div></div>
+      <label class="check"><input type="checkbox" name="disclose" id="ttDiscloseToggle"> Disclose video content</label>
+      <div class="stack" id="ttDisclose" hidden>
+        <p class="muted">Turn on to disclose that this video promotes goods or services in exchange for something of value. Your video could promote yourself, a third party, or both.</p>
+        <label class="check"><input type="checkbox" name="brand_organic"> <span>Your brand <small class="muted">You are promoting yourself or your own business.</small></span></label>
+        <label class="check"><input type="checkbox" name="brand_content"> <span>Branded content <small class="muted">You are promoting another brand or a third party.</small></span></label>
+        <p class="muted" id="ttLabel"></p>
+      </div>
+      <p class="muted" id="ttConsent"></p>
+      <p class="state-warn" id="ttWarn" hidden></p>
+    </div>
+  </div>
+  <footer>
+    <button class="btn" type="button" id="ttCancel">Cancel</button>
+    <button class="btn fill push" type="submit" id="ttPost" style="--c:var(--cyan)" disabled>Post to TikTok</button>
+  </footer>
+</form></dialog>
+
 <dialog id="channelDialog"><form class="dlg stack" id="channelForm">
   <h2 id="channelDialogTitle">Kanal anlegen</h2>
   <div class="two">
@@ -1295,6 +1327,7 @@ $("#clipTitle").addEventListener("input", e => ($("#titleCount").textContent = e
 $("#clipSave").addEventListener("click", () => act(saveClipTexts, "Texte gespeichert"));
 $("#clipPlatforms").addEventListener("click", e => {
   const b = e.target.closest("[data-upload]"); if (!b) return;
+  if (accountOf(b.dataset.upload)?.platform === "tiktok") return openTikTok(openClipId, b.dataset.upload);
   act(async () => {
     await saveClipTexts();
     const r = await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { account: b.dataset.upload });
@@ -1816,6 +1849,65 @@ $("#vaultList").addEventListener("click", e => {
   const box = e.target.closest("[data-vault]");
   if (box && e.target.closest("[data-release]") && confirm(`Den Vault von ${box.dataset.vault} jetzt freigeben? Die Automatik postet die Clips dann sofort auf allen Konten des Kanals.`))
     act(() => api(`/api/vault/${encodeURIComponent(box.dataset.vault)}/release`, {}), "Vault freigegeben");
+});
+
+/* ---------- TikTok-Fenster (Vorgaben von TikTok fuer Direct Post) ---------- */
+const TT_LEVELS = { PUBLIC_TO_EVERYONE: "Everyone", MUTUAL_FOLLOW_FRIENDS: "Friends", FOLLOWER_OF_CREATOR: "Followers", SELF_ONLY: "Only me" };
+let tt = null;  // {clip, account, info}
+async function openTikTok(clipId, accountId) {
+  const clip = data.clips.find(c => c.clip_id === clipId), f = $("#tiktokForm");
+  if (!clip) return;
+  f.reset(); tt = { clip, account: accountId, info: null };
+  $("#ttVideo").src = "/media/" + encodeURIComponent(clipId);
+  f.caption.value = clip.texts?.tiktok?.caption || $("#clipCaption").value || clip.caption;
+  $("#ttPrivacy").innerHTML = `<option value="" selected disabled>Select who can view</option>`;
+  $("#ttAccount").textContent = "Loading your TikTok account …";
+  ttUpdate();
+  $("#tiktokDialog").showModal();
+  try {
+    const info = await api(`/api/accounts/${encodeURIComponent(accountId)}/tiktok`, {});
+    if (!tt || tt.account !== accountId) return;
+    tt.info = info;
+    $("#ttAccount").innerHTML = `Posting to <strong>@${esc(info.creator_username || "")}</strong>${info.creator_nickname ? ` (${esc(info.creator_nickname)})` : ""}`;
+    $("#ttPrivacy").innerHTML = `<option value="" selected disabled>Select who can view</option>` +
+      (info.privacy_level_options || []).map(l => `<option value="${esc(l)}">${esc(TT_LEVELS[l] || l)}</option>`).join("");
+    for (const [name, off] of [["allow_comment", info.comment_disabled], ["allow_duet", info.duet_disabled], ["allow_stitch", info.stitch_disabled]]) {
+      f[name].disabled = !!off; if (off) f[name].checked = false;
+    }
+  } catch (err) { $("#ttAccount").textContent = err.message; }
+  ttUpdate();
+}
+function ttUpdate() {
+  const f = $("#tiktokForm"), info = tt?.info, disclose = f.disclose.checked;
+  const own = disclose && f.brand_organic.checked, branded = disclose && f.brand_content.checked;
+  $("#ttDisclose").hidden = !disclose;
+  const priv = [...$("#ttPrivacy").options].find(o => o.value === "SELF_ONLY");
+  if (priv) { priv.disabled = branded; priv.textContent = branded ? "Only me (not available for branded content)" : "Only me"; }
+  if (branded && f.privacy_level.value === "SELF_ONLY") f.privacy_level.value = "";
+  $("#ttLabel").textContent = branded ? "Your video will be labeled as 'Paid partnership'." : own ? "Your video will be labeled as 'Promotional content'." : "";
+  $("#ttConsent").innerHTML = `By posting, you agree to TikTok's <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>`
+    + (branded ? ` and <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener">Branded Content Policy</a>` : "") + ".";
+  const length = tt ? Math.round(tt.clip.end - tt.clip.start) : 0, max = info?.max_video_post_duration_sec;
+  const warn = !info ? "" : max && length > max ? `This clip is ${length} s long. Your account can post videos up to ${max} s.`
+    : disclose && !own && !branded ? "You need to indicate if your content promotes yourself, a third party, or both." : "";
+  $("#ttWarn").hidden = !warn; $("#ttWarn").textContent = warn;
+  $("#ttPost").disabled = !info || !f.privacy_level.value || !!warn;
+}
+$("#tiktokForm").addEventListener("change", ttUpdate);
+$("#ttCancel").addEventListener("click", () => { tt = null; $("#ttVideo").pause(); $("#tiktokDialog").close(); });
+$("#tiktokForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, disclose = f.disclose.checked, job = tt;
+  if (!job) return;
+  const choice = { privacy_level: f.privacy_level.value, caption: f.caption.value, allow_comment: f.allow_comment.checked,
+    allow_duet: f.allow_duet.checked, allow_stitch: f.allow_stitch.checked,
+    brand_organic: disclose && f.brand_organic.checked, brand_content: disclose && f.brand_content.checked };
+  act(async () => {
+    const r = await api(`/api/clips/${encodeURIComponent(job.clip.clip_id)}/upload`, { account: job.account, tiktok: choice });
+    tt = null; $("#ttVideo").pause(); $("#tiktokDialog").close();
+    toast(r.status === "queued" ? `Steht an, startet nach „${r.running}“. Danach kann es ein paar Minuten dauern, bis das Video auf TikTok erscheint.`
+      : "Upload gestartet. Es kann ein paar Minuten dauern, bis das Video auf deinem TikTok-Profil erscheint.");
+  });
 });
 
 /* ---------- Kampagnen ---------- */
