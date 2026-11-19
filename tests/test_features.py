@@ -703,6 +703,33 @@ def test_upload_button_uses_the_chosen_account(dashboard, monkeypatch):
     assert clip["review"] == "freigegeben" and clip["uploads"]["yt_eins"]["remote_id"] == "r1"
 
 
+def test_upload_waits_for_running_job_instead_of_refusing(dashboard, monkeypatch):
+    """Laeuft gerade ein Auftrag (z. B. ein Live-Schnitt), steht der Upload an und startet danach."""
+    import threading
+    post, state, tmp, app = dashboard
+    post("/api/accounts", {"platform": "youtube", "label": "Eins"})
+    post("/api/channels", {"is_new": True, "name": "clips", "accounts": ["yt_eins"]})
+    st = app.open_state(config.load(allow_empty=True)["settings"])
+    st.add_clip("a", "v", "clips", tmp / "a.mp4", "A", "C", 0, 60)
+    st.close()
+    uploaded, done = [], threading.Event()
+    monkeypatch.setattr(run, "upload_one", lambda account, clip, settings, tags=None: uploaded.append(account["id"]) or done.set() or "r1")
+    gate = threading.Event()
+    assert app.start_job("Live-Schnitt", lambda: gate.wait(5))
+    r = post("/api/clips/a/upload", {"account": "yt_eins"})
+    assert r.status_code == 200 and r.get_json()["status"] == "queued"
+    assert post("/api/clips/a/upload", {"account": "yt_eins"}).get_json()["status"] == "queued"
+    assert [q["key"] for q in state()["job"]["queue"]] == ["a|yt_eins"]  # nicht doppelt
+    assert uploaded == []
+    gate.set()
+    assert done.wait(5) and uploaded == ["yt_eins"]
+    for _ in range(50):
+        if not app.job["running"]:
+            break
+        threading.Event().wait(0.05)
+    assert not app.job["running"] and state()["job"]["queue"] == []
+
+
 def test_bestof_button(dashboard, monkeypatch):
     post, state, tmp, app = dashboard
     post("/api/channels", {"is_new": True, "name": "clips", "bestof": "daily"})
