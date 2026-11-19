@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from clipbot import bestof, config, lang, notify, schedule, watch
+from clipbot import bestof, campaigns, config, lang, notify, schedule, watch
 from clipbot.state import State
 
 log = logging.getLogger("clipbot")
@@ -125,11 +125,14 @@ def run_livecut(cfg: dict, creator: dict, row: dict, open_state) -> None:
     try:
         channels = config.channels_of_creator(cfg, creator["id"])
         try:
-            made = pipeline.process_livecut(channels, s, state, row, creator)
+            campaign = campaigns.of_creator(cfg, creator["id"])
+            made = pipeline.process_livecut(channels, s, state, row, creator, **({"campaign": campaign} if campaign else {}))
         except Exception as exc:
             state.mark_video(row["video_id"], "", "", "failed", note=str(exc)[:300])
             raise
-        if made:
+        if made and campaigns.of_creator(cfg, creator["id"]):
+            log.info("[Kampagnen] %s: neuer Clip, wird sofort gepostet.", creator["name"])
+        elif made:
             counts = state.vault_counts()
             size = int(s["vault_size"])
             for channel in channels:
@@ -147,7 +150,8 @@ def run_clip(cfg: dict, creator: dict, video: dict, open_state) -> None:
     try:
         channels = config.channels_of_creator(cfg, creator["id"])
         try:
-            made = pipeline.process_video(channels, s, state, video, creator)
+            campaign = campaigns.of_creator(cfg, creator["id"])
+            made = pipeline.process_video(channels, s, state, video, creator, **({"campaign": campaign} if campaign else {}))
         except Exception as exc:
             state.mark_video(video["id"], "", "", "failed", note=str(exc)[:300])
             notify.send(state, s, "error", f"Clippen fehlgeschlagen: {creator['name']}", str(exc)[:200])
@@ -156,7 +160,10 @@ def run_clip(cfg: dict, creator: dict, video: dict, open_state) -> None:
             state.mark_video(video["id"], "", "", "done")
         if made:
             many = made != 1
-            if s["require_approval"]:
+            if campaigns.of_creator(cfg, creator["id"]):
+                where = "Sie gehören zur Clip-Kampagne und werden sofort gepostet." if many \
+                    else "Er gehört zur Clip-Kampagne und wird sofort gepostet."
+            elif s["require_approval"]:
                 where = "Sie warten unter „Freigabe“ auf dich." if many else "Er wartet unter „Freigabe“ auf dich."
             else:
                 where = "Sie sind freigegeben." if many else "Er ist freigegeben."
@@ -196,6 +203,12 @@ def next_task(cfg: dict, open_state, now: datetime | None = None):
                 count = sum(len(clips) for _, _, clips in vault)
                 names = ", ".join(sorted({a.get("label") or a["id"] for a, _, _ in vault}))
                 return f"Vault posten: {count} Uploads ({names})"[:140], lambda: run_vault(cfg, vault, open_state)
+            todo = campaigns.due(cfg, state, now.timestamp(), VAULT_RETRY_SECONDS)
+            if todo:
+                count = sum(len(clips) for _, _, clips in todo)
+                names = ", ".join(sorted({a.get("label") or a["id"] for a, _, _ in todo}))
+                return (f"Kampagnen-Clips posten: {count} Uploads ({names})"[:140],
+                        lambda: run_vault(cfg, todo, open_state))
             due = due_uploads(cfg, state, now)
             if due:
                 names = ", ".join(a.get("label") or a["id"] for a, _, _ in due)
@@ -258,6 +271,10 @@ class Autopilot:
             state = self.open_state(s)
             try:
                 watch.check_all(cfg, state)
+                try:
+                    campaigns.discover(cfg, state)
+                except Exception:
+                    log.exception("Kampagnen-Suche abgebrochen")
             finally:
                 state.close()
                 self.watching = False

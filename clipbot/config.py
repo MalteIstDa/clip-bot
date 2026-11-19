@@ -173,6 +173,7 @@ def load_raw(path: str | Path | None = None) -> dict:
         settings["ai_backend"] = "off"
     accounts = [dict(a) for a in raw.get("accounts") or []]
     creators = [dict(c) for c in raw.get("creators") or []]
+    campaigns = [dict(c) for c in raw.get("campaigns") or []]
     channels = raw.get("channels") or []
     for ch in channels:
         ch.setdefault("title_template", "{hook} #shorts")
@@ -192,7 +193,14 @@ def load_raw(path: str | Path | None = None) -> dict:
         cr.setdefault("name", cr.get("id", ""))
         cr.setdefault("notify", True)
         cr.setdefault("auto_clip", True)
-    return {"settings": settings, "accounts": accounts, "creators": creators, "channels": channels}
+    for cp in campaigns:  # Clip-Kampagnen (clipbot/campaigns.py)
+        cp.setdefault("name", cp.get("creator", ""))
+        cp.setdefault("url", "")
+        cp.setdefault("hashtags", "")
+        cp.setdefault("active", True)
+        cp.setdefault("found", "hand")
+    return {"settings": settings, "accounts": accounts, "creators": creators, "campaigns": campaigns,
+            "channels": channels}
 
 
 def _check_times(text, what: str) -> None:
@@ -227,6 +235,16 @@ def validate(raw: dict, allow_empty: bool = False) -> None:
         creator_ids.add(cr_id)
         if not str(cr.get("url") or "").startswith("https://"):
             raise ConfigError(f"Creator '{cr_id}': Die Adresse muss mit https:// beginnen.")
+    campaign_ids = set()
+    for cp in raw.get("campaigns") or []:
+        cp_id = str(cp.get("id") or "")
+        if not NAME_RE.match(cp_id) or cp_id in campaign_ids:
+            raise ConfigError(f"Kampagne '{cp_id}': Kurzname fehlt, ist ungueltig oder doppelt.")
+        campaign_ids.add(cp_id)
+        if cp.get("creator") not in creator_ids:
+            raise ConfigError(f"Kampagne '{cp_id}': Den Creator '{cp.get('creator')}' gibt es nicht in der Watchlist.")
+        if cp.get("url") and not str(cp["url"]).startswith("https://"):
+            raise ConfigError(f"Kampagne '{cp_id}': Die Adresse muss mit https:// beginnen.")
     names = set()
     for ch in channels:
         name = str(ch.get("name") or "")
@@ -309,7 +327,8 @@ def save(raw: dict, path: str | Path | None = None) -> None:
         if "accounts" not in (yaml.safe_load(text) or {}):
             old_format.write_text(text, encoding="utf-8")
     data = {"settings": {k: raw["settings"][k] for k in DEFAULTS}, "accounts": raw.get("accounts") or [],
-            "creators": raw.get("creators") or [], "channels": raw["channels"]}
+            "creators": raw.get("creators") or [], "campaigns": raw.get("campaigns") or [],
+            "channels": raw["channels"]}
     with LOCK:
         path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 

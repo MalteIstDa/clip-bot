@@ -19,7 +19,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_file
 
 import run as pipeline
-from clipbot import auto, awake, config, lang, live, render, schedule, sources
+from clipbot import auto, awake, campaigns, config, lang, live, render, schedule, sources
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -235,7 +235,8 @@ def api_state():
         del clip["path"]
     return jsonify(
         job=job, log=list(log_lines), clips=clips, videos=videos, channels=cfg["channels"],
-        accounts=accounts, creators=creators, notifications=notifications, unread=unread,
+        accounts=accounts, creators=creators, campaigns=cfg.get("campaigns") or [], campaign_search=campaign_search,
+        notifications=notifications, unread=unread,
         auto={"enabled": bool(s["autopilot"]), "dry_run": bool(s["dry_run"]), "queued": queued,
               "watching": autopilot.watching, "last_watch": autopilot.last_watch or None, "moments": moments},
         live={"sessions": live_manager.status(), "vault": vault, "vault_size": int(s["vault_size"]),
@@ -684,6 +685,7 @@ def creator_delete(creator_id: str):
     with config.LOCK:
         raw = config.load_raw()
         raw["creators"] = [c for c in raw["creators"] if c["id"] != creator_id]
+        raw["campaigns"] = [c for c in raw.get("campaigns") or [] if c.get("creator") != creator_id]
         for ch in raw["channels"]:
             ch["creators"] = [c for c in ch.get("creators") or [] if c != creator_id]
         config.save(raw)
@@ -692,6 +694,81 @@ def creator_delete(creator_id: str):
         state.watch_delete(creator_id)
     finally:
         state.close()
+    return jsonify(ok=True)
+
+
+campaign_search = {"running": False, "last": None, "found": 0}
+
+
+@app.post("/api/campaigns")
+def campaign_save():
+    """Kampagne anlegen oder aendern: creator, url, hashtags, active (id = vorhandene Kampagne)."""
+    data = body()
+    with config.LOCK:
+        raw = config.load_raw()
+        campaign = next((c for c in raw["campaigns"] if c["id"] == str(data.get("id") or "")), None)
+        if campaign is None:
+            creator_id = str(data.get("creator") or "")
+            creator = next((c for c in raw["creators"] if c["id"] == creator_id), None)
+            if not creator:
+                raise ApiError("Wähle einen Creator aus deiner Watchlist.")
+            if any(c.get("creator") == creator_id for c in raw["campaigns"]):
+                raise ApiError(f"Für {creator['name']} gibt es schon eine Kampagne.")
+            campaign = {"id": config._unique(creator_id, {c["id"] for c in raw["campaigns"]}), "creator": creator_id,
+                        "name": creator["name"], "url": "", "hashtags": "", "active": True, "found": "hand"}
+            raw["campaigns"].append(campaign)
+        if "url" in data:
+            url = str(data["url"] or "").strip()
+            if url and not url.startswith("http"):
+                url = "https://" + url
+            campaign["url"] = url.replace("http://", "https://", 1)[:300]
+        if "hashtags" in data:
+            campaign["hashtags"] = campaigns.clean_hashtags(str(data["hashtags"] or ""))
+        if "active" in data:
+            campaign["active"] = bool(data["active"])
+        if not campaign["hashtags"]:
+            creator = next(c for c in raw["creators"] if c["id"] == campaign["creator"])
+            campaign["hashtags"] = "#" + (campaigns.slugs(creator) or [campaign["creator"]])[0]
+        try:
+            config.save(raw)
+        except config.ConfigError as exc:
+            raise ApiError(str(exc))
+    return jsonify(ok=True, id=campaign["id"])
+
+
+@app.post("/api/campaigns/<campaign_id>/delete")
+def campaign_delete(campaign_id: str):
+    with config.LOCK:
+        raw = config.load_raw()
+        raw["campaigns"] = [c for c in raw["campaigns"] if c["id"] != campaign_id]
+        config.save(raw)
+    return jsonify(ok=True)
+
+
+@app.post("/api/campaigns/search")
+def campaign_search_now():
+    """Alle Creator der Watchlist sofort nach Kampagnen durchsuchen (im Hintergrund)."""
+    if campaign_search["running"]:
+        return jsonify(ok=True)
+    campaign_search["running"] = True
+
+    def work():
+        try:
+            cfg = config.load(allow_empty=True)
+            state = open_state(cfg["settings"])
+            try:
+                new = campaigns.discover(cfg, state, force=True, limit=1000)
+            finally:
+                state.close()
+            campaign_search["found"] = len(new)
+            if not new:
+                log.info("[Kampagnen] Suche fertig: keine neue Kampagne gefunden.")
+        except Exception:
+            log.exception("Kampagnen-Suche abgebrochen")
+        finally:
+            campaign_search.update(running=False, last=time.time())
+
+    threading.Thread(target=work, daemon=True).start()
     return jsonify(ok=True)
 
 

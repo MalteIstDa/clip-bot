@@ -375,6 +375,7 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
     <button data-view="explainer" style="--c:var(--blue)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>Erklärvideos</button>
     <button data-view="watchlist" style="--c:var(--cyan)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></span>Watchlist<span class="badge" id="liveBadge" style="--c:var(--red)" hidden></span></button>
     <button data-view="live" style="--c:var(--pink)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg></span>Live &amp; Vault<span class="badge" id="vaultBadge" style="--c:var(--pink)" hidden></span></button>
+    <button data-view="campaigns" style="--c:var(--green)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6L7 10z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11"/></svg></span>Kampagnen<span class="badge" id="campaignBadge" style="--c:var(--green)" hidden></span></button>
     <button data-view="accounts" style="--c:var(--amber)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg></span>Konten</button>
     <button data-view="channels" style="--c:var(--teal)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="12" r="2.6"/><path d="M8.4 7.2l7.2 3.6M8.4 16.8l7.2-3.6"/></svg></span>Kanäle</button>
     <button data-view="settings" style="--c:var(--violet)"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>Einstellungen</button>
@@ -492,6 +493,24 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
     </div>
     <div class="cards" id="liveSessions"></div>
     <div class="stack" id="vaultList" style="margin-top:28px"></div>
+  </section>
+
+  <section id="view-campaigns" hidden>
+    <div class="pagehead">
+      <p class="lead">Clip-Kampagnen bezahlen dich nach Aufrufen, z. B. gtastyclips.com. Hat ein Creator eine aktive Kampagne, macht ClipBot aus seinen Streams und Videos einzelne Clips (keine Zusammenschnitte), schreibt die Pflicht-Hashtags darunter und postet sie sofort auf TikTok und YouTube. Gesucht wird einmal am Tag auf Seiten wie name<b>clips.com</b>. Kampagnen auf Whop und ähnlichen Plattformen trägst du unten selbst ein.</p>
+      <span class="muted num" id="campaignInfo"></span>
+      <button class="btn green" id="campaignSearch">Jetzt suchen</button>
+    </div>
+    <form class="panel stack" id="campaignForm" style="margin-bottom:24px">
+      <h3>Kampagne eintragen</h3>
+      <div class="row">
+        <label class="field" style="flex:1;min-width:160px"><span>Creator</span><select name="creator" id="campaignCreator"></select></label>
+        <label class="field" style="flex:2;min-width:200px"><span>Seite der Kampagne</span><input type="text" name="url" maxlength="300" placeholder="gtastyclips.com"></label>
+        <label class="field" style="flex:1;min-width:160px"><span>Pflicht-Hashtags</span><input type="text" name="hashtags" maxlength="200" placeholder="#gtasty"></label>
+      </div>
+      <div class="row"><span class="muted">Ab dann werden alle neuen Clips dieses Creators sofort gepostet.</span><button class="btn fill green push" type="submit">Eintragen</button></div>
+    </form>
+    <div class="stack" id="campaignList"></div>
   </section>
 
   <section id="view-watchlist" hidden>
@@ -951,7 +970,7 @@ const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const UP = { youtube: ["YouTube", "YT", "yt"], tiktok: ["TikTok", "TT", "tt"], instagram: ["Instagram", "IG", "ig"] };
 const SRC = { youtube: ["YouTube", "yt"], twitch: ["Twitch", "twitch"], kick: ["Kick", "kick"], other: ["Andere Seite", "other"] };
 const TITLES = { overview: "Übersicht", review: "Freigabe", clips: "Clips", explainer: "Erklärvideos", watchlist: "Watchlist", live: "Live & Vault",
-  accounts: "Konten", channels: "Kanäle", settings: "Einstellungen" };
+  campaigns: "Kampagnen", accounts: "Konten", channels: "Kanäle", settings: "Einstellungen" };
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 const COLORS = ["violet", "pink", "teal", "amber", "blue", "green", "cyan"];
 const colorOf = name => `var(--${COLORS[[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length]})`;
@@ -1020,7 +1039,7 @@ function isOpen(clip) {  // fehlt noch ein Upload? Bei "abwechselnd" genuegt ein
   if (channelOf(clip.channel)?.distribute !== "abwechselnd") return accounts.some(a => upState(clip, a) !== "ok");
   return [...new Set(accounts.map(a => a.platform))].some(p => !accounts.some(a => a.platform === p && upState(clip, a) === "ok"));
 }
-const kindLabel = clip => clip.kind === "bestof" ? "Best-of" : clip.kind === "explainer" ? "Erklärvideo" : clip.kind === "live" ? "Live" : "";
+const kindLabel = clip => clip.kind === "bestof" ? "Best-of" : clip.kind === "explainer" ? "Erklärvideo" : clip.kind === "live" ? "Live" : clip.kind === "campaign" ? "Kampagne" : "";
 const platformChip = (platform, text) => `<span class="chip" style="--c:var(--${(UP[platform] || SRC[platform] || SRC.other).at(-1)})">${esc(text)}</span>`;
 function fillPicker(el, items, checked) {  // items: [{value, label, hint}]
   el.innerHTML = items.map(i => `<label class="check"><input type="checkbox" value="${esc(i.value)}" ${checked.includes(i.value) ? "checked" : ""}>
@@ -1062,6 +1081,8 @@ function renderTop() {
   $("#bellCount").hidden = !data.unread; $("#bellCount").textContent = data.unread > 99 ? "99+" : data.unread;
   const waiting = data.clips.filter(c => c.review === "wartet").length;
   $("#reviewBadge").hidden = !waiting; $("#reviewBadge").textContent = waiting;
+  const activeCampaigns = (data.campaigns || []).filter(c => c.active).length;
+  $("#campaignBadge").hidden = !activeCampaigns; $("#campaignBadge").textContent = activeCampaigns;
   const inVault = data.clips.filter(c => c.review === "vault").length, recording = data.live.sessions.length;
   $("#vaultBadge").hidden = !(inVault || recording); $("#vaultBadge").textContent = recording || inVault;
   $("#vaultBadge").title = recording ? plural(recording, "Stream wird", "Streams werden") + " mitgeschnitten" : plural(inVault, "Clip", "Clips") + " im Vault";
@@ -1210,12 +1231,12 @@ function renderClips() {
   }
   const groups = new Map();
   for (const c of clips) {
-    const key = c.kind === "bestof" ? "bestof:" + c.channel : c.kind === "explainer" ? "explainer:" + c.channel : c.kind === "live" ? "live:" + c.channel : c.video_id;
+    const key = c.kind === "bestof" ? "bestof:" + c.channel : c.kind === "explainer" ? "explainer:" + c.channel : c.kind === "live" ? "live:" + c.channel : c.kind === "campaign" ? "campaign:" + c.channel : c.video_id;
     (groups.get(key) || groups.set(key, []).get(key)).push(c);
   }
   $("#sheet").innerHTML = [...groups].map(([key, list]) => {
     const first = list[0], video = data.videos.find(v => v.video_id === first.video_id);
-    const title = first.kind === "bestof" ? "Best-ofs" : first.kind === "explainer" ? "Erklärvideos" : first.kind === "live" ? "Live-Clips aus Chat-Peaks" : video?.title || first.video_id;
+    const title = first.kind === "bestof" ? "Best-ofs" : first.kind === "explainer" ? "Erklärvideos" : first.kind === "live" ? "Live-Clips aus Chat-Peaks" : first.kind === "campaign" ? "Kampagnen-Clips" : video?.title || first.video_id;
     if (first.kind === "clip") list.sort((a, b) => a.start - b.start);
     return `<div class="source"><header><span class="tag" style="--c:${colorOf(first.channel)}">${esc(first.channel)}</span>
       ${first.kind === "clip" && first.creator ? `<span class="tag" style="--c:var(--cyan)">${esc(first.creator)}</span>` : ""}
@@ -1797,6 +1818,66 @@ $("#vaultList").addEventListener("click", e => {
     act(() => api(`/api/vault/${encodeURIComponent(box.dataset.vault)}/release`, {}), "Vault freigegeben");
 });
 
+/* ---------- Kampagnen ---------- */
+function renderCampaigns() {
+  const list = data.campaigns || [], search = data.campaign_search || {};
+  const clips = data.clips.filter(c => c.kind === "campaign");
+  if (!changed("campaigns", [list, clips.map(c => [c.clip_id, c.title, c.exists, c.uploads, c.campaign]), data.creators.map(c => [c.id, c.name]), search, data.settings.dry_run])) return;
+  $("#campaignInfo").textContent = search.running ? "Suche läuft …" : search.last ? `Zuletzt gesucht ${ago(search.last)}` : "";
+  $("#campaignSearch").disabled = !!search.running;
+  const free = data.creators.filter(c => !list.some(x => x.creator === c.id));
+  const sel = $("#campaignCreator"), keep = sel.value;
+  sel.innerHTML = free.length ? free.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">Alle Creator haben schon eine Kampagne</option>`;
+  if (free.some(c => c.id === keep)) sel.value = keep;
+  const accounts = data.accounts.filter(a => a.platform !== "instagram");
+  $("#campaignList").innerHTML = list.length ? list.map(cp => {
+    const mine = clips.filter(c => c.campaign === cp.id);
+    const creator = data.creators.find(c => c.id === cp.creator);
+    const channels = data.channels.filter(ch => (ch.creators || []).includes(cp.creator));
+    const accs = [...new Set(channels.flatMap(ch => ch.accounts || []))].map(id => accounts.find(a => a.id === id)).filter(Boolean);
+    const posted = mine.flatMap(c => Object.entries(c.uploads).filter(([, u]) => u.status === "ok").map(([acc, u]) => ({ acc, u, c })));
+    const yt = posted.filter(p => p.u.platform === "youtube" && p.u.remote_id).map(p => "https://youtube.com/shorts/" + p.u.remote_id);
+    const where = !channels.length ? `<span class="state-warn">${esc(cp.name)} gehört noch zu keinem Kanal. Ordne den Creator unter „Kanäle“ zu, sonst entstehen keine Clips.</span>`
+      : accs.length ? `Postet sofort auf ${esc(accs.map(a => a.label).join(", "))}${data.settings.dry_run ? ". Probemodus ist an: Es wird nichts hochgeladen" : ""}.`
+      : `<span class="state-warn">Den Kanälen des Creators ist kein TikTok- oder YouTube-Konto zugeordnet.</span>`;
+    return `<div class="panel stack" data-campaign="${esc(cp.id)}">
+      <div class="vault-head"><span class="tag" style="--c:var(--green)">${cp.found === "auto" ? "gefunden" : "eingetragen"}</span>
+        <h3>${esc(creator?.name || cp.name)}</h3>
+        ${cp.url ? `<a href="${esc(cp.url)}" target="_blank" rel="noopener" class="muted">${esc(cp.url.replace(/^https:\/\//, ""))}</a>` : ""}
+        <span class="num">${plural(mine.length, "Clip", "Clips")}, ${posted.length} gepostet</span>
+        <label class="check"><input type="checkbox" data-active ${cp.active ? "checked" : ""}> Aktiv</label>
+        <button class="btn small" data-delete>Entfernen</button></div>
+      <div class="row"><label class="field" style="flex:1;min-width:200px"><span>Pflicht-Hashtags unter jedem Clip</span>
+        <input type="text" data-hashtags value="${esc(cp.hashtags)}" maxlength="200"></label></div>
+      <p class="muted">${cp.active ? where : "Pausiert: Clips dieses Creators entstehen wieder wie gewohnt (Zusammenschnitte im Vault)."}</p>
+      ${mine.length ? `<div class="strip">${mine.map(c => `<button class="clip" data-clip="${esc(c.clip_id)}">
+          <span class="frame">${c.exists ? `<img loading="lazy" alt="" src="/thumb/${encodeURIComponent(c.clip_id)}">` : ""}<span class="kind">${esc(cp.hashtags.split(" ")[0] || "Kampagne")}</span></span>
+          <span class="title">${esc(c.title)}</span><span class="tc">${Math.round(c.end - c.start)} s, ${ago(c.ts)}</span>
+          <span class="lamps">${lamps(c)}</span></button>`).join("")}</div>`
+        : `<p class="muted">Noch keine Clips. Sie entstehen, sobald ${esc(creator?.name || cp.name)} live ist oder ein neues Video hochlädt.</p>`}
+      ${yt.length ? `<details><summary>YouTube-Links zum Einreichen (${yt.length})</summary><textarea readonly rows="${Math.min(8, yt.length)}" style="width:100%">${esc(yt.join("\n"))}</textarea></details>` : ""}
+    </div>`;
+  }).join("") : `<div class="empty"><h3>Noch keine Kampagne</h3><p class="muted">Klicke auf „Jetzt suchen“ oder trage eine Kampagne oben selbst ein.</p></div>`;
+}
+$("#campaignSearch").addEventListener("click", () => act(() => api("/api/campaigns/search", {}), "Suche gestartet. Funde erscheinen hier und als Mitteilung."));
+$("#campaignForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  act(async () => { await api("/api/campaigns", { creator: f.get("creator"), url: f.get("url"), hashtags: f.get("hashtags") }); e.target.reset(); }, "Kampagne eingetragen");
+});
+$("#campaignList").addEventListener("click", e => {
+  const clip = e.target.closest("[data-clip]");
+  if (clip) return openClip(clip.dataset.clip);
+  const box = e.target.closest("[data-campaign]");
+  if (box && e.target.closest("[data-delete]") && confirm("Diese Kampagne entfernen? Fertige Clips bleiben erhalten."))
+    act(() => api(`/api/campaigns/${encodeURIComponent(box.dataset.campaign)}/delete`, {}), "Kampagne entfernt");
+});
+$("#campaignList").addEventListener("change", e => {
+  const box = e.target.closest("[data-campaign]"); if (!box) return;
+  if (e.target.matches("[data-active]")) act(() => api("/api/campaigns", { id: box.dataset.campaign, active: e.target.checked }), e.target.checked ? "Kampagne aktiv" : "Kampagne pausiert");
+  if (e.target.matches("[data-hashtags]")) act(() => api("/api/campaigns", { id: box.dataset.campaign, hashtags: e.target.value }), "Hashtags gespeichert");
+});
+
 /* ---------- Einstellungen ---------- */
 const SETTINGS = [
   ["Automatik und Zeitplan", "green", [
@@ -1936,6 +2017,7 @@ function render() {
   if (view === "explainer") renderExplainer();
   if (view === "watchlist") renderWatchlist();
   if (view === "live") renderLive();
+  if (view === "campaigns") renderCampaigns();
   if (view === "accounts") renderAccounts();
   if (view === "channels") renderChannels();
   if (openClipId) renderClipPlatforms();
