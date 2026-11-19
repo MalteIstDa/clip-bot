@@ -100,6 +100,17 @@ Die Live-Clips landen im **Vault** des Kanals (Bereich „Live & Vault“). Sind
 
 Voraussetzungen: Die Automatik ist an, der Creator hat „Auto-Clip“ und gehört zu einem Kanal, und ClipBot läuft, solange der Stream läuft. Gleichzeitig werden höchstens 6 Streams mitgeschnitten (einstellbar). Wurde ein Stream schon live geclippt, wird seine Aufzeichnung danach nicht noch einmal geclippt, außer ein Kanal braucht sie für Best-ofs. Alles Weitere unter Einstellungen → „Live-Clips und Vault“.
 
+## Clip-Kampagnen
+
+Manche Creator bezahlen Clipper nach Aufrufen, z. B. Gtasty über gtastyclips.com. Unter **Kampagnen** siehst du solche Kampagnen für Creator deiner Watchlist.
+
+- **Suche:** Einmal am Tag schaut ClipBot je Creator auf Seiten wie `<name>clips.com` oder `<name>clipping.com` nach. Mit „Jetzt suchen“ sofort für alle. Kampagnen auf Plattformen mit Anmeldung (Whop, Content Rewards und ähnliche) findet die Suche nicht. Die trägst du oben im Bereich selbst ein.
+- **Clips:** Hat ein Creator eine aktive Kampagne, macht ClipBot aus seinen Streams und Videos wieder einzelne Clips statt 65–90-Sekunden-Zusammenschnitten, denn Kampagnen zahlen nach Aufrufen, egal wie lang.
+- **Hashtags:** Unter jeden Clip kommen die Pflicht-Hashtags der Kampagne (z. B. `#gtasty`). Gefunden werden sie auf der Seite der Kampagne, sonst `#name`. Du kannst sie im Bereich ändern. Prüf sie einmal mit den Regeln der Kampagne.
+- **Posten:** Kampagnen-Clips werden ohne Freigabe sofort auf allen TikTok- und YouTube-Konten der Kanäle des Creators gepostet, nie auf Instagram. Scheitert ein Upload (z. B. YouTube-Tageslimit), versucht ClipBot es nach 6 Stunden erneut. Im Probemodus wird nichts hochgeladen.
+- **Einreichen:** Die meisten Kampagnen zahlen erst, wenn du die Links auf ihrer Seite einreichst. Die YouTube-Links stehen gesammelt im Bereich. Das Einreichen selbst macht ClipBot nicht.
+- „Aktiv“ ausschalten pausiert eine Kampagne. Dann entstehen wieder normale Live-Zusammenschnitte für den Vault.
+
 ## Gaming, Just Chatting und IRL
 
 ClipBot erkennt die Art des Streams an seiner Kategorie: bei Twitch „Just Chatting“, „IRL“ oder der Name des Spiels (live wird sie alle 5 Minuten neu gelesen, Aufzeichnungen nehmen das Kapitel an der Stelle des Clips), bei YouTube die Videokategorie wie „Gaming“. Ohne Kategorie hilft der Titel („IRL durch Tokyo“, „Ranked bis Platin“).

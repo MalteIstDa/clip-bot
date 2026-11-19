@@ -751,7 +751,8 @@ def test_dashboard_page_has_all_views(tmp_path, monkeypatch):
     page = client.get("/", base_url=f"http://127.0.0.1:{dashboard.PORT}")
     html = page.get_data(as_text=True)
     assert page.status_code == 200 and '<canvas id="sky"' in html
-    for view in ("overview", "review", "clips", "explainer", "watchlist", "accounts", "channels", "settings"):
+    for view in ("overview", "review", "clips", "explainer", "watchlist", "live", "campaigns", "accounts", "channels",
+                 "settings"):
         assert f'id="view-{view}"' in html and f'data-view="{view}"' in html
     routes = {re.sub(r"<[^>]+>", "*", str(rule)) for rule in dashboard.app.url_map.iter_rules()}
     called = {re.sub(r"\$\{[^}]+\}", "*", path) + ("*" if path.endswith("/") else "")

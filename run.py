@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from clipbot import ai, bestof, config, download, genre, highlights, notify, render, subtitles, transcribe, viral
+from clipbot import ai, bestof, campaigns, config, download, genre, highlights, notify, render, subtitles, transcribe, viral
 from clipbot.state import State
 from clipbot.uploaders.base import UploadError
 
@@ -49,8 +49,10 @@ def candidate_windows(source, info: dict, s: dict, loud=None) -> list[dict]:
 
 
 def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks: list[dict],
-                 creator_name: str, suffix: str = "", review: str | None = None, kind: str = "clip") -> int:
-    """Rendert die gewaehlten Stellen als Clips dieses Kanals (Texte in der Sprache des Kanals)."""
+                 creator_name: str, suffix: str = "", review: str | None = None, kind: str = "clip",
+                 campaign: dict | None = None) -> int:
+    """Rendert die gewaehlten Stellen als Clips dieses Kanals (Texte in der Sprache des Kanals).
+    campaign: Clip-Kampagne des Creators; dann bekommt jeder Clip ihre Hashtags und wird sofort gepostet."""
     name = channel["name"]
     work = s["work_dir"] / name
     for n, pick in enumerate(picks, 1):
@@ -68,6 +70,8 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
         cs = genre.settings_for(s, kind_of)  # Bildaufbau je Art
         texts = viral.write_texts(s, channel, info["title"], viral.spoken_text(words, start, end), n,
                                   pick.get("reason", ""), creator_name, kind_of, category)
+        if campaign:
+            texts = campaigns.apply_tags(texts, campaign)
         hook = texts["hook_overlay"] if s["hook_overlay"] else ""
         log.info("[%s] Clip %d von %d: rendern ...", name, n, len(picks))
         layout, cam = render.prepare_layout(source, start, end, cs["layout"])
@@ -79,14 +83,16 @@ def render_picks(channel: dict, s: dict, state: State, source, info: dict, picks
                                  layout, s["zoom"], bool(s.get("punch_ins", True)), cam)
         state.add_clip(clip_id, info["id"], name, out, texts["title"], texts["caption"], start, end,
                        texts["platforms"], hook, pick.get("reason", ""),
-                       review or ("wartet" if s["require_approval"] else "freigegeben"),
-                       viral.spoken_text(words, start, end), creator=creator_name, kind=kind,
-                       genre=genre.describe(kind_of, category))
+                       "freigegeben" if campaign else review or ("wartet" if s["require_approval"] else "freigegeben"),
+                       viral.spoken_text(words, start, end), creator=creator_name,
+                       kind="campaign" if campaign else kind, genre=genre.describe(kind_of, category),
+                       campaign=campaign["id"] if campaign else "")
         log.info("[%s] Clip %d fertig (%.0fs): %s", name, n, end - start, texts["title"])
     return len(picks)
 
 
-def process_video(channels, s: dict, state: State, video: dict, creator: dict | None = None) -> int:
+def process_video(channels, s: dict, state: State, video: dict, creator: dict | None = None,
+                  campaign: dict | None = None) -> int:
     """Ein Video herunterladen, Highlights suchen und fuer jeden Kanal Clips rendern. video = {"id", "title", "url"}.
     channels: ein Kanal oder mehrere (alle Kanaele, zu denen der Creator gehoert).
     Gibt die Zahl der erzeugten Clips zurueck."""
@@ -116,7 +122,7 @@ def process_video(channels, s: dict, state: State, video: dict, creator: dict | 
                  " (von der KI bewertet)" if ai.enabled(s) else "")
         for i, channel in enumerate(wants_clips):
             made += render_picks(channel, s, state, source, info, picks, creator_name,
-                                 "" if i == 0 else f"-{channel['name']}")
+                                 "" if i == 0 else f"-{channel['name']}", campaign=campaign)
     if wants_moments:
         count = bestof.collect_moments(source, info, s, state, creator_id or name, creator_name or name, loud)
         log.info("[%s] %d kurze Momente fuer Best-ofs gemerkt.", name, count)
@@ -129,8 +135,9 @@ def process_video(channels, s: dict, state: State, video: dict, creator: dict | 
     return made
 
 
-def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
+def process_livecut(channels, s: dict, state: State, row, creator: dict, campaign: dict | None = None) -> int:
     """Eine ausgeschnittene Live-Szene (Chat-Peak) als Clip rendern; er landet im Vault des Kanals.
+    Mit Clip-Kampagne wird jede Szene ein eigener Clip, der sofort gepostet wird (kein Zusammenschnitt).
     row: Eintrag aus der Warteschlange (videos, kind "livecut"). Gibt die Zahl der Clips zurueck."""
     channels = [ch for ch in ([channels] if isinstance(channels, dict) else list(channels)) if ch.get("clips", True)]
     raw = Path(row["url"] or "")
@@ -140,7 +147,7 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
         state.mark_video(cut_id, "", "", "skipped", note="Szene fehlt" if channels else "Kein Kanal fuer Clips")
         return 0
     creator_name = str(creator.get("name") or "").strip()
-    if s.get("live_compilation", True):
+    if s.get("live_compilation", True) and not campaign:
         return _livecut_to_moment(channels, s, state, raw, note, cut_id, creator, creator_name)
     start, end = float(note.get("start", 0)), float(note.get("end", 0))
     length = end - start
@@ -165,7 +172,8 @@ def process_livecut(channels, s: dict, state: State, row, creator: dict) -> int:
     made = 0
     for i, channel in enumerate(channels):
         made += render_picks(channel, live_s, state, raw, info, [pick], creator_name,
-                             "" if i == 0 else f"-{channel['name']}", review="vault", kind="live")
+                             "" if i == 0 else f"-{channel['name']}", review="vault", kind="live",
+                             campaign=campaign)
     state.mark_video(cut_id, "", "", "done")
     if not s["keep_source_videos"]:
         raw.unlink(missing_ok=True)
