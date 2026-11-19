@@ -82,7 +82,9 @@ def _punch(punches) -> str:
     if not punches:
         return ""
     cond = "+".join(f"between(in_time,{a:.2f},{b:.2f})" for a, b in punches)
-    return (f",zoompan=z='if({cond},{PUNCH},1)':d=1:x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'"
+    # zoompan gibt je Eingangsbild ein Bild mit seiner eigenen Bildrate aus. Ohne fps=30 davor wuerde ein
+    # 60-fps-Stream doppelt so lang und das Bild liefe dem Ton hinterher.
+    return (f",fps=30,zoompan=z='if({cond},{PUNCH},1)':d=1:x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2'"
             f":s={W}x{H}:fps=30")
 
 

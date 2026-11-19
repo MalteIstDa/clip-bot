@@ -136,3 +136,26 @@ def test_ai_sees_the_chat_of_live_moments(tmp_path, monkeypatch):
                 "duration": 70, "score": 5, "text": "Chat beim Peak: KEKW (40x)\nGesagt: no way"}]
     bestof.plan({**config.DEFAULTS}, {"name": "c", "language": "de", "tags": []}, moments, "daily", "Lacy: Beste")
     assert "Chat beim Peak: KEKW (40x)" in prompts[0] and "Zuschauer reagiert" in prompts[0]
+
+
+def test_punch_in_keeps_picture_and_sound_together(tmp_path):
+    """Twitch sendet oft 60 Bilder pro Sekunde: Das Bild darf durch den Zoom nicht laenger werden als der Ton."""
+    src = tmp_path / "s60.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=60:duration=6",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-c:v", "libx264", "-preset", "ultrafast",
+                    "-c:a", "aac", str(src)], check=True)
+    out = tmp_path / "out.mp4"
+    render.render_clip(src, 0, 6, out, None, "crop", 1.2, False)
+    graph_out = tmp_path / "zoom.mp4"
+    import clipbot.render as r
+    original = r.loud_spots
+    try:
+        r.loud_spots = lambda *a: [(2.0, 3.2)]
+        render.render_clip(src, 0, 6, graph_out, None, "facecam", 1.2, True, (0, 0, 320, 180))
+    finally:
+        r.loud_spots = original
+    for path in (out, graph_out):
+        lengths = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=duration", "-of", "csv=p=0",
+                                  str(path)], capture_output=True, text=True).stdout.split()
+        video, audio = (float(v) for v in lengths[:2])
+        assert abs(video - audio) < 0.15, (path.name, video, audio)
