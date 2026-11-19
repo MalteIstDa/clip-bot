@@ -30,7 +30,7 @@ def authorize_url(client_key: str, redirect_uri: str) -> tuple[str, str]:
     """Schritt 1: Adresse, auf der der Kontoinhaber zustimmt. Gibt (url, state) zurueck."""
     state = secrets.token_urlsafe(16)
     url = "https://www.tiktok.com/v2/auth/authorize/?" + urlencode({
-        "client_key": client_key, "scope": "video.publish", "response_type": "code",
+        "client_key": client_key, "scope": "user.info.basic,video.publish", "response_type": "code",
         "redirect_uri": redirect_uri, "state": state,
     })
     return url, state
@@ -81,21 +81,49 @@ def _post(path: str, access_token: str, body: dict) -> dict:
     return payload.get("data") or {}
 
 
-def upload(video_path: Path, caption: str, token_file: Path, client_key: str, client_secret: str,
-           privacy: str = "public") -> str:
-    access = _access_token(token_file, client_key, client_secret)
+LEVELS = ("PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY")
 
-    creator = _post("/post/publish/creator_info/query/", access, {})
+
+def creator_info(token_file: Path, client_key: str, client_secret: str) -> dict:
+    """Angaben zum Konto, die TikTok vor jedem Post anzeigen laesst: Name, Bild, erlaubte Sichtbarkeiten,
+    abgeschaltete Kommentare/Duette/Stitches und die laengste erlaubte Videolaenge."""
+    access = _access_token(token_file, client_key, client_secret)
+    return _post("/post/publish/creator_info/query/", access, {})
+
+
+def post_options(creator: dict, chosen: dict | None, privacy: str) -> dict:
+    """post_info fuer TikTok. chosen = Auswahl im Dashboard (privacy_level, allow_comment, allow_duet,
+    allow_stitch, brand_organic, brand_content). Ohne Auswahl (Automatik): Einstellung 'privacy', alles erlaubt."""
     options = creator.get("privacy_level_options") or ["SELF_ONLY"]
-    wanted = "PUBLIC_TO_EVERYONE" if privacy == "public" else "SELF_ONLY"
-    level = wanted if wanted in options else "SELF_ONLY"
+    if chosen is None:
+        wanted = "PUBLIC_TO_EVERYONE" if privacy == "public" else "SELF_ONLY"
+        return {"privacy_level": wanted if wanted in options else "SELF_ONLY", "disable_duet": False,
+                "disable_comment": False, "disable_stitch": False}
+    level = str(chosen.get("privacy_level") or "")
+    if level not in options:
+        raise UploadError("TikTok: Bitte wähle aus, wer das Video sehen darf.")
+    if chosen.get("brand_content") and level == "SELF_ONLY":
+        raise UploadError("TikTok: Markeninhalte (Branded content) dürfen nicht privat sein.")
+    return {"privacy_level": level,
+            "disable_comment": bool(creator.get("comment_disabled")) or not chosen.get("allow_comment"),
+            "disable_duet": bool(creator.get("duet_disabled")) or not chosen.get("allow_duet"),
+            "disable_stitch": bool(creator.get("stitch_disabled")) or not chosen.get("allow_stitch"),
+            "brand_organic_toggle": bool(chosen.get("brand_organic")),
+            "brand_content_toggle": bool(chosen.get("brand_content"))}
+
+
+def upload(video_path: Path, caption: str, token_file: Path, client_key: str, client_secret: str,
+           privacy: str = "public", chosen: dict | None = None) -> str:
+    """Laedt das Video hoch (Direct Post). chosen: Auswahl aus dem TikTok-Fenster des Dashboards."""
+    access = _access_token(token_file, client_key, client_secret)
+    creator = _post("/post/publish/creator_info/query/", access, {})
+    info = post_options(creator, chosen, privacy)
 
     size = video_path.stat().st_size
     chunk_size = size if size <= SINGLE_UPLOAD_MAX else CHUNK
     chunk_count = max(1, size // chunk_size)  # der letzte Teil nimmt den Rest mit auf
     init = _post("/post/publish/video/init/", access, {
-        "post_info": {"title": caption[:2200], "privacy_level": level, "disable_duet": False,
-                      "disable_comment": False, "disable_stitch": False},
+        "post_info": {"title": caption[:2200], **info},
         "source_info": {"source": "FILE_UPLOAD", "video_size": size,
                         "chunk_size": chunk_size, "total_chunk_count": chunk_count},
     })

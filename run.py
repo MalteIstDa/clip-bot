@@ -238,8 +238,9 @@ def make_clips(channel: dict, s: dict, state: State, cfg: dict | None = None) ->
     return made
 
 
-def upload_one(account: dict, clip, s: dict, tags: list[str] | None = None) -> str:
-    """Laedt einen Clip mit diesem Konto hoch und gibt die Kennung des Beitrags zurueck."""
+def upload_one(account: dict, clip, s: dict, tags: list[str] | None = None, tiktok: dict | None = None) -> str:
+    """Laedt einen Clip mit diesem Konto hoch und gibt die Kennung des Beitrags zurueck.
+    tiktok: Auswahl aus dem TikTok-Fenster (Sichtbarkeit, Kommentare, ...); ohne gelten die Einstellungen."""
     platform = account["platform"]
     path = Path(clip["path"])
     title, caption = State.texts_for(clip, platform)
@@ -250,17 +251,18 @@ def upload_one(account: dict, clip, s: dict, tags: list[str] | None = None) -> s
     if platform == "tiktok":
         from clipbot.uploaders import tiktok
         return tiktok.upload(path, caption, config.resolve(account["token_file"]),
-                             config.env("TIKTOK_CLIENT_KEY"), config.env("TIKTOK_CLIENT_SECRET"), s["privacy"])
+                             config.env("TIKTOK_CLIENT_KEY"), config.env("TIKTOK_CLIENT_SECRET"), s["privacy"],
+                             **({"chosen": tiktok} if tiktok is not None else {}))
     from clipbot.uploaders import instagram
     return instagram.upload(path, caption, str(account["ig_user_id"]),
                             config.env(account["token_env"]), s["instagram_api_version"])
 
 
-def post_clip(account: dict, clip, channel: dict, s: dict, state: State) -> bool:
+def post_clip(account: dict, clip, channel: dict, s: dict, state: State, tiktok: dict | None = None) -> bool:
     """Ein Upload samt Buchfuehrung und Protokoll. True = hochgeladen."""
     name, label = channel["name"], account.get("label") or account["id"]
     try:
-        remote_id = upload_one(account, clip, s, channel.get("tags"))
+        remote_id = upload_one(account, clip, s, channel.get("tags"), **({"tiktok": tiktok} if tiktok else {}))
     except (UploadError, config.ConfigError) as exc:
         state.mark_post(clip["clip_id"], account["id"], account["platform"], "failed", error=str(exc))
         log.error("[%s] %s (%s): %s", name, label, account["platform"], exc)

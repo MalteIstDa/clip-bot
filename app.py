@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import atexit
 import collections
+import json
 import logging
 import os
 import re
@@ -384,16 +385,57 @@ def clip_upload(clip_id: str):
     if account["id"] not in (channel.get("accounts") or []):
         raise ApiError(f"Das Konto '{account['label']}' gehoert nicht zum Kanal '{channel['name']}'.")
 
+    tiktok = _tiktok_choice(body().get("tiktok")) if account["platform"] == "tiktok" else None
+    if tiktok and tiktok.get("caption"):  # im TikTok-Fenster geaenderte Beschreibung gilt fuer diesen Post
+        texts = json.loads(clip.get("texts") or "{}") or {}
+        texts["tiktok"] = {**(texts.get("tiktok") or {}), "caption": tiktok["caption"]}
+        clip["texts"] = json.dumps(texts, ensure_ascii=False)
+
     def work():
         st = open_state(s)
         try:
             st.set_review(clip_id, "freigegeben")  # Wer selbst auf Hochladen klickt, gibt den Clip frei.
-            return pipeline.post_clip(account, clip, channel, s, st)
+            return pipeline.post_clip(account, clip, channel, s, st, tiktok)
         finally:
             st.close()
 
     status = queue_job(f"{clip_id}|{account['id']}", f"{account['label']}: {clip['title']}", work)
     return jsonify(ok=True, status=status, running=job["label"] if status == "queued" else "")
+
+
+def _tiktok_choice(raw) -> dict | None:
+    """Auswahl aus dem TikTok-Fenster pruefen (Sichtbarkeit muss gewaehlt sein, Haken sind aus, wenn sie fehlen)."""
+    if not isinstance(raw, dict):
+        return None
+    from clipbot.uploaders import tiktok
+    level = str(raw.get("privacy_level") or "")
+    if level not in tiktok.LEVELS:
+        raise ApiError("Wähle aus, wer das Video auf TikTok sehen darf.")
+    if raw.get("brand_content") and level == "SELF_ONLY":
+        raise ApiError("Markeninhalte (Branded content) dürfen auf TikTok nicht privat sein.")
+    choice = {k: bool(raw.get(k)) for k in ("allow_comment", "allow_duet", "allow_stitch", "brand_organic", "brand_content")}
+    caption = str(raw.get("caption") or "").strip()[:2200]
+    return {"privacy_level": level, **choice, **({"caption": caption} if caption else {})}
+
+
+@app.post("/api/accounts/<account_id>/tiktok")
+def account_tiktok_info(account_id: str):
+    """Kontoangaben von TikTok fuer das TikTok-Fenster (Name, erlaubte Sichtbarkeiten, laengste Videolaenge)."""
+    from clipbot.uploaders import tiktok
+    cfg = config.load(allow_empty=True)
+    account = find_account(cfg, account_id)
+    if account["platform"] != "tiktok":
+        raise ApiError("Das ist kein TikTok-Konto.")
+    try:
+        info = tiktok.creator_info(config.resolve(account["token_file"]), config.env("TIKTOK_CLIENT_KEY"),
+                                   config.env("TIKTOK_CLIENT_SECRET"))
+    except (UploadError, config.ConfigError) as exc:
+        raise ApiError(str(exc))
+    except Exception as exc:  # Netz weg o. Ae.
+        raise ApiError(f"TikTok ist gerade nicht erreichbar ({exc}).")
+    keys = ("creator_nickname", "creator_username", "creator_avatar_url", "privacy_level_options",
+            "comment_disabled", "duet_disabled", "stitch_disabled", "max_video_post_duration_sec")
+    return jsonify({k: info.get(k) for k in keys})
 
 
 @app.post("/api/clips/<clip_id>/review")
