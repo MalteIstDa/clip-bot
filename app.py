@@ -44,9 +44,14 @@ class BufferHandler(logging.Handler):
                           "level": record.levelname, "msg": msg})
 
 
-job = {"running": False, "label": "", "started": 0.0}
+job = {"running": False, "label": "", "started": 0.0, "queue": []}
 job_lock = threading.Lock()
+pending: list[tuple[str, str, object]] = []  # (Schluessel, Titel, Funktion) wartender Uploads
 tiktok_pending: dict[str, str] = {}  # Konto -> state der laufenden Anmeldung
+
+
+def _sync_queue() -> None:
+    job["queue"] = [{"key": k, "label": label} for k, label, _ in pending]
 
 
 def start_job(label: str, fn) -> bool:
@@ -57,19 +62,43 @@ def start_job(label: str, fn) -> bool:
         job.update(running=True, label=label, started=time.time())
 
     def wrapper():
-        try:
-            log.info("Start: %s", label)
-            if fn() is False:
-                log.error("Mit Fehlern beendet: %s. Den Grund nennt die rote Zeile darueber.", label)
-            else:
-                log.info("Fertig: %s", label)
-        except Exception:
-            log.exception("Abgebrochen: %s", label)
-        finally:
-            job["running"] = False
+        nxt = (label, fn)
+        while nxt:
+            name, work = nxt
+            try:
+                log.info("Start: %s", name)
+                if work() is False:
+                    log.error("Mit Fehlern beendet: %s. Den Grund nennt die rote Zeile darueber.", name)
+                else:
+                    log.info("Fertig: %s", name)
+            except Exception:
+                log.exception("Abgebrochen: %s", name)
+            with job_lock:  # Wartende Uploads kommen vor der Automatik dran.
+                if pending:
+                    _, name, work = pending.pop(0)
+                    _sync_queue()
+                    nxt = (name, work)
+                    job.update(label=name, started=time.time())
+                else:
+                    nxt = None
+                    job["running"] = False
 
     threading.Thread(target=wrapper, daemon=True).start()
     return True
+
+
+def queue_job(key: str, label: str, fn) -> str:
+    """Startet sofort oder stellt hinten an, wenn gerade etwas laeuft. Gibt 'started' oder 'queued' zurueck."""
+    while True:
+        with job_lock:
+            if any(k == key for k, _, _ in pending):
+                return "queued"
+            if job["running"]:
+                pending.append((key, label, fn))
+                _sync_queue()
+                return "queued"
+        if start_job(label, fn):
+            return "started"
 
 
 def _open_state(settings: dict) -> State:
@@ -362,9 +391,8 @@ def clip_upload(clip_id: str):
         finally:
             st.close()
 
-    if not start_job(f"{account['label']}: {clip['title']}", work):
-        raise ApiError(f"Es laeuft bereits: {job['label']}", 409)
-    return jsonify(ok=True)
+    status = queue_job(f"{clip_id}|{account['id']}", f"{account['label']}: {clip['title']}", work)
+    return jsonify(ok=True, status=status, running=job["label"] if status == "queued" else "")
 
 
 @app.post("/api/clips/<clip_id>/review")

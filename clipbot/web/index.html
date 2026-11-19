@@ -1247,7 +1247,8 @@ function renderClipPlatforms() {
   const clip = data.clips.find(c => c.clip_id === openClipId);
   if (!clip) return;
   const accounts = accountsFor(clip);
-  if (!changed("clipPlatforms", [clip.uploads, accounts.map(a => [a.id, a.label, a.connected]), data.job.running, clip.exists])) return;
+  const queued = new Set((data.job.queue || []).map(q => q.key));
+  if (!changed("clipPlatforms", [clip.uploads, accounts.map(a => [a.id, a.label, a.connected]), [...queued], clip.exists])) return;
   if (!accounts.length) {
     $("#clipPlatforms").innerHTML = `<tr><td colspan="3" class="muted">${isLocal(clip.channel)
       ? "Ohne Kanal erstellt, das Video liegt nur auf deinem Rechner." : "Diesem Kanal ist noch kein Konto zugeordnet. Das geht unter „Kanäle“."}</td></tr>`;
@@ -1262,7 +1263,8 @@ function renderClipPlatforms() {
     } else {
       text = !a.connected ? "Konto nicht verbunden"
         : up?.status === "failed" ? `<span class="state-bad">Fehlgeschlagen</span><small>${esc(up.error)}</small>` : "Noch nicht hochgeladen";
-      button = `<button class="btn small fill" style="--c:var(--${cls})" data-upload="${esc(a.id)}" ${!a.connected || data.job.running || !clip.exists ? "disabled" : ""}>Jetzt hochladen</button>`;
+      if (queued.has(clip.clip_id + "|" + a.id)) { state = "muted"; text = "Steht an, startet nach dem laufenden Auftrag"; }
+      else button = `<button class="btn small fill" style="--c:var(--${cls})" data-upload="${esc(a.id)}" ${!a.connected || !clip.exists ? "disabled" : ""}>Jetzt hochladen</button>`;
     }
     return `<tr><td><span class="dot" style="--c:var(--${cls})"></span>${esc(a.label)}<small>${label}</small></td><td class="${state}">${text}</td><td>${button}</td></tr>`;
   }).join("");
@@ -1272,8 +1274,12 @@ $("#clipTitle").addEventListener("input", e => ($("#titleCount").textContent = e
 $("#clipSave").addEventListener("click", () => act(saveClipTexts, "Texte gespeichert"));
 $("#clipPlatforms").addEventListener("click", e => {
   const b = e.target.closest("[data-upload]"); if (!b) return;
-  act(async () => { await saveClipTexts(); await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { account: b.dataset.upload }); },
-    "Upload gestartet. Den Fortschritt siehst du im Protokoll.");
+  act(async () => {
+    await saveClipTexts();
+    const r = await api(`/api/clips/${encodeURIComponent(openClipId)}/upload`, { account: b.dataset.upload });
+    toast(r.status === "queued" ? `Upload steht an. Er startet, sobald „${r.running}“ fertig ist.`
+      : "Upload gestartet. Den Fortschritt siehst du im Protokoll.");
+  });
 });
 $("#clipDelete").addEventListener("click", () => {
   if (!confirm("Dieses Video samt Datei löschen? Bereits hochgeladene Beiträge bleiben auf den Plattformen.")) return;
