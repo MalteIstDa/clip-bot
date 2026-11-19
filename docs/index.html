@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClipBot</title><style>
+:root{color-scheme:light dark;--bg:#0b0a1a;--fg:#ece9ff;--muted:#a9a3cf;--accent:#c084fc}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:0 auto;padding:40px 16px 80px}
+h1{font-size:2rem;margin:0 0 4px}h2{font-size:1.15rem;margin:28px 0 6px}
+a{color:var(--accent)}p,li{color:var(--fg)}.muted{color:var(--muted)}
+nav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+</style></head>
+<body><main><nav><a href="./">ClipBot</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></nav>
+<h1>ClipBot</h1>
+<p class="muted">A personal desktop tool for clippers.</p>
+<p>ClipBot runs on the user's own computer. It turns livestreams and videos of creators the user follows into short vertical clips with subtitles and lets the user publish them to their own TikTok and YouTube accounts. Clips are only taken from creators who allow it, for example through an official clipping campaign.</p>
+<h2>How it uses TikTok</h2>
+<ul>
+<li>The user connects their own TikTok account with TikTok Login Kit and grants the <code>video.publish</code> permission.</li>
+<li>ClipBot shows the clip, its caption and the privacy setting in its local dashboard. The user decides what is posted.</li>
+<li>The clip is uploaded to the user's account through the TikTok Content Posting API.</li>
+</ul>
+<p>Source code: <a href="https://github.com/MalteIstDa/clip-bot">github.com/MalteIstDa/clip-bot</a></p>
+</main></body></html>

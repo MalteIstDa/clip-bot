@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClipBot Privacy Policy</title><style>
+:root{color-scheme:light dark;--bg:#0b0a1a;--fg:#ece9ff;--muted:#a9a3cf;--accent:#c084fc}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:0 auto;padding:40px 16px 80px}
+h1{font-size:2rem;margin:0 0 4px}h2{font-size:1.15rem;margin:28px 0 6px}
+a{color:var(--accent)}p,li{color:var(--fg)}.muted{color:var(--muted)}
+nav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+</style></head>
+<body><main><nav><a href="./">ClipBot</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></nav>
+<h1>Privacy Policy</h1>
+<p class="muted">Last updated: November 20, 2026</p>
+<p>ClipBot is software that runs locally on the user's own computer. There is no ClipBot server, and the developer of ClipBot does not receive any data.</p>
+<h2>What is stored</h2>
+<ul>
+<li>Access tokens for the TikTok and YouTube accounts the user connects. They are stored only on the user's computer (folder <code>tokens/</code>) and are used only to publish the user's clips.</li>
+<li>Videos, clips, captions and settings created by ClipBot, also only on the user's computer.</li>
+</ul>
+<h2>What is sent to third parties</h2>
+<ul>
+<li>TikTok: the clip and its caption when the user publishes, plus the basic account information needed for the upload (<code>video.publish</code>).</li>
+<li>Google (YouTube Data API): the clip, title and description when the user publishes to YouTube.</li>
+<li>Optional: transcripts of a clip to the AI service the user selects (Anthropic Claude or a local model) to write titles and captions.</li>
+</ul>
+<p>ClipBot does not sell data, does not show ads and does not track users.</p>
+<h2>Deleting data</h2>
+<p>Disconnect the account in the ClipBot dashboard or delete the <code>tokens/</code> folder. Access can also be revoked at any time in the TikTok app under Settings → Security → Manage app permissions.</p>
+<h2>Contact</h2>
+<p>Questions: open an issue at <a href="https://github.com/MalteIstDa/clip-bot/issues">github.com/MalteIstDa/clip-bot/issues</a>.</p>
+</main></body></html>
