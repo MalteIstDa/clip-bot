@@ -249,8 +249,8 @@ def upload_one(account: dict, clip, s: dict, tags: list[str] | None = None, tikt
         return youtube.upload(path, title, caption, list(tags or []),
                               config.resolve(account["token_file"]), s["privacy"], s["youtube_category_id"])
     if platform == "tiktok":
-        from clipbot.uploaders import tiktok
-        return tiktok.upload(path, caption, config.resolve(account["token_file"]),
+        from clipbot.uploaders import tiktok as tiktok_api  # nicht "tiktok": so heisst schon die Auswahl
+        return tiktok_api.upload(path, caption, config.resolve(account["token_file"]),
                              config.env("TIKTOK_CLIENT_KEY"), config.env("TIKTOK_CLIENT_SECRET"), s["privacy"],
                              **({"chosen": tiktok} if tiktok is not None else {}))
     from clipbot.uploaders import instagram

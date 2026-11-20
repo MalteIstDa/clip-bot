@@ -54,3 +54,17 @@ def test_tiktok_window_choice_reaches_the_upload(tmp_path, monkeypatch):
     assert sent == [("Neu #gtasty", {"privacy_level": "PUBLIC_TO_EVERYONE", "allow_comment": True, "allow_duet": False,
                                      "allow_stitch": False, "brand_organic": False, "brand_content": False,
                                      "caption": "Neu #gtasty"})]
+
+
+@pytest.mark.parametrize("chosen", [None, {"privacy_level": "SELF_ONLY", "allow_comment": True}])
+def test_upload_one_hands_the_choice_to_the_tiktok_uploader(tmp_path, monkeypatch, chosen):
+    """Echter Weg durch run.upload_one bis zum Uploader (nur der Netzaufruf ist ersetzt)."""
+    calls = []
+    monkeypatch.setattr(tiktok, "upload", lambda path, caption, token_file, key, secret, privacy, chosen=None:
+                        calls.append((caption, privacy, chosen)) or "pub1")
+    monkeypatch.setattr(config, "env", lambda name, required=True: "x")
+    account = {"id": "tt", "platform": "tiktok", "token_file": str(tmp_path / "tt.json")}
+    clip = {"path": str(tmp_path / "a.mp4"), "title": "T", "caption": "C #gtasty", "texts": None}
+    extra = {"tiktok": chosen} if chosen is not None else {}
+    assert run.upload_one(account, clip, {**config.DEFAULTS}, **extra) == "pub1"
+    assert calls == [("C #gtasty", config.DEFAULTS["privacy"], chosen)]
