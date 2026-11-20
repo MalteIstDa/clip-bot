@@ -609,7 +609,7 @@ a.note:hover strong, a.pop:hover strong { color: var(--cyan); }
   </footer>
 </div></dialog>
 
-<dialog id="tiktokDialog"><form class="dlg stack" id="tiktokForm">
+<dialog id="ttPostDialog"><form class="dlg stack" id="ttPostForm">
   <h2>Post to TikTok</h2>
   <p class="muted" id="ttAccount">Loading your TikTok account …</p>
   <div class="editor">
@@ -1855,7 +1855,7 @@ $("#vaultList").addEventListener("click", e => {
 const TT_LEVELS = { PUBLIC_TO_EVERYONE: "Everyone", MUTUAL_FOLLOW_FRIENDS: "Friends", FOLLOWER_OF_CREATOR: "Followers", SELF_ONLY: "Only me" };
 let tt = null;  // {clip, account, info}
 async function openTikTok(clipId, accountId) {
-  const clip = data.clips.find(c => c.clip_id === clipId), f = $("#tiktokForm");
+  const clip = data.clips.find(c => c.clip_id === clipId), f = $("#ttPostForm");
   if (!clip) return;
   f.reset(); tt = { clip, account: accountId, info: null };
   $("#ttVideo").src = "/media/" + encodeURIComponent(clipId);
@@ -1863,7 +1863,7 @@ async function openTikTok(clipId, accountId) {
   $("#ttPrivacy").innerHTML = `<option value="" selected disabled>Select who can view</option>`;
   $("#ttAccount").textContent = "Loading your TikTok account …";
   ttUpdate();
-  $("#tiktokDialog").showModal();
+  $("#ttPostDialog").showModal();
   try {
     const info = await api(`/api/accounts/${encodeURIComponent(accountId)}/tiktok`, {});
     if (!tt || tt.account !== accountId) return;
@@ -1878,7 +1878,7 @@ async function openTikTok(clipId, accountId) {
   ttUpdate();
 }
 function ttUpdate() {
-  const f = $("#tiktokForm"), info = tt?.info, disclose = f.disclose.checked;
+  const f = $("#ttPostForm"), info = tt?.info, disclose = f.disclose.checked;
   const own = disclose && f.brand_organic.checked, branded = disclose && f.brand_content.checked;
   $("#ttDisclose").hidden = !disclose;
   const priv = [...$("#ttPrivacy").options].find(o => o.value === "SELF_ONLY");
@@ -1893,9 +1893,9 @@ function ttUpdate() {
   $("#ttWarn").hidden = !warn; $("#ttWarn").textContent = warn;
   $("#ttPost").disabled = !info || !f.privacy_level.value || !!warn;
 }
-$("#tiktokForm").addEventListener("change", ttUpdate);
-$("#ttCancel").addEventListener("click", () => { tt = null; $("#ttVideo").pause(); $("#tiktokDialog").close(); });
-$("#tiktokForm").addEventListener("submit", e => {
+$("#ttPostForm").addEventListener("change", ttUpdate);
+$("#ttCancel").addEventListener("click", () => { tt = null; $("#ttVideo").pause(); $("#ttPostDialog").close(); });
+$("#ttPostForm").addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target, disclose = f.disclose.checked, job = tt;
   if (!job) return;
@@ -1904,7 +1904,7 @@ $("#tiktokForm").addEventListener("submit", e => {
     brand_organic: disclose && f.brand_organic.checked, brand_content: disclose && f.brand_content.checked };
   act(async () => {
     const r = await api(`/api/clips/${encodeURIComponent(job.clip.clip_id)}/upload`, { account: job.account, tiktok: choice });
-    tt = null; $("#ttVideo").pause(); $("#tiktokDialog").close();
+    tt = null; $("#ttVideo").pause(); $("#ttPostDialog").close();
     toast(r.status === "queued" ? `Steht an, startet nach „${r.running}“. Danach kann es ein paar Minuten dauern, bis das Video auf TikTok erscheint.`
       : "Upload gestartet. Es kann ein paar Minuten dauern, bis das Video auf deinem TikTok-Profil erscheint.");
   });

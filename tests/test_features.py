@@ -751,6 +751,8 @@ def test_dashboard_page_has_all_views(tmp_path, monkeypatch):
     page = client.get("/", base_url=f"http://127.0.0.1:{dashboard.PORT}")
     html = page.get_data(as_text=True)
     assert page.status_code == 200 and '<canvas id="sky"' in html
+    ids = re.findall(r'\sid="([^"]+)"', html)
+    assert not [i for i in set(ids) if ids.count(i) > 1]  # doppelte ids: $("#...") findet das falsche Element
     for view in ("overview", "review", "clips", "explainer", "watchlist", "live", "campaigns", "accounts", "channels",
                  "settings"):
         assert f'id="view-{view}"' in html and f'data-view="{view}"' in html
